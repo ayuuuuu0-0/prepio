@@ -1,0 +1,8 @@
+2026/06/08 22:38:20 gateway listening on :8080
+2026/06/08 22:38:26 [192.168.1.3/iUPfgFSmVA-000001] "POST http://localhost:8080/api/v1/auth/register HTTP/1.1" from [::1]:60989 - 201 954B in 123.0835ms
+2026/06/08 22:38:26 [192.168.1.3/iUPfgFSmVA-000002] "GET http://localhost:8080/api/v1/questions/daily HTTP/1.1" from [::1]:60995 - 200 1264B in 38.189208ms
+2026/06/08 22:38:37 [192.168.1.3/iUPfgFSmVA-000003] "POST http://localhost:8080/api/v1/auth/login HTTP/1.1" from [::1]:61048 - 401 73B in 72.200042ms
+2026/06/08 22:40:18 [192.168.1.3/iUPfgFSmVA-000004] "POST http://localhost:8080/api/v1/auth/login HTTP/1.1" from [::1]:61625 - 200 953B in 142.432833ms
+2026/06/08 22:40:18 [192.168.1.3/iUPfgFSmVA-000007] "GET http://localhost:8080/api/v1/progress/me HTTP/1.1" from [::1]:61632 - 200 81B in 27.18175ms
+2026/06/08 22:40:18 [192.168.1.3/iUPfgFSmVA-000006] "GET http://localhost:8080/api/v1/streaks/me HTTP/1.1" from [::1]:61625 - 200 127B in 32.495875ms
+2026/06/08 22:40:18 [192.168.1.3/iUPfgFSmVA-000005] "GET http://localhost:8080/api/v1/questions/daily HTTP/1.1" from [::1]:61631 - 200 1264B in 32.988333ms

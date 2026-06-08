@@ -1,0 +1,23 @@
+{
+  "@@locale": "en",
+  "appTitle": "Prepio",
+  "signIn": "Sign in",
+  "register": "Register",
+  "email": "Email",
+  "password": "Password",
+  "username": "Username",
+  "dailyQuestion": "Today's question",
+  "submitAnswer": "Submit answer",
+  "streak": "Streak",
+  "progress": "Progress",
+  "gems": "Gems",
+  "level": "Level",
+  "correct": "Correct!",
+  "keepPracticing": "Keep practicing",
+  "loading": "Loading...",
+  "signOut": "Sign out",
+  "answerPlaceholder": "Write your answer...",
+  "days": "days",
+  "activeToday": "Active today",
+  "notActiveToday": "Not active yet today"
+}

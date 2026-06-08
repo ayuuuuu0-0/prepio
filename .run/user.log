@@ -1,0 +1,4 @@
+2026/06/08 22:38:12 user service listening on :8081
+2026/06/08 22:38:26 [192.168.1.3/Ap9QLU8NJt-000001] "POST http://localhost:8080/api/v1/auth/register HTTP/1.1" from ::1 - 201 954B in 114.705875ms
+2026/06/08 22:38:37 [192.168.1.3/Ap9QLU8NJt-000002] "POST http://localhost:8080/api/v1/auth/login HTTP/1.1" from ::1 - 401 73B in 68.023375ms
+2026/06/08 22:40:18 [192.168.1.3/Ap9QLU8NJt-000003] "POST http://localhost:8080/api/v1/auth/login HTTP/1.1" from ::1 - 200 953B in 136.007041ms

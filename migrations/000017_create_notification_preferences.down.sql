@@ -1,0 +1,2 @@
+DROP TRIGGER IF EXISTS notification_preferences_set_updated_at ON notification_preferences;
+DROP TABLE IF EXISTS notification_preferences;
