@@ -3,6 +3,10 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { FormEvent, useState } from "react";
+import { GameBackground } from "@/components/game/GameBackground";
+import { CompanionHero } from "@/components/game/CompanionHero";
+import { SpeechBubble } from "@/components/game/SpeechBubble";
+import { GameButton } from "@/components/game/GameButton";
 import { api } from "@/lib/api";
 
 export default function RegisterPage() {
@@ -20,7 +24,7 @@ export default function RegisterPage() {
     try {
       const res = await api.register(email, username, password);
       api.setToken(res.access_token);
-      router.push("/dashboard");
+      router.push("/onboarding");
     } catch (err) {
       setError(err instanceof Error ? err.message : "registration failed");
     } finally {
@@ -29,55 +33,55 @@ export default function RegisterPage() {
   }
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-slate-50 px-4">
-      <form onSubmit={onSubmit} className="w-full max-w-md rounded-2xl bg-white p-8 shadow-lg">
-        <h1 className="text-2xl font-bold text-slate-900">Join Prepio</h1>
-        <p className="mt-1 text-slate-500">Start your interview prep streak today</p>
+    <GameBackground>
+      <main className="mx-auto flex min-h-screen max-w-md flex-col items-center justify-center px-6 py-12">
+        <CompanionHero name="Pip" species="red_panda" size="lg" />
+        <SpeechBubble className="mt-6 max-w-sm text-center">
+          Join the adventure! Pick your companion and start becoming interview-ready.
+        </SpeechBubble>
 
-        {error && <p className="mt-4 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
+        <form onSubmit={onSubmit} className="mt-8 w-full space-y-4">
+          {error && (
+            <p className="rounded-2xl bg-orange-100 px-4 py-3 text-center text-sm font-semibold text-orange-700">
+              {error}
+            </p>
+          )}
+          <input
+            className="w-full rounded-2xl border-2 border-[#E5E5E5] bg-white px-4 py-3 font-semibold outline-none focus:border-[#FF9600]"
+            type="email"
+            placeholder="Email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+          />
+          <input
+            className="w-full rounded-2xl border-2 border-[#E5E5E5] bg-white px-4 py-3 font-semibold outline-none focus:border-[#FF9600]"
+            placeholder="Username"
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
+            required
+          />
+          <input
+            className="w-full rounded-2xl border-2 border-[#E5E5E5] bg-white px-4 py-3 font-semibold outline-none focus:border-[#FF9600]"
+            type="password"
+            placeholder="Password (8+ chars)"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            minLength={8}
+            required
+          />
+          <GameButton type="submit" variant="gold" disabled={loading}>
+            {loading ? "Creating..." : "Begin Adventure!"}
+          </GameButton>
+        </form>
 
-        <label className="mt-6 block text-sm font-medium text-slate-700">Email</label>
-        <input
-          className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2"
-          type="email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          required
-        />
-
-        <label className="mt-4 block text-sm font-medium text-slate-700">Username</label>
-        <input
-          className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2"
-          value={username}
-          onChange={(e) => setUsername(e.target.value)}
-          required
-        />
-
-        <label className="mt-4 block text-sm font-medium text-slate-700">Password</label>
-        <input
-          className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2"
-          type="password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          minLength={8}
-          required
-        />
-
-        <button
-          type="submit"
-          disabled={loading}
-          className="mt-6 w-full rounded-lg bg-emerald-600 py-2.5 font-semibold text-white hover:bg-emerald-700 disabled:opacity-50"
-        >
-          {loading ? "Creating account..." : "Create account"}
-        </button>
-
-        <p className="mt-4 text-center text-sm text-slate-500">
-          Already have an account?{" "}
-          <Link href="/login" className="font-medium text-emerald-600 hover:underline">
+        <p className="mt-6 text-center text-sm font-semibold text-[#777]">
+          Already playing?{" "}
+          <Link href="/login" className="font-display font-bold text-[#58CC02] hover:underline">
             Sign in
           </Link>
         </p>
-      </form>
-    </main>
+      </main>
+    </GameBackground>
   );
 }

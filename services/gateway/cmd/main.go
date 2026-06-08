@@ -12,6 +12,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	chimw "github.com/go-chi/chi/v5/middleware"
 	"github.com/prepio/prepio/constants"
+	"github.com/prepio/prepio/services/gateway/internal/dashboard"
 	"github.com/prepio/prepio/shared/proxy"
 	"github.com/prepio/prepio/shared/jwt"
 	"github.com/prepio/prepio/shared/middleware"
@@ -55,6 +56,13 @@ func main() {
 		log.Fatalf("progress proxy: %v", err)
 	}
 
+	dashboardService := dashboard.NewService(
+		envOrDefault("USER_SERVICE_URL", "http://localhost:8081"),
+		envOrDefault("PROGRESS_SERVICE_URL", "http://localhost:8084"),
+		envOrDefault("STREAK_SERVICE_URL", "http://localhost:8083"),
+	)
+	dashboardHandler := dashboard.NewHandler(dashboardService)
+
 	r := chi.NewRouter()
 	r.Use(middleware.CORS)
 	r.Use(chimw.RequestID)
@@ -68,11 +76,13 @@ func main() {
 			r.Post("/auth/register", userProxy.ServeHTTP)
 			r.Post("/auth/login", userProxy.ServeHTTP)
 			r.Post("/auth/refresh", userProxy.ServeHTTP)
+			r.Get("/companions", userProxy.ServeHTTP)
 		})
 
 		r.Group(func(r chi.Router) {
 			r.Use(middleware.Auth(signer, redisClient))
 			r.Use(middleware.RateLimit(redisClient, constants.AuthenticatedRateLimitPerMinute, middleware.RateLimitKeyByUser))
+			r.Get("/dashboard/home", dashboardHandler.GetHome)
 			r.Post("/auth/logout", userProxy.ServeHTTP)
 			r.Handle("/users/*", userProxy)
 			r.Handle("/questions/*", questionProxy)

@@ -47,12 +47,16 @@ func main() {
 	userStore := store.NewUserStore(pool)
 	refreshStore := store.NewRefreshTokenStore(pool)
 	deviceStore := store.NewUserDeviceStore(pool)
+	targetStore := store.NewTargetStore(pool)
+	characterStore := store.NewCharacterStore(pool)
 
 	authService := service.NewAuthService(userStore, refreshStore, signer, redisClient)
 	userService := service.NewUserService(userStore, deviceStore)
+	onboardingService := service.NewOnboardingService(userStore, targetStore, characterStore)
 
 	authHandler := handler.NewAuthHandler(authService)
 	userHandler := handler.NewUserHandler(userService)
+	onboardingHandler := handler.NewOnboardingHandler(onboardingService)
 
 	r := chi.NewRouter()
 	r.Use(chimw.RequestID)
@@ -65,10 +69,14 @@ func main() {
 		r.Post("/auth/login", authHandler.Login)
 		r.Post("/auth/refresh", authHandler.Refresh)
 
+		r.Get("/companions", onboardingHandler.ListCompanions)
+
 		r.Group(func(r chi.Router) {
 			r.Use(middleware.Auth(signer, redisClient))
 			r.Post("/auth/logout", authHandler.Logout)
 			r.Get("/users/me", userHandler.GetMe)
+			r.Get("/users/profile", onboardingHandler.GetProfile)
+			r.Post("/users/onboarding", onboardingHandler.CompleteOnboarding)
 			r.Patch("/users/me", userHandler.UpdateMe)
 			r.Post("/users/me/devices", userHandler.RegisterDevice)
 			r.Delete("/users/me/devices/{deviceID}", userHandler.DeleteDevice)

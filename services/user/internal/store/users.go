@@ -12,15 +12,17 @@ import (
 
 // User is a row from the users table.
 type User struct {
-	ID            string
-	Email         string
-	Username      string
-	PasswordHash  string
-	Timezone      string
-	ActiveCharID  *string
-	ReminderTime  string
-	CreatedAt     time.Time
-	UpdatedAt     time.Time
+	ID                  string
+	Email               string
+	Username            string
+	PasswordHash        string
+	Timezone            string
+	ActiveCharID        *string
+	ReminderTime        string
+	ExperienceLevel     *string
+	OnboardingCompleted bool
+	CreatedAt           time.Time
+	UpdatedAt           time.Time
 }
 
 // UserStore handles users table queries.
@@ -39,7 +41,8 @@ func (s *UserStore) Create(ctx context.Context, email, username, passwordHash, t
 		INSERT INTO users (email, username, password_hash, timezone)
 		VALUES ($1, $2, $3, $4)
 		RETURNING id, email, username, password_hash, timezone, active_char_id,
-		          reminder_time::text, created_at, updated_at`
+		          reminder_time::text, experience_level, onboarding_completed,
+		          created_at, updated_at`
 
 	row := s.pool.QueryRow(ctx, q, email, username, passwordHash, timezone)
 	return scanUser(row)
@@ -49,7 +52,8 @@ func (s *UserStore) Create(ctx context.Context, email, username, passwordHash, t
 func (s *UserStore) GetByID(ctx context.Context, id string) (*User, error) {
 	const q = `
 		SELECT id, email, username, password_hash, timezone, active_char_id,
-		       reminder_time::text, created_at, updated_at
+		       reminder_time::text, experience_level, onboarding_completed,
+		       created_at, updated_at
 		FROM users WHERE id = $1`
 
 	row := s.pool.QueryRow(ctx, q, id)
@@ -64,7 +68,8 @@ func (s *UserStore) GetByID(ctx context.Context, id string) (*User, error) {
 func (s *UserStore) GetByEmail(ctx context.Context, email string) (*User, error) {
 	const q = `
 		SELECT id, email, username, password_hash, timezone, active_char_id,
-		       reminder_time::text, created_at, updated_at
+		       reminder_time::text, experience_level, onboarding_completed,
+		       created_at, updated_at
 		FROM users WHERE email = $1`
 
 	row := s.pool.QueryRow(ctx, q, email)
@@ -79,7 +84,8 @@ func (s *UserStore) GetByEmail(ctx context.Context, email string) (*User, error)
 func (s *UserStore) GetByUsername(ctx context.Context, username string) (*User, error) {
 	const q = `
 		SELECT id, email, username, password_hash, timezone, active_char_id,
-		       reminder_time::text, created_at, updated_at
+		       reminder_time::text, experience_level, onboarding_completed,
+		       created_at, updated_at
 		FROM users WHERE username = $1`
 
 	row := s.pool.QueryRow(ctx, q, username)
@@ -99,7 +105,8 @@ func (s *UserStore) UpdateProfile(ctx context.Context, id string, timezone, remi
 		    active_char_id = $4
 		WHERE id = $1
 		RETURNING id, email, username, password_hash, timezone, active_char_id,
-		          reminder_time::text, created_at, updated_at`
+		          reminder_time::text, experience_level, onboarding_completed,
+		          created_at, updated_at`
 
 	row := s.pool.QueryRow(ctx, q, id, timezone, reminderTime, activeCharID)
 	user, err := scanUser(row)
@@ -143,9 +150,30 @@ func (s *UserStore) SetActiveCharacter(ctx context.Context, userID, characterID 
 	const q = `
 		UPDATE users SET active_char_id = $2 WHERE id = $1
 		RETURNING id, email, username, password_hash, timezone, active_char_id,
-		          reminder_time::text, created_at, updated_at`
+		          reminder_time::text, experience_level, onboarding_completed,
+		          created_at, updated_at`
 
 	row := s.pool.QueryRow(ctx, q, userID, characterID)
+	user, err := scanUser(row)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil, nil
+	}
+	return user, err
+}
+
+// CompleteOnboarding stores onboarding choices and marks the profile complete.
+func (s *UserStore) CompleteOnboarding(ctx context.Context, userID, experienceLevel, characterID string) (*User, error) {
+	const q = `
+		UPDATE users
+		SET experience_level = $2,
+		    active_char_id = $3,
+		    onboarding_completed = true
+		WHERE id = $1
+		RETURNING id, email, username, password_hash, timezone, active_char_id,
+		          reminder_time::text, experience_level, onboarding_completed,
+		          created_at, updated_at`
+
+	row := s.pool.QueryRow(ctx, q, userID, experienceLevel, characterID)
 	user, err := scanUser(row)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, nil
@@ -173,6 +201,8 @@ func scanUser(row pgx.Row) (*User, error) {
 		&u.Timezone,
 		&u.ActiveCharID,
 		&u.ReminderTime,
+		&u.ExperienceLevel,
+		&u.OnboardingCompleted,
 		&u.CreatedAt,
 		&u.UpdatedAt,
 	)

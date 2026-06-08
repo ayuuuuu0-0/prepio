@@ -1,186 +1,154 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { FormEvent, useCallback, useEffect, useState } from "react";
-import {
-  api,
-  DailyPaper,
-  Progress,
-  Question,
-  Streak,
-  SubmitResponse,
-} from "@/lib/api";
+import { useCallback, useEffect, useState } from "react";
+import { api, DashboardHome } from "@/lib/api";
+import { companyColors, leagueThemes } from "@/lib/design/tokens";
+import { GameBackground } from "@/components/game/GameBackground";
+import { CompanionHero } from "@/components/game/CompanionHero";
+import { SpeechBubble } from "@/components/game/SpeechBubble";
+import { ReadinessRing } from "@/components/game/ReadinessRing";
+import { GameCard } from "@/components/game/GameCard";
+import { QuestCard } from "@/components/game/QuestCard";
+import { StatChip } from "@/components/game/StatChip";
+import { GameButton } from "@/components/game/GameButton";
+import { BottomNav } from "@/components/game/BottomNav";
+
+const questIcons: Record<string, string> = {
+  daily_question: "⚡",
+  maintain_streak: "🔥",
+  score_high: "🎯",
+};
 
 export default function DashboardPage() {
   const router = useRouter();
-  const [paper, setPaper] = useState<DailyPaper | null>(null);
-  const [streak, setStreak] = useState<Streak | null>(null);
-  const [progress, setProgress] = useState<Progress | null>(null);
-  const [activeQuestion, setActiveQuestion] = useState<Question | null>(null);
-  const [answer, setAnswer] = useState("");
-  const [submitResult, setSubmitResult] = useState<SubmitResponse | null>(null);
+  const [home, setHome] = useState<DashboardHome | null>(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
-  const [submitting, setSubmitting] = useState(false);
 
-  const refresh = useCallback(async () => {
+  const load = useCallback(async () => {
     setError("");
     try {
-      const [daily, streakData, progressData] = await Promise.all([
-        api.getDailyPaper(),
-        api.getStreak(),
-        api.getProgress(),
-      ]);
-      setPaper(daily);
-      setStreak(streakData);
-      setProgress(progressData);
-      if (!activeQuestion && daily.questions.length > 0) {
-        setActiveQuestion(daily.questions[0]);
+      const data = await api.getDashboardHome();
+      if (data.onboarding_needed) {
+        router.replace("/onboarding");
+        return;
       }
+      setHome(data);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "failed to load data");
+      setError(err instanceof Error ? err.message : "failed to load dashboard");
     } finally {
       setLoading(false);
     }
-  }, [activeQuestion]);
+  }, [router]);
 
   useEffect(() => {
     if (!api.loadToken()) {
       router.replace("/login");
       return;
     }
-    refresh();
-  }, [router, refresh]);
-
-  async function onSubmit(e: FormEvent) {
-    e.preventDefault();
-    if (!paper || !activeQuestion || len(answer) === 0) return;
-    setSubmitting(true);
-    setSubmitResult(null);
-    try {
-      const result = await api.submitAnswer(activeQuestion.id, paper.session_id, answer);
-      setSubmitResult(result);
-      setAnswer("");
-      await new Promise((r) => setTimeout(r, 800));
-      await refresh();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "submit failed");
-    } finally {
-      setSubmitting(false);
-    }
-  }
-
-  function len(s: string) {
-    return s.length;
-  }
+    load();
+  }, [router, load]);
 
   if (loading) {
     return (
-      <main className="flex min-h-screen items-center justify-center">
-        <p className="text-slate-500">Loading your daily paper...</p>
-      </main>
+      <GameBackground>
+        <main className="flex min-h-screen items-center justify-center pb-20">
+          <CompanionHero name="Byte" size="md" />
+          <p className="font-display mt-4 animate-pulse text-lg font-bold text-[#58CC02]">Loading your world...</p>
+        </main>
+      </GameBackground>
     );
   }
 
+  if (!home) {
+    return (
+      <GameBackground>
+        <main className="flex min-h-screen items-center justify-center p-6">
+          <p className="text-orange-700">{error || "Something went wrong"}</p>
+        </main>
+      </GameBackground>
+    );
+  }
+
+  const league = leagueThemes[home.league.tier] ?? leagueThemes.bronze;
+
   return (
-    <main className="min-h-screen bg-slate-50">
-      <header className="border-b border-slate-200 bg-white">
-        <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-4">
-          <h1 className="text-xl font-bold text-emerald-700">Prepio</h1>
-          <button
-            onClick={() => {
-              api.setToken(null);
-              router.push("/login");
-            }}
-            className="text-sm text-slate-500 hover:text-slate-800"
-          >
-            Sign out
-          </button>
-        </div>
-      </header>
-
-      <div className="mx-auto grid max-w-5xl gap-6 px-4 py-8 md:grid-cols-3">
-        <section className="rounded-2xl bg-white p-6 shadow-sm md:col-span-2">
-          <h2 className="text-lg font-semibold text-slate-900">Today&apos;s question</h2>
-          {error && <p className="mt-3 text-sm text-red-600">{error}</p>}
-
-          {activeQuestion && paper && (
-            <>
-              <div className="mt-4 flex gap-2 text-xs">
-                <span className="rounded-full bg-slate-100 px-2 py-1 uppercase">{activeQuestion.difficulty}</span>
-                <span className="rounded-full bg-slate-100 px-2 py-1 uppercase">{activeQuestion.round_type}</span>
-                {activeQuestion.company_tags.map((tag) => (
-                  <span key={tag} className="rounded-full bg-emerald-50 px-2 py-1 text-emerald-700">
-                    {tag}
-                  </span>
-                ))}
-              </div>
-              <p className="mt-4 text-slate-800 leading-relaxed">{activeQuestion.body}</p>
-
-              <form onSubmit={onSubmit} className="mt-6">
-                <textarea
-                  className="w-full rounded-xl border border-slate-200 p-3 text-sm"
-                  rows={5}
-                  placeholder="Write your answer..."
-                  value={answer}
-                  onChange={(e) => setAnswer(e.target.value)}
-                />
-                <button
-                  type="submit"
-                  disabled={submitting || len(answer) < 10}
-                  className="mt-3 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700 disabled:opacity-50"
-                >
-                  {submitting ? "Submitting..." : "Submit answer"}
-                </button>
-              </form>
-
-              {submitResult && (
-                <div
-                  className={`mt-4 rounded-xl p-4 text-sm ${
-                    submitResult.correct ? "bg-emerald-50 text-emerald-800" : "bg-amber-50 text-amber-800"
-                  }`}
-                >
-                  <p className="font-medium">{submitResult.correct ? "Correct!" : "Keep practicing"}</p>
-                  <p className="mt-1">{submitResult.feedback}</p>
-                  <p className="mt-2 text-xs opacity-75">
-                    XP and gems update shortly via the event pipeline.
-                  </p>
-                </div>
-              )}
-            </>
-          )}
+    <GameBackground>
+      <main className="mx-auto max-w-lg px-4 pb-28 pt-6">
+        {/* Top — Companion + speech */}
+        <section className="flex items-end gap-4">
+          <CompanionHero name={home.companion?.name} species={home.companion?.species} size="lg" />
+          <SpeechBubble className="flex-1">{home.companion_message}</SpeechBubble>
         </section>
 
-        <aside className="space-y-4">
-          <div className="rounded-2xl bg-white p-6 shadow-sm">
-            <h3 className="font-semibold text-slate-900">Streak</h3>
-            {streak && (
-              <div className="mt-3 space-y-2 text-sm text-slate-600">
-                <p>
-                  <span className="text-3xl font-bold text-orange-500">{streak.current_streak}</span> days
-                </p>
-                <p>Longest: {streak.longest_streak}</p>
-                <p>Freezes: {streak.freeze_count}</p>
-                <p>{streak.streak_active_today ? "Active today" : "Not active yet today"}</p>
-              </div>
-            )}
-          </div>
+        {/* Stats row */}
+        <div className="mt-5 flex flex-wrap gap-2">
+          <StatChip icon="🔥" label="Streak" value={`${home.streak.current_streak} days`} color="#FF9600" />
+          <StatChip icon="⚡" label="Level" value={home.progress.current_level} color="#1CB0F6" />
+          <StatChip icon="💎" label="Gems" value={home.progress.gem_balance} color="#7B5CFF" />
+        </div>
 
-          <div className="rounded-2xl bg-white p-6 shadow-sm">
-            <h3 className="font-semibold text-slate-900">Progress</h3>
-            {progress && (
-              <div className="mt-3 space-y-2 text-sm text-slate-600">
-                <p>
-                  Level <span className="text-xl font-bold text-emerald-600">{progress.current_level}</span>
-                </p>
-                <p>{progress.total_xp} XP</p>
-                <p>{progress.gem_balance} gems</p>
-                <p>{progress.xp_to_next_level} XP to next level</p>
-              </div>
-            )}
+        {/* Readiness rings */}
+        <GameCard className="mt-5 bg-gradient-to-br from-white to-sky-50" icon="🧭">
+          <h2 className="font-display mb-4 text-lg font-bold text-[#3C3C3C]">Career Readiness</h2>
+          <div className="flex flex-wrap justify-center gap-4">
+            {home.readiness.map((r, i) => (
+              <ReadinessRing
+                key={r.company}
+                company={r.company}
+                score={r.score}
+                color={companyColors[r.company]?.ring ?? "#58CC02"}
+                delay={i * 150}
+              />
+            ))}
           </div>
-        </aside>
-      </div>
-    </main>
+        </GameCard>
+
+        {/* League */}
+        <GameCard
+          className={`mt-4 bg-gradient-to-r ${league.gradient} text-white`}
+          icon={league.icon}
+        >
+          <p className="font-display text-sm font-bold uppercase opacity-90">{home.league.label}</p>
+          <p className="font-display text-3xl font-extrabold">Rank #{home.league.rank}</p>
+          <p className="mt-1 text-sm opacity-80">Keep climbing — promotion zone ahead!</p>
+        </GameCard>
+
+        {/* Daily quests */}
+        <div className="mt-5 space-y-3">
+          <h2 className="font-display text-lg font-bold text-[#3C3C3C]">⚡ Daily Quests</h2>
+          {home.daily_quests.map((q) => (
+            <QuestCard
+              key={q.id}
+              title={q.title}
+              icon={questIcons[q.id] ?? "📋"}
+              progress={q.progress}
+              target={q.target}
+              completed={q.completed}
+              rewardXp={q.reward_xp}
+              rewardGems={q.reward_gems}
+            />
+          ))}
+        </div>
+
+        {/* Primary CTA */}
+        <Link href="/challenge" className="mt-6 block">
+          <GameButton type="button">Continue Journey →</GameButton>
+        </Link>
+
+        <button
+          onClick={() => {
+            api.setToken(null);
+            router.push("/login");
+          }}
+          className="mt-4 w-full text-center text-xs font-semibold text-[#999] hover:text-[#777]"
+        >
+          Sign out
+        </button>
+      </main>
+      <BottomNav />
+    </GameBackground>
   );
 }

@@ -31,3 +31,13 @@
  GET /login 200 in 140ms
    Reload env: .env
  GET /dashboard 200 in 118ms
+ ✓ Compiled in 289ms
+ ✓ Compiled in 34ms
+ ✓ Compiled in 89ms
+ GET /dashboard 200 in 198ms
+ GET /dashboard 200 in 57ms
+ ✓ Compiled in 185ms
+ ✓ Compiled in 86ms
+ GET /dashboard 200 in 116ms
+ GET /dashboard 200 in 57ms
+ ✓ Compiled in 22ms

@@ -59,6 +59,29 @@ export class ApiClient {
     });
   }
 
+  getProfile() {
+    return this.request<Profile>("/api/v1/users/profile");
+  }
+
+  getCompanions() {
+    return this.request<Companion[]>("/api/v1/companions");
+  }
+
+  completeOnboarding(targetCompanies: string[], experienceLevel: string, companionId: string) {
+    return this.request<Profile>("/api/v1/users/onboarding", {
+      method: "POST",
+      body: JSON.stringify({
+        target_companies: targetCompanies,
+        experience_level: experienceLevel,
+        companion_id: companionId,
+      }),
+    });
+  }
+
+  getDashboardHome() {
+    return this.request<DashboardHome>("/api/v1/dashboard/home");
+  }
+
   getDailyPaper() {
     return this.request<DailyPaper>("/api/v1/questions/daily");
   }
@@ -73,20 +96,57 @@ export class ApiClient {
       }),
     });
   }
-
-  getStreak() {
-    return this.request<Streak>("/api/v1/streaks/me");
-  }
-
-  getProgress() {
-    return this.request<Progress>("/api/v1/progress/me");
-  }
 }
 
 export type AuthResponse = {
   access_token: string;
   refresh_token: string;
   user: { id: string; username: string; email: string };
+};
+
+export type Companion = {
+  id: string;
+  name: string;
+  species: string;
+};
+
+export type Profile = {
+  id: string;
+  email: string;
+  username: string;
+  experience_level?: string;
+  onboarding_completed: boolean;
+  target_companies: string[];
+  companion?: Companion;
+};
+
+export type DashboardHome = {
+  streak: {
+    current_streak: number;
+    longest_streak: number;
+    freeze_count: number;
+    streak_active_today: boolean;
+  };
+  progress: {
+    total_xp: number;
+    current_level: number;
+    gem_balance: number;
+    xp_to_next_level: number;
+  };
+  companion: Companion;
+  readiness: { company: string; score: number }[];
+  league: { tier: string; rank: number; label: string };
+  daily_quests: {
+    id: string;
+    title: string;
+    progress: number;
+    target: number;
+    completed: boolean;
+    reward_xp: number;
+    reward_gems: number;
+  }[];
+  companion_message: string;
+  onboarding_needed: boolean;
 };
 
 export type DailyPaper = {
@@ -113,19 +173,12 @@ export type SubmitResponse = {
   streak_updated: boolean;
 };
 
-export type Streak = {
-  current_streak: number;
-  longest_streak: number;
-  freeze_count: number;
-  last_activity_date?: string;
-  streak_active_today: boolean;
-};
-
-export type Progress = {
-  total_xp: number;
-  current_level: number;
-  gem_balance: number;
-  xp_to_next_level: number;
-};
-
 export const api = new ApiClient();
+
+export const TARGET_COMPANIES = ["google", "amazon", "meta", "uber", "atlassian"] as const;
+export const EXPERIENCE_LEVELS = [
+  { id: "fresher", label: "Fresher" },
+  { id: "junior", label: "Junior" },
+  { id: "mid", label: "Mid" },
+  { id: "senior", label: "Senior" },
+] as const;

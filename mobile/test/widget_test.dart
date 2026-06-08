@@ -9,7 +9,7 @@ void main() {
       const ProviderScope(child: MaterialApp(home: LoginScreen())),
     );
 
-    expect(find.text('Prepio'), findsOneWidget);
+    expect(find.text('Sign in to continue your streak'), findsOneWidget);
     expect(find.byType(TextField), findsNWidgets(2));
   });
 }

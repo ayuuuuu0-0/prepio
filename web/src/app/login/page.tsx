@@ -3,6 +3,10 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { FormEvent, useState } from "react";
+import { GameBackground } from "@/components/game/GameBackground";
+import { CompanionHero } from "@/components/game/CompanionHero";
+import { SpeechBubble } from "@/components/game/SpeechBubble";
+import { GameButton } from "@/components/game/GameButton";
 import { api } from "@/lib/api";
 
 export default function LoginPage() {
@@ -19,7 +23,8 @@ export default function LoginPage() {
     try {
       const res = await api.login(email, password);
       api.setToken(res.access_token);
-      router.push("/dashboard");
+      const profile = await api.getProfile();
+      router.push(profile.onboarding_completed ? "/dashboard" : "/onboarding");
     } catch (err) {
       setError(err instanceof Error ? err.message : "login failed");
     } finally {
@@ -28,46 +33,47 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-slate-50 px-4">
-      <form onSubmit={onSubmit} className="w-full max-w-md rounded-2xl bg-white p-8 shadow-lg">
-        <h1 className="text-2xl font-bold text-slate-900">Prepio</h1>
-        <p className="mt-1 text-slate-500">Sign in to continue your streak</p>
+    <GameBackground>
+      <main className="mx-auto flex min-h-screen max-w-md flex-col items-center justify-center px-6 py-12">
+        <CompanionHero name="Byte" species="capybara" size="lg" />
+        <SpeechBubble className="mt-6 max-w-sm text-center">
+          Welcome back! Ready to level up your career today?
+        </SpeechBubble>
 
-        {error && <p className="mt-4 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
+        <form onSubmit={onSubmit} className="mt-8 w-full space-y-4">
+          {error && (
+            <p className="rounded-2xl bg-orange-100 px-4 py-3 text-center text-sm font-semibold text-orange-700">
+              {error}
+            </p>
+          )}
+          <input
+            className="w-full rounded-2xl border-2 border-[#E5E5E5] bg-white px-4 py-3 font-semibold outline-none focus:border-[#58CC02]"
+            type="email"
+            placeholder="Email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+          />
+          <input
+            className="w-full rounded-2xl border-2 border-[#E5E5E5] bg-white px-4 py-3 font-semibold outline-none focus:border-[#58CC02]"
+            type="password"
+            placeholder="Password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+          />
+          <GameButton type="submit" disabled={loading}>
+            {loading ? "Signing in..." : "Let's Go!"}
+          </GameButton>
+        </form>
 
-        <label className="mt-6 block text-sm font-medium text-slate-700">Email</label>
-        <input
-          className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2"
-          type="email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          required
-        />
-
-        <label className="mt-4 block text-sm font-medium text-slate-700">Password</label>
-        <input
-          className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2"
-          type="password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          required
-        />
-
-        <button
-          type="submit"
-          disabled={loading}
-          className="mt-6 w-full rounded-lg bg-emerald-600 py-2.5 font-semibold text-white hover:bg-emerald-700 disabled:opacity-50"
-        >
-          {loading ? "Signing in..." : "Sign in"}
-        </button>
-
-        <p className="mt-4 text-center text-sm text-slate-500">
-          No account?{" "}
-          <Link href="/register" className="font-medium text-emerald-600 hover:underline">
-            Register
+        <p className="mt-6 text-center text-sm font-semibold text-[#777]">
+          New adventurer?{" "}
+          <Link href="/register" className="font-display font-bold text-[#1CB0F6] hover:underline">
+            Start your journey
           </Link>
         </p>
-      </form>
-    </main>
+      </main>
+    </GameBackground>
   );
 }

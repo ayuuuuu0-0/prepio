@@ -9,7 +9,14 @@ export default function Home() {
 
   useEffect(() => {
     const token = api.loadToken();
-    router.replace(token ? "/dashboard" : "/login");
+    if (!token) {
+      router.replace("/login");
+      return;
+    }
+    api
+      .getProfile()
+      .then((profile) => router.replace(profile.onboarding_completed ? "/dashboard" : "/onboarding"))
+      .catch(() => router.replace("/login"));
   }, [router]);
 
   return (
