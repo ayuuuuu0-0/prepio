@@ -13,6 +13,7 @@ class QuestCard extends StatelessWidget {
     required this.completed,
     required this.rewardXp,
     required this.rewardGems,
+    this.comingSoon = false,
   });
 
   final String title;
@@ -22,23 +23,52 @@ class QuestCard extends StatelessWidget {
   final bool completed;
   final int rewardXp;
   final int rewardGems;
+  final bool comingSoon;
 
   @override
   Widget build(BuildContext context) {
+    if (comingSoon) {
+      return Container(
+        margin: const EdgeInsets.only(bottom: 10),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: PrepioColors.surface,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: PrepioColors.border, style: BorderStyle.solid),
+        ),
+        child: Row(
+          children: [
+            Text(icon, style: const TextStyle(fontSize: 22, color: PrepioColors.textDim)),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(title, style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w700, color: PrepioColors.textDim)),
+                  Text('Coming soon', style: GoogleFonts.jetBrainsMono(fontSize: 11, color: PrepioColors.textDim)),
+                ],
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
     final pct = (progress / target).clamp(0.0, 1.0);
 
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: completed ? const Color(0xFFE8F8D8) : Colors.white,
-        borderRadius: BorderRadius.circular(24),
-        border: completed ? Border.all(color: PrepioColors.green, width: 2) : null,
-        boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 6, offset: Offset(0, 3))],
+        color: completed ? PrepioColors.success.withValues(alpha: 0.08) : PrepioColors.surface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: completed ? PrepioColors.success.withValues(alpha: 0.3) : PrepioColors.border,
+        ),
       ),
       child: Row(
         children: [
-          Text(completed ? '✅' : icon, style: const TextStyle(fontSize: 28)),
+          Text(completed ? '✅' : icon, style: const TextStyle(fontSize: 22)),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
@@ -46,10 +76,10 @@ class QuestCard extends StatelessWidget {
               children: [
                 Text(
                   title,
-                  style: GoogleFonts.fredoka(
+                  style: GoogleFonts.plusJakartaSans(
                     fontWeight: FontWeight.w700,
                     decoration: completed ? TextDecoration.lineThrough : null,
-                    color: completed ? PrepioColors.greenDark : PrepioColors.text,
+                    color: completed ? PrepioColors.success : PrepioColors.textPrimary,
                   ),
                 ),
                 const SizedBox(height: 8),
@@ -57,15 +87,15 @@ class QuestCard extends StatelessWidget {
                   borderRadius: BorderRadius.circular(8),
                   child: LinearProgressIndicator(
                     value: pct,
-                    minHeight: 10,
-                    backgroundColor: const Color(0xFFE5E5E5),
-                    color: PrepioColors.green,
+                    minHeight: 6,
+                    backgroundColor: PrepioColors.border,
+                    color: completed ? PrepioColors.success : PrepioColors.accent,
                   ),
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  '$progress/$target · ⚡$rewardXp · 💎$rewardGems',
-                  style: GoogleFonts.nunito(fontSize: 11, color: PrepioColors.textMuted),
+                  '$progress/$target · ⚡ $rewardXp XP · 💎 $rewardGems',
+                  style: GoogleFonts.jetBrainsMono(fontSize: 11, color: PrepioColors.textDim),
                 ),
               ],
             ),

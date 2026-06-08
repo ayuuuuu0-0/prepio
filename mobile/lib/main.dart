@@ -5,8 +5,8 @@ import 'core/theme/app_theme.dart';
 import 'features/auth/auth_provider.dart';
 import 'features/auth/login_screen.dart';
 import 'features/auth/profile_provider.dart';
-import 'features/dashboard/dashboard_screen.dart';
 import 'features/onboarding/onboarding_screen.dart';
+import 'features/shell/app_shell.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -25,7 +25,7 @@ class PrepioApp extends ConsumerWidget {
 
     return MaterialApp(
       title: 'Prepio',
-      theme: AppTheme.light,
+      theme: AppTheme.dark,
       debugShowCheckedModeBanner: false,
       home: bootstrap.when(
         loading: () => const Scaffold(body: Center(child: CircularProgressIndicator())),
@@ -48,7 +48,7 @@ class _AuthenticatedRoot extends ConsumerWidget {
     return profile.when(
       loading: () => const Scaffold(body: Center(child: CircularProgressIndicator())),
       error: (_, __) => const LoginScreen(),
-      data: (p) => p.onboardingCompleted ? const DashboardScreen() : const OnboardingScreen(),
+      data: (p) => p.onboardingCompleted ? const AppShell() : const OnboardingScreen(),
     );
   }
 }

@@ -24,6 +24,7 @@ type QuestionService struct {
 	questions   *store.QuestionStore
 	dailyPapers *store.DailyPaperStore
 	history     *store.HistoryStore
+	journey     *store.JourneyStore
 	users       *store.UserStore
 	redis       *redis.Client
 	publisher   EventPublisher
@@ -34,6 +35,7 @@ func NewQuestionService(
 	questions *store.QuestionStore,
 	dailyPapers *store.DailyPaperStore,
 	history *store.HistoryStore,
+	journey *store.JourneyStore,
 	users *store.UserStore,
 	redisClient *redis.Client,
 	publisher EventPublisher,
@@ -42,6 +44,7 @@ func NewQuestionService(
 		questions:   questions,
 		dailyPapers: dailyPapers,
 		history:     history,
+		journey:     journey,
 		users:       users,
 		redis:       redisClient,
 		publisher:   publisher,
@@ -148,10 +151,27 @@ func (s *QuestionService) SubmitAnswer(ctx context.Context, userID, questionID s
 		submittedAt = parsed
 	}
 
-	correct := EvaluateAnswer(req.Answer, question.AnswerGuide)
-	if err := s.history.Insert(ctx, userID, questionID, req.SessionID, correct, submittedAt); err != nil {
+	hadAnswerToday, err := s.history.HasAnswerToday(ctx, userID)
+	if err != nil {
 		return nil, err
 	}
+
+	readinessBefore, _ := s.history.AvgScoreByUser(ctx, userID)
+
+	eval := EvaluateAnswer(req.Answer, question.AnswerGuide)
+	xpAwarded, gemsAwarded := computeRewards(question, eval)
+
+	if err := s.history.Insert(ctx, userID, questionID, req.SessionID, eval.Correct, eval.Score, submittedAt); err != nil {
+		return nil, err
+	}
+
+	readinessAfter, _ := s.history.AvgScoreByUser(ctx, userID)
+	readinessDelta := readinessAfter - readinessBefore
+	if readinessDelta == 0 && eval.Correct {
+		readinessDelta = 1
+	}
+
+	streakUpdated := eval.Correct && !hadAnswerToday
 
 	event := events.QuestionAnswered{
 		EventID:     uuid.NewString(),
@@ -160,7 +180,10 @@ func (s *QuestionService) SubmitAnswer(ctx context.Context, userID, questionID s
 		RoundType:   question.RoundType,
 		Difficulty:  question.Difficulty,
 		CompanyTags: question.CompanyTags,
-		Correct:     correct,
+		Correct:     eval.Correct,
+		Score:       eval.Score,
+		XPAwarded:   xpAwarded,
+		GemsAwarded: gemsAwarded,
 		SubmittedAt: submittedAt,
 		SessionID:   req.SessionID,
 	}
@@ -169,17 +192,65 @@ func (s *QuestionService) SubmitAnswer(ctx context.Context, userID, questionID s
 	}
 
 	return &dto.SubmitResponse{
-		Correct:       correct,
-		XPAwarded:     0,
-		GemsAwarded:   0,
-		StreakUpdated: false,
-		Feedback:      FeedbackFor(correct),
+		Correct:        eval.Correct,
+		Score:          eval.Score,
+		XPAwarded:      xpAwarded,
+		GemsAwarded:    gemsAwarded,
+		StreakUpdated:  streakUpdated,
+		ReadinessDelta: readinessDelta,
+		Feedback:       eval.Summary,
+		Strengths:      eval.Strengths,
+		Gaps:           eval.Gaps,
 	}, nil
 }
 
 // ListCompanies returns available company tags.
 func (s *QuestionService) ListCompanies(ctx context.Context) ([]string, error) {
 	return s.questions.ListCompanies(ctx)
+}
+
+// GetSessionHistory returns answer history, optionally scoped to a daily session.
+func (s *QuestionService) GetSessionHistory(ctx context.Context, userID, sessionID string) ([]dto.HistoryEntry, error) {
+	if len(sessionID) == 0 {
+		return []dto.HistoryEntry{}, nil
+	}
+
+	records, err := s.history.ListBySession(ctx, userID, sessionID)
+	if err != nil {
+		return nil, err
+	}
+
+	entries := make([]dto.HistoryEntry, 0, len(records))
+	for _, rec := range records {
+		entries = append(entries, dto.HistoryEntry{
+			QuestionID:  rec.QuestionID,
+			SessionID:   rec.SessionID,
+			Correct:     rec.Correct,
+			Score:       rec.Score,
+			SubmittedAt: rec.SubmittedAt.UTC().Format(time.RFC3339),
+		})
+	}
+	return entries, nil
+}
+
+// GetReadinessStats aggregates per-company answer performance for readiness.
+func (s *QuestionService) GetReadinessStats(ctx context.Context, userID string) (*dto.ReadinessStats, error) {
+	rows, err := s.history.CompanyPerformanceByUser(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+
+	stats := make([]dto.CompanyStats, 0, len(rows))
+	for _, row := range rows {
+		stats = append(stats, dto.CompanyStats{
+			Company:  row.Company,
+			Answered: row.Answered,
+			Correct:  row.Correct,
+			ScoreAvg: row.ScoreAvg,
+		})
+	}
+
+	return &dto.ReadinessStats{ByCompany: stats}, nil
 }
 
 func (s *QuestionService) selectQuestions(ctx context.Context, userID, difficulty string, weekendOnly bool) ([]store.Question, error) {

@@ -11,9 +11,9 @@ import { SpeechBubble } from "@/components/game/SpeechBubble";
 import { GameButton } from "@/components/game/GameButton";
 
 const stepMessages = [
-  "Which dream companies are we conquering?",
-  "How much experience do you bring to the quest?",
-  "Pick your companion — they'll guide your journey!",
+  "Which companies are you targeting? We'll personalise your prep.",
+  "How much experience do you have? Sets your starting difficulty.",
+  "Choose your companion — they'll grow with you throughout the journey.",
 ];
 
 export default function OnboardingPage() {
@@ -65,7 +65,7 @@ export default function OnboardingPage() {
             <div
               key={s}
               className={`h-3 flex-1 rounded-full transition ${
-                s <= step ? "bg-[#58CC02]" : "bg-white/50"
+                s <= step ? "bg-[#7C6EF5]" : "bg-[#2E3347]"
               }`}
             />
           ))}
@@ -81,7 +81,14 @@ export default function OnboardingPage() {
         </div>
 
         {error && (
-          <p className="mt-4 rounded-2xl bg-orange-100 px-4 py-3 text-center text-sm font-semibold text-orange-700">
+          <p
+            className="mt-4 rounded-2xl px-4 py-3 text-center text-sm font-semibold"
+            style={{
+              background: "rgba(248,113,113,0.1)",
+              border: "1px solid rgba(248,113,113,0.3)",
+              color: "#F87171",
+            }}
+          >
             {error}
           </p>
         )}
@@ -97,11 +104,12 @@ export default function OnboardingPage() {
                   type="button"
                   onClick={() => toggleTarget(company)}
                   className={`font-display rounded-3xl px-4 py-5 text-lg font-bold capitalize shadow-md transition ${
-                    selected ? "scale-105 ring-4 ring-[#58CC02]" : "hover:scale-102"
+                    selected ? "scale-105 ring-2 ring-[#7C6EF5]" : "hover:scale-102"
                   }`}
                   style={{
-                    backgroundColor: cc?.bg ?? "#f0f0f0",
-                    color: cc?.ring ?? "#333",
+                    backgroundColor: cc?.bg ?? "rgba(124,110,245,0.12)",
+                    color: cc?.text ?? "#E8EAED",
+                    border: `1px solid ${selected ? "#7C6EF5" : "#2E3347"}`,
                   }}
                 >
                   {company}
@@ -123,11 +131,16 @@ export default function OnboardingPage() {
                 key={level.id}
                 type="button"
                 onClick={() => setExperience(level.id)}
-                className={`font-display block w-full rounded-3xl px-5 py-4 text-left text-lg font-bold shadow-md transition ${
+                className={`font-display block w-full rounded-2xl px-5 py-4 text-left text-lg font-bold transition ${
                   experience === level.id
-                    ? "bg-[#7B5CFF] text-white ring-4 ring-purple-300"
-                    : "bg-white text-[#3C3C3C] hover:bg-purple-50"
+                    ? "ring-2 ring-[#7C6EF5]"
+                    : "hover:border-[#7C6EF5]/50"
                 }`}
+                style={{
+                  background: experience === level.id ? "rgba(124,110,245,0.2)" : "#1A1D27",
+                  border: "1px solid #2E3347",
+                  color: "#E8EAED",
+                }}
               >
                 {level.label}
               </button>
@@ -153,9 +166,13 @@ export default function OnboardingPage() {
                   key={c.id}
                   type="button"
                   onClick={() => setCompanionId(c.id)}
-                  className={`flex w-full items-center gap-4 rounded-3xl p-4 shadow-md transition ${
-                    selected ? "ring-4 ring-[#58CC02] scale-[1.02]" : "bg-white"
-                  } bg-gradient-to-r ${v.gradient}`}
+                  className={`flex w-full items-center gap-4 rounded-2xl p-4 transition ${
+                    selected ? "ring-2 ring-[#7C6EF5] scale-[1.02]" : ""
+                  }`}
+                  style={{
+                    background: `linear-gradient(135deg, ${v.glow}33 0%, #1A1D27 100%)`,
+                    border: `1px solid ${selected ? "#7C6EF5" : "#2E3347"}`,
+                  }}
                 >
                   <span className="text-4xl">{v.emoji}</span>
                   <div className="text-left">
@@ -177,7 +194,7 @@ export default function OnboardingPage() {
                 disabled={companionId.length === 0 || loading}
                 onClick={finish}
               >
-                {loading ? "Starting..." : "Start My Journey!"}
+                {loading ? "Setting up..." : "Start Prep"}
               </GameButton>
             </div>
           </section>

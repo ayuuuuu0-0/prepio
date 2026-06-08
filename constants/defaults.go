@@ -7,4 +7,7 @@ const DefaultTimezone = "Asia/Kolkata"
 const DefaultReminderTime = "21:50:00"
 
 // MinAnswerLength is the minimum trimmed characters required before submitting an answer.
-const MinAnswerLength = 3
+const MinAnswerLength = 100
+
+// MinEvaluationScore is the minimum score (0–100) for an answer to count as correct.
+const MinEvaluationScore = 60

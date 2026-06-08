@@ -8,15 +8,19 @@ export default function Home() {
   const router = useRouter();
 
   useEffect(() => {
-    const token = api.loadToken();
-    if (!token) {
-      router.replace("/login");
-      return;
-    }
-    api
-      .getProfile()
-      .then((profile) => router.replace(profile.onboarding_completed ? "/dashboard" : "/onboarding"))
-      .catch(() => router.replace("/login"));
+    (async () => {
+      const ok = await api.ensureSession();
+      if (!ok) {
+        router.replace("/login");
+        return;
+      }
+      try {
+        const profile = await api.getProfile();
+        router.replace(profile.onboarding_completed ? "/dashboard" : "/onboarding");
+      } catch {
+        router.replace("/login");
+      }
+    })();
   }, [router]);
 
   return (

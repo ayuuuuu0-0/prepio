@@ -1,47 +1,55 @@
-/** Prepio game design tokens — Duolingo-inspired, never corporate. */
+/** Prepio design tokens — Career RPG for engineers, not children's language app. */
 
-/** MinAnswerLength is the minimum trimmed characters required to submit an answer. */
-export const MIN_ANSWER_LENGTH = 3;
+export const MIN_ANSWER_LENGTH = 100;
+
+/** LevelThresholds mirrors config/levels.go cumulative XP per level. */
+export const LEVEL_THRESHOLDS = [0, 100, 250, 500, 800, 1200, 1700, 2300, 3000, 3800];
 
 export const colors = {
-  green: "#58CC02",
-  greenDark: "#46A302",
-  purple: "#7B5CFF",
-  purpleDark: "#5B3FE0",
-  orange: "#FF9600",
-  orangeSoft: "#FFB84D",
-  blue: "#1CB0F6",
-  gold: "#FFC800",
-  pink: "#FF6B9D",
-  bgTop: "#E8F5D8",
-  bgBottom: "#C8E6FF",
-  surface: "#FFFFFF",
-  text: "#3C3C3C",
-  textMuted: "#777777",
+  bg: "#0F1117",
+  surface: "#1A1D27",
+  raised: "#242836",
+  border: "#2E3347",
+  accent: "#7C6EF5",
+  accentDim: "rgba(124,110,245,0.15)",
+  accentGlow: "rgba(124,110,245,0.35)",
+  streak: "#FF6B35",
+  gems: "#34D399",
+  xp: "#60A5FA",
+  gold: "#F5B942",
+  success: "#34D399",
+  warning: "#F5B942",
+  danger: "#F87171",
+  textPrimary: "#E8EAED",
+  textMuted: "#8B92A8",
+  textDim: "#4A5068",
 } as const;
 
-export const companyColors: Record<string, { ring: string; bg: string }> = {
-  google: { ring: "#1CB0F6", bg: "#E3F6FF" },
-  amazon: { ring: "#FF9600", bg: "#FFF3E0" },
-  meta: { ring: "#7B5CFF", bg: "#F0EBFF" },
-  uber: { ring: "#58CC02", bg: "#E8F8E0" },
-  atlassian: { ring: "#0052CC", bg: "#E8F0FF" },
-  netflix: { ring: "#E50914", bg: "#FFE8E8" },
+export const companyColors: Record<string, { ring: string; bg: string; text: string }> = {
+  google: { ring: "#4285F4", bg: "rgba(66,133,244,0.12)", text: "#7EB3FF" },
+  amazon: { ring: "#FF9900", bg: "rgba(255,153,0,0.12)", text: "#FFB84D" },
+  meta: { ring: "#7C6EF5", bg: "rgba(124,110,245,0.12)", text: "#A99EFA" },
+  uber: { ring: "#34D399", bg: "rgba(52,211,153,0.12)", text: "#6EE7B7" },
+  atlassian: { ring: "#0052CC", bg: "rgba(0,82,204,0.12)", text: "#5B9BD5" },
+  netflix: { ring: "#E50914", bg: "rgba(229,9,20,0.12)", text: "#FF6B6B" },
 };
 
-export const leagueThemes: Record<string, { gradient: string; icon: string }> = {
-  bronze: { gradient: "from-amber-700 to-amber-500", icon: "🥉" },
-  silver: { gradient: "from-slate-400 to-slate-300", icon: "🥈" },
-  gold: { gradient: "from-yellow-500 to-amber-400", icon: "🥇" },
-  sapphire: { gradient: "from-blue-500 to-cyan-400", icon: "💎" },
-  ruby: { gradient: "from-red-500 to-rose-400", icon: "♦️" },
-  emerald: { gradient: "from-green-500 to-emerald-400", icon: "💚" },
-  diamond: { gradient: "from-sky-300 to-blue-200", icon: "✨" },
-  legend: { gradient: "from-yellow-600 to-amber-900", icon: "👑" },
+export const leagueThemes: Record<string, { gradient: string; icon: string; border: string }> = {
+  bronze: { gradient: "from-amber-900/80 to-amber-700/80", icon: "🥉", border: "#92400E" },
+  silver: { gradient: "from-slate-700/80 to-slate-500/80", icon: "🥈", border: "#64748B" },
+  gold: { gradient: "from-yellow-700/80 to-amber-500/80", icon: "🥇", border: "#D97706" },
+  sapphire: { gradient: "from-blue-800/80 to-blue-600/80", icon: "💎", border: "#2563EB" },
+  ruby: { gradient: "from-rose-800/80 to-rose-600/80", icon: "♦️", border: "#E11D48" },
+  emerald: { gradient: "from-emerald-800/80 to-emerald-600/80", icon: "💚", border: "#059669" },
+  diamond: { gradient: "from-sky-700/80 to-cyan-600/80", icon: "✨", border: "#0891B2" },
+  legend: { gradient: "from-yellow-900/80 to-amber-800/80", icon: "👑", border: "#B45309" },
 };
 
-export const radii = {
-  card: "1.5rem",
-  pill: "9999px",
-  bubble: "1.25rem",
-} as const;
+export const roundTypeColors: Record<string, string> = {
+  dsa: "#7C6EF5",
+  system_design: "#60A5FA",
+  lld: "#34D399",
+  behavioral: "#FF6B35",
+  aptitude: "#F5B942",
+  fundamentals: "#A99EFA",
+};

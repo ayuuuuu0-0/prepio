@@ -2,53 +2,62 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'design_tokens.dart';
 
-/// AppTheme builds the playful game Material theme.
+/// AppTheme builds the dark career RPG Material theme.
 class AppTheme {
-  static ThemeData get light {
-    final display = GoogleFonts.fredokaTextTheme();
+  static ThemeData get dark {
+    final display = GoogleFonts.plusJakartaSansTextTheme();
     final body = GoogleFonts.nunitoTextTheme();
+    final mono = GoogleFonts.jetBrainsMonoTextTheme();
 
     return ThemeData(
       useMaterial3: true,
-      colorScheme: ColorScheme.fromSeed(
-        seedColor: PrepioColors.green,
-        primary: PrepioColors.green,
-        secondary: PrepioColors.blue,
-        surface: Colors.white,
+      brightness: Brightness.dark,
+      scaffoldBackgroundColor: PrepioColors.bg,
+      colorScheme: const ColorScheme.dark(
+        primary: PrepioColors.accent,
+        secondary: PrepioColors.xp,
+        surface: PrepioColors.surface,
+        onSurface: PrepioColors.textPrimary,
+        error: PrepioColors.danger,
       ),
       textTheme: body.copyWith(
         headlineLarge: display.headlineLarge?.copyWith(
           fontWeight: FontWeight.w700,
-          color: PrepioColors.text,
+          color: PrepioColors.textPrimary,
         ),
         headlineMedium: display.headlineMedium?.copyWith(
           fontWeight: FontWeight.w700,
-          color: PrepioColors.text,
+          color: PrepioColors.textPrimary,
         ),
-        titleLarge: display.titleLarge?.copyWith(fontWeight: FontWeight.w700),
+        titleLarge: display.titleLarge?.copyWith(
+          fontWeight: FontWeight.w700,
+          color: PrepioColors.textPrimary,
+        ),
+        bodyMedium: body.bodyMedium?.copyWith(color: PrepioColors.textBody),
+        labelSmall: mono.labelSmall?.copyWith(color: PrepioColors.textDim),
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
-          backgroundColor: PrepioColors.green,
+          backgroundColor: PrepioColors.accent,
           foregroundColor: Colors.white,
-          elevation: 4,
-          shadowColor: PrepioColors.greenDark,
+          elevation: 0,
           padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 32),
           shape: const StadiumBorder(),
-          textStyle: GoogleFonts.fredoka(fontSize: 18, fontWeight: FontWeight.w700),
+          textStyle: GoogleFonts.plusJakartaSans(fontSize: 16, fontWeight: FontWeight.w700),
         ),
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: Colors.white,
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(20)),
+        fillColor: PrepioColors.surface,
+        labelStyle: GoogleFonts.nunito(color: PrepioColors.textMuted),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(20),
-          borderSide: const BorderSide(color: Color(0xFFE5E5E5), width: 2),
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: PrepioColors.border),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(20),
-          borderSide: const BorderSide(color: PrepioColors.green, width: 2),
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: PrepioColors.accent, width: 1.5),
         ),
       ),
     );

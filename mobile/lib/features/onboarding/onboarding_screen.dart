@@ -67,9 +67,9 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   }
 
   String get _stepMessage => switch (_step) {
-        1 => "Which dream companies are we aiming for? Pick as many as you like!",
-        2 => "How much coding have you done? No wrong answers — we'll meet you where you are.",
-        _ => "Every adventurer needs a companion! Who's joining your journey?",
+        1 => "Which companies are you targeting? We'll personalise your prep.",
+        2 => "How much experience do you have? Sets your starting difficulty.",
+        _ => "Choose your companion — they'll grow with you throughout the journey.",
       };
 
   @override
@@ -99,7 +99,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
               ),
               if (_error != null) ...[
                 const SizedBox(height: 12),
-                Text(_error!, style: const TextStyle(color: PrepioColors.orange, fontWeight: FontWeight.w600)),
+                Text(_error!, style: const TextStyle(color: PrepioColors.danger, fontWeight: FontWeight.w600)),
               ],
               const SizedBox(height: 16),
               Expanded(child: _buildStep()),
@@ -114,7 +114,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     if (_step == 1) {
       return ListView(
         children: [
-          Text('🎯 Target Companies', style: GoogleFonts.fredoka(fontSize: 20, fontWeight: FontWeight.w800)),
+          Text('Target Companies', style: GoogleFonts.plusJakartaSans(fontSize: 18, fontWeight: FontWeight.w700, color: PrepioColors.textPrimary)),
           const SizedBox(height: 12),
           ...AppConstants.targetCompanies.map((company) {
             final selected = _targets.contains(company);
@@ -123,7 +123,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
               child: _ChoiceCard(
                 label: company,
                 selected: selected,
-                color: companyRingColors[company] ?? PrepioColors.green,
+                color: companyRingColors[company] ?? PrepioColors.accent,
                 onTap: () => setState(() {
                   if (selected) {
                     _targets.remove(company);
@@ -146,7 +146,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     if (_step == 2) {
       return ListView(
         children: [
-          Text('📚 Experience Level', style: GoogleFonts.fredoka(fontSize: 20, fontWeight: FontWeight.w800)),
+          Text('Experience Level', style: GoogleFonts.plusJakartaSans(fontSize: 18, fontWeight: FontWeight.w700, color: PrepioColors.textPrimary)),
           const SizedBox(height: 12),
           ...AppConstants.experienceLevels.map((level) {
             return Padding(
@@ -154,7 +154,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
               child: _ChoiceCard(
                 label: level.$2,
                 selected: _experience == level.$1,
-                color: PrepioColors.blue,
+                color: PrepioColors.xp,
                 onTap: () => setState(() => _experience = level.$1),
               ),
             );
@@ -165,8 +165,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
               Expanded(
                 child: GameButton(
                   label: '← Back',
-                  color: PrepioColors.textMuted,
-                  shadowColor: const Color(0xFF555555),
+                  variant: GameButtonVariant.secondary,
                   onPressed: () => setState(() => _step = 1),
                 ),
               ),
@@ -185,7 +184,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
 
     return ListView(
       children: [
-        Text('🐾 Choose Your Companion', style: GoogleFonts.fredoka(fontSize: 20, fontWeight: FontWeight.w800)),
+        Text('Choose Your Companion', style: GoogleFonts.plusJakartaSans(fontSize: 18, fontWeight: FontWeight.w700, color: PrepioColors.textPrimary)),
         const SizedBox(height: 12),
         ..._companions.map((c) {
           final visual = companionFor(name: c.name, species: c.species);
@@ -195,7 +194,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
               name: c.name,
               species: c.species.replaceAll('_', ' '),
               emoji: visual.emoji,
-              colors: visual.colors,
+              glow: visual.glow,
               selected: _companionId == c.id,
               onTap: () => setState(() => _companionId = c.id),
             ),
@@ -207,17 +206,15 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
             Expanded(
               child: GameButton(
                 label: '← Back',
-                color: PrepioColors.textMuted,
-                shadowColor: const Color(0xFF555555),
+                variant: GameButtonVariant.secondary,
                 onPressed: () => setState(() => _step = 2),
               ),
             ),
             const SizedBox(width: 12),
             Expanded(
               child: GameButton(
-                label: _loading ? 'Starting...' : 'Start Journey! 🚀',
-                color: PrepioColors.gold,
-                shadowColor: const Color(0xFFE5B000),
+                label: _loading ? 'Setting up...' : 'Start Prep',
+                variant: GameButtonVariant.gold,
                 onPressed: _companionId.isEmpty || _loading ? null : _finish,
                 loading: _loading,
               ),
@@ -238,7 +235,7 @@ class _ProgressBar extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Step $step of 3', style: GoogleFonts.fredoka(fontSize: 14, fontWeight: FontWeight.w700, color: PrepioColors.textMuted)),
+        Text('Step $step of 3', style: GoogleFonts.jetBrainsMono(fontSize: 12, fontWeight: FontWeight.w600, color: PrepioColors.textDim)),
         const SizedBox(height: 8),
         Row(
           children: List.generate(3, (i) {
@@ -248,9 +245,8 @@ class _ProgressBar extends StatelessWidget {
                 height: 8,
                 margin: EdgeInsets.only(right: i < 2 ? 6 : 0),
                 decoration: BoxDecoration(
-                  color: active ? PrepioColors.green : Colors.white,
+                  color: active ? PrepioColors.accent : PrepioColors.border,
                   borderRadius: BorderRadius.circular(4),
-                  border: Border.all(color: active ? PrepioColors.greenDark : PrepioColors.textMuted, width: 2),
                 ),
               ),
             );
@@ -276,14 +272,14 @@ class _ChoiceCard extends StatelessWidget {
         duration: const Duration(milliseconds: 200),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         decoration: BoxDecoration(
-          color: selected ? color.withValues(alpha: 0.15) : Colors.white,
+          color: selected ? color.withValues(alpha: 0.15) : PrepioColors.surface,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: selected ? color : const Color(0xFFE5E5E5), width: selected ? 3 : 2),
+          border: Border.all(color: selected ? color : PrepioColors.border, width: selected ? 2 : 1),
           boxShadow: selected ? [BoxShadow(color: color.withValues(alpha: 0.3), blurRadius: 8, offset: const Offset(0, 4))] : null,
         ),
         child: Row(
           children: [
-            Expanded(child: Text(label, style: GoogleFonts.nunito(fontSize: 16, fontWeight: FontWeight.w700))),
+            Expanded(child: Text(label, style: GoogleFonts.nunito(fontSize: 16, fontWeight: FontWeight.w700, color: PrepioColors.textPrimary))),
             if (selected) Icon(Icons.check_circle, color: color),
           ],
         ),
@@ -297,14 +293,14 @@ class _CompanionCard extends StatelessWidget {
     required this.name,
     required this.species,
     required this.emoji,
-    required this.colors,
+    required this.glow,
     required this.selected,
     required this.onTap,
   });
   final String name;
   final String species;
   final String emoji;
-  final List<Color> colors;
+  final Color glow;
   final bool selected;
   final VoidCallback onTap;
 
@@ -316,10 +312,9 @@ class _CompanionCard extends StatelessWidget {
         duration: const Duration(milliseconds: 200),
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: selected ? PrepioColors.green : const Color(0xFFE5E5E5), width: selected ? 3 : 2),
-          boxShadow: selected ? [const BoxShadow(color: Color(0x4058CC02), blurRadius: 12, offset: Offset(0, 4))] : null,
+          color: PrepioColors.surface,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: selected ? PrepioColors.accent : PrepioColors.border, width: selected ? 2 : 1),
         ),
         child: Row(
           children: [
@@ -327,8 +322,9 @@ class _CompanionCard extends StatelessWidget {
               width: 56,
               height: 56,
               decoration: BoxDecoration(
-                gradient: LinearGradient(colors: colors),
+                gradient: LinearGradient(colors: [glow.withValues(alpha: 0.3), PrepioColors.surface]),
                 shape: BoxShape.circle,
+                border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
               ),
               alignment: Alignment.center,
               child: Text(emoji, style: const TextStyle(fontSize: 28)),
@@ -338,12 +334,12 @@ class _CompanionCard extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(name, style: GoogleFonts.fredoka(fontSize: 18, fontWeight: FontWeight.w800)),
+                  Text(name, style: GoogleFonts.plusJakartaSans(fontSize: 18, fontWeight: FontWeight.w700, color: PrepioColors.textPrimary)),
                   Text(species, style: GoogleFonts.nunito(color: PrepioColors.textMuted, fontWeight: FontWeight.w600)),
                 ],
               ),
             ),
-            if (selected) const Icon(Icons.favorite, color: PrepioColors.pink),
+            if (selected) const Icon(Icons.check_circle, color: PrepioColors.accent),
           ],
         ),
       ),

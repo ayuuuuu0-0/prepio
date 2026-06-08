@@ -57,6 +57,7 @@ func main() {
 		store.NewQuestionStore(pool),
 		store.NewDailyPaperStore(pool),
 		store.NewHistoryStore(pool),
+		store.NewJourneyStore(pool),
 		store.NewUserStore(pool),
 		redisClient,
 		producer,
@@ -72,7 +73,10 @@ func main() {
 
 	r.Route("/api/v1", func(r chi.Router) {
 		r.Use(middleware.Auth(signer, redisClient))
+		r.Get("/journey", questionHandler.GetJourney)
 		r.Get("/questions/daily", questionHandler.GetDaily)
+		r.Get("/questions/history", questionHandler.GetHistory)
+		r.Get("/questions/stats/readiness", questionHandler.GetReadinessStats)
 		r.Post("/questions/{id}/submit", questionHandler.Submit)
 		r.Get("/questions/companies", questionHandler.ListCompanies)
 	})

@@ -8,6 +8,7 @@ import (
 	"github.com/prepio/prepio/constants"
 	"github.com/prepio/prepio/services/user/internal/dto"
 	"github.com/prepio/prepio/services/user/internal/service"
+	"github.com/prepio/prepio/shared/auth"
 	"github.com/prepio/prepio/shared/middleware"
 	"github.com/prepio/prepio/shared/response"
 )
@@ -36,6 +37,7 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	auth.SetRefreshTokenCookie(w, resp.RefreshToken)
 	response.Data(w, http.StatusCreated, resp)
 }
 
@@ -53,6 +55,7 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	auth.SetRefreshTokenCookie(w, resp.RefreshToken)
 	response.Data(w, http.StatusOK, resp)
 }
 
@@ -64,12 +67,17 @@ func (h *AuthHandler) Refresh(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if len(req.RefreshToken) == 0 {
+		req.RefreshToken = auth.RefreshTokenFromRequest(r)
+	}
+
 	resp, err := h.auth.Refresh(r.Context(), req.RefreshToken)
 	if err != nil {
 		writeServiceError(w, err)
 		return
 	}
 
+	auth.SetRefreshTokenCookie(w, resp.RefreshToken)
 	response.Data(w, http.StatusOK, resp)
 }
 
@@ -86,6 +94,7 @@ func (h *AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	auth.ClearRefreshTokenCookie(w)
 	response.Data(w, http.StatusOK, map[string]bool{"logged_out": true})
 }
 

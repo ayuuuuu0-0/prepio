@@ -19,6 +19,9 @@ type QuestionAnswered struct {
 	Difficulty  string    `json:"difficulty"`
 	CompanyTags []string  `json:"company_tags"`
 	Correct     bool      `json:"correct"`
+	Score       int       `json:"score"`
+	XPAwarded   int       `json:"xp_awarded"`
+	GemsAwarded int       `json:"gems_awarded"`
 	SubmittedAt time.Time `json:"submitted_at"`
 	SessionID   string    `json:"session_id"`
 }

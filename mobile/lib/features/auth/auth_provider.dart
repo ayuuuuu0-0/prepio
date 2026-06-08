@@ -18,11 +18,22 @@ final authTokenProvider = StateProvider<String?>((ref) => null);
 
 final authBootstrapProvider = FutureProvider<bool>((ref) async {
   final store = ref.read(sessionStoreProvider);
+  final api = ref.read(apiClientProvider);
   final token = await store.loadToken();
+  final refresh = await store.loadRefreshToken();
   if (token != null && token.isNotEmpty) {
+    api.token = token;
+    api.refreshToken = refresh;
     ref.read(authTokenProvider.notifier).state = token;
-    ref.read(apiClientProvider).token = token;
     return true;
+  }
+  if (refresh != null && refresh.isNotEmpty) {
+    api.refreshToken = refresh;
+    if (await api.refreshAccessToken()) {
+      await store.saveTokens(accessToken: api.token!, refreshToken: api.refreshToken!);
+      ref.read(authTokenProvider.notifier).state = api.token;
+      return true;
+    }
   }
   return false;
 });

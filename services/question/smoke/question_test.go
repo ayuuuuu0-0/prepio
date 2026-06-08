@@ -40,6 +40,7 @@ func TestDailyPaperAndSubmitEmitsEvent(t *testing.T) {
 		store.NewQuestionStore(pool),
 		store.NewDailyPaperStore(pool),
 		store.NewHistoryStore(pool),
+		store.NewJourneyStore(pool),
 		store.NewUserStore(pool),
 		redisClient,
 		publisher,
@@ -69,8 +70,10 @@ func TestDailyPaperAndSubmitEmitsEvent(t *testing.T) {
 	questionID := first["id"].(string)
 
 	submitBody, _ := json.Marshal(map[string]any{
-		"session_id":         daily["session_id"],
-		"answer":             "use hash map approach with O(n) time and O(n) space complexity",
+		"session_id": daily["session_id"],
+		"answer": "For the two sum problem I would use a hash map to store seen values while scanning the array once. " +
+			"This gives O(n) time and O(n) space. I handle duplicate values by checking complements before inserting, " +
+			"and return the two indices in ascending order as required.",
 		"time_spent_seconds": 120,
 	})
 	submitResp := postAuth(t, fmt.Sprintf("%s/api/v1/questions/%s/submit", server.URL, questionID), submitBody, token)
@@ -109,13 +112,18 @@ func seedUser(t *testing.T, pool *pgxpool.Pool) string {
 func seedQuestion(t *testing.T, pool *pgxpool.Pool) string {
 	t.Helper()
 	ctx := context.Background()
+	_, err := pool.Exec(ctx, `DELETE FROM question_tags`)
+	require.NoError(t, err)
+	_, err = pool.Exec(ctx, `DELETE FROM questions`)
+	require.NoError(t, err)
+
 	var questionID string
-	err := pool.QueryRow(ctx, `
+	err = pool.QueryRow(ctx, `
 		INSERT INTO questions (body, round_type, difficulty, answer_guide, status, source)
 		VALUES (
 			'Given an array, return two sum indices',
 			'dsa', 'easy',
-			'hash map approach with O(n) time and O(n) space',
+			'concepts:hash map|O(n) time|O(n) space|two sum|duplicate handling',
 			'approved', 'manual'
 		) RETURNING id`).Scan(&questionID)
 	require.NoError(t, err)

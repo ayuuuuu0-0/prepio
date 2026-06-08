@@ -60,6 +60,7 @@ func main() {
 		envOrDefault("USER_SERVICE_URL", "http://localhost:8081"),
 		envOrDefault("PROGRESS_SERVICE_URL", "http://localhost:8084"),
 		envOrDefault("STREAK_SERVICE_URL", "http://localhost:8083"),
+		envOrDefault("QUESTION_SERVICE_URL", "http://localhost:8082"),
 	)
 	dashboardHandler := dashboard.NewHandler(dashboardService)
 
@@ -83,6 +84,7 @@ func main() {
 			r.Use(middleware.Auth(signer, redisClient))
 			r.Use(middleware.RateLimit(redisClient, constants.AuthenticatedRateLimitPerMinute, middleware.RateLimitKeyByUser))
 			r.Get("/dashboard/home", dashboardHandler.GetHome)
+			r.Get("/journey", questionProxy.ServeHTTP)
 			r.Post("/auth/logout", userProxy.ServeHTTP)
 			r.Handle("/users/*", userProxy)
 			r.Handle("/questions/*", questionProxy)

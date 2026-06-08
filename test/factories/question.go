@@ -20,7 +20,7 @@ func NewQuestionFactory() QuestionFactory {
 		Body:        "explain hash map time complexity for two sum",
 		RoundType:   "dsa",
 		Difficulty:  "easy",
-		AnswerGuide: "hash map approach with O(n) time and O(n) space",
+		AnswerGuide: "concepts:hash map|O(n) time|O(n) space|two sum",
 		Status:      "approved",
 		IsWeekend:   false,
 		Source:      "manual",

@@ -56,6 +56,16 @@ trap stop_services EXIT
 
 stop_services
 
+# Free service ports so stale binaries from prior runs cannot shadow new code.
+for port in 8080 8081 8082 8083 8084 8085; do
+  pids=$(lsof -ti :"$port" 2>/dev/null || true)
+  if [ -n "$pids" ]; then
+    echo "Freeing port $port..."
+    echo "$pids" | xargs kill -9 2>/dev/null || true
+  fi
+done
+sleep 1
+
 start_service() {
   local name="$1"
   local path="$2"

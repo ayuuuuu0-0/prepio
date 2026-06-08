@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../core/theme/design_tokens.dart';
 
-/// GameBackground wraps screens with gradient worlds — never plain white.
+/// GameBackground wraps screens with dark ambient game backgrounds.
 class GameBackground extends StatelessWidget {
   const GameBackground({super.key, required this.child, this.variant = GameBgVariant.defaultBg});
 
@@ -14,22 +14,22 @@ class GameBackground extends StatelessWidget {
       GameBgVariant.defaultBg => const LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [PrepioColors.bgTop, Color(0xFFF0FFE8), PrepioColors.bgBottom],
+          colors: [Color(0xFF141622), PrepioColors.bg, Color(0xFF0F1419)],
         ),
       GameBgVariant.forest => const LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
-          colors: [Color(0xFFB8E986), Color(0xFF7EC850), Color(0xFF5A9E3A)],
+          colors: [Color(0xFF0D1F14), Color(0xFF0F1A10), PrepioColors.bg],
         ),
       GameBgVariant.challenge => const LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
-          colors: [Color(0xFFE8F5FF), Color(0xFFC8E6FF)],
+          colors: [Color(0xFF0F1020), PrepioColors.bg],
         ),
     };
 
     return Container(
-      decoration: BoxDecoration(gradient: gradient),
+      decoration: BoxDecoration(color: PrepioColors.bg, gradient: gradient),
       child: SafeArea(child: child),
     );
   }

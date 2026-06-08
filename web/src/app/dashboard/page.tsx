@@ -11,9 +11,9 @@ import { SpeechBubble } from "@/components/game/SpeechBubble";
 import { ReadinessRing } from "@/components/game/ReadinessRing";
 import { GameCard } from "@/components/game/GameCard";
 import { QuestCard } from "@/components/game/QuestCard";
-import { StatChip } from "@/components/game/StatChip";
 import { GameButton } from "@/components/game/GameButton";
 import { BottomNav } from "@/components/game/BottomNav";
+import { HUDBar } from "@/components/game/HUDBar";
 
 const questIcons: Record<string, string> = {
   daily_question: "⚡",
@@ -44,11 +44,14 @@ export default function DashboardPage() {
   }, [router]);
 
   useEffect(() => {
-    if (!api.loadToken()) {
-      router.replace("/login");
-      return;
-    }
-    load();
+    (async () => {
+      const ok = await api.ensureSession();
+      if (!ok) {
+        router.replace("/login");
+        return;
+      }
+      load();
+    })();
   }, [router, load]);
 
   if (loading) {
@@ -56,7 +59,9 @@ export default function DashboardPage() {
       <GameBackground>
         <main className="flex min-h-screen items-center justify-center pb-20">
           <CompanionHero name="Byte" size="md" />
-          <p className="font-display mt-4 animate-pulse text-lg font-bold text-[#58CC02]">Loading your world...</p>
+          <p className="font-mono mt-4 animate-pulse text-sm font-semibold" style={{ color: "#7C6EF5" }}>
+            Loading...
+          </p>
         </main>
       </GameBackground>
     );
@@ -66,7 +71,7 @@ export default function DashboardPage() {
     return (
       <GameBackground>
         <main className="flex min-h-screen items-center justify-center p-6">
-          <p className="text-orange-700">{error || "Something went wrong"}</p>
+          <p style={{ color: "#F87171" }}>{error || "Something went wrong"}</p>
         </main>
       </GameBackground>
     );
@@ -77,48 +82,67 @@ export default function DashboardPage() {
   return (
     <GameBackground>
       <main className="mx-auto max-w-lg px-4 pb-28 pt-6">
-        {/* Top — Companion + speech */}
-        <section className="flex items-end gap-4">
-          <CompanionHero name={home.companion?.name} species={home.companion?.species} size="lg" />
-          <SpeechBubble className="flex-1">{home.companion_message}</SpeechBubble>
+        <section className="flex items-start gap-4">
+          <CompanionHero name={home.companion?.name} species={home.companion?.species} size="md" />
+          <SpeechBubble className="mt-2 flex-1" speakerName={home.companion?.name ?? "Byte"}>
+            {home.companion_message}
+          </SpeechBubble>
         </section>
 
-        {/* Stats row */}
-        <div className="mt-5 flex flex-wrap gap-2">
-          <StatChip icon="🔥" label="Streak" value={`${home.streak.current_streak} days`} color="#FF9600" />
-          <StatChip icon="⚡" label="Level" value={home.progress.current_level} color="#1CB0F6" />
-          <StatChip icon="💎" label="Gems" value={home.progress.gem_balance} color="#7B5CFF" />
+        <div className="mt-4">
+          <HUDBar home={home} />
         </div>
 
-        {/* Readiness rings */}
-        <GameCard className="mt-5 bg-gradient-to-br from-white to-sky-50" icon="🧭">
-          <h2 className="font-display mb-4 text-lg font-bold text-[#3C3C3C]">Career Readiness</h2>
+        <GameCard className="mt-5" icon="🧭" accentColor="#60A5FA">
+          <h2 className="font-display mb-4 text-base font-bold" style={{ color: "#E8EAED" }}>
+            Career Readiness
+          </h2>
           <div className="flex flex-wrap justify-center gap-4">
             {home.readiness.map((r, i) => (
               <ReadinessRing
                 key={r.company}
                 company={r.company}
                 score={r.score}
-                color={companyColors[r.company]?.ring ?? "#58CC02"}
+                color={companyColors[r.company]?.ring ?? "#7C6EF5"}
                 delay={i * 150}
               />
             ))}
           </div>
         </GameCard>
 
-        {/* League */}
-        <GameCard
-          className={`mt-4 bg-gradient-to-r ${league.gradient} text-white`}
-          icon={league.icon}
-        >
-          <p className="font-display text-sm font-bold uppercase opacity-90">{home.league.label}</p>
-          <p className="font-display text-3xl font-extrabold">Rank #{home.league.rank}</p>
-          <p className="mt-1 text-sm opacity-80">Keep climbing — promotion zone ahead!</p>
+        <GameCard className="mt-4" icon={league.icon} accentColor={league.border}>
+          {home.league.available ? (
+            <>
+              <div
+                className={`-mx-5 -mt-5 mb-4 rounded-t-2xl bg-gradient-to-r ${league.gradient} px-5 pt-4 pb-3`}
+              >
+                <p className="font-mono text-[11px] font-bold uppercase tracking-widest text-white/70">
+                  {home.league.label}
+                </p>
+                <p className="font-display mt-0.5 text-2xl font-extrabold text-white">
+                  Rank #{home.league.rank}
+                </p>
+              </div>
+              <p className="text-sm" style={{ color: "#8B92A8" }}>
+                Keep climbing — promotion zone ahead!
+              </p>
+            </>
+          ) : (
+            <>
+              <p className="font-display text-lg font-extrabold" style={{ color: "#E8EAED" }}>
+                {home.league.label}
+              </p>
+              <p className="mt-1 text-sm" style={{ color: "#8B92A8" }}>
+                Your league rank is calculating — check back soon!
+              </p>
+            </>
+          )}
         </GameCard>
 
-        {/* Daily quests */}
         <div className="mt-5 space-y-3">
-          <h2 className="font-display text-lg font-bold text-[#3C3C3C]">⚡ Daily Quests</h2>
+          <h2 className="font-mono text-xs font-bold uppercase tracking-widest" style={{ color: "#4A5068" }}>
+            Daily Quests
+          </h2>
           {home.daily_quests.map((q) => (
             <QuestCard
               key={q.id}
@@ -129,21 +153,22 @@ export default function DashboardPage() {
               completed={q.completed}
               rewardXp={q.reward_xp}
               rewardGems={q.reward_gems}
+              comingSoon={q.coming_soon}
             />
           ))}
         </div>
 
-        {/* Primary CTA */}
         <Link href="/challenge" className="mt-6 block">
-          <GameButton type="button">Continue Journey →</GameButton>
+          <GameButton type="button">Continue Prep →</GameButton>
         </Link>
 
         <button
           onClick={() => {
-            api.setToken(null);
+            api.setAuthTokens(null, null);
             router.push("/login");
           }}
-          className="mt-4 w-full text-center text-xs font-semibold text-[#999] hover:text-[#777]"
+          className="mt-4 w-full text-center font-mono text-xs font-semibold transition-colors"
+          style={{ color: "#4A5068" }}
         >
           Sign out
         </button>

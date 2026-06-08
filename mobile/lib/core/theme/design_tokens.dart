@@ -1,50 +1,69 @@
 import 'package:flutter/material.dart';
 
-/// PrepioColors holds the game palette — never corporate grey/white.
+/// PrepioColors holds the career RPG dark palette.
 class PrepioColors {
-  static const green = Color(0xFF58CC02);
-  static const greenDark = Color(0xFF46A302);
-  static const purple = Color(0xFF7B5CFF);
-  static const orange = Color(0xFFFF9600);
-  static const blue = Color(0xFF1CB0F6);
-  static const gold = Color(0xFFFFC800);
-  static const pink = Color(0xFFFF6B9D);
-  static const text = Color(0xFF3C3C3C);
-  static const textMuted = Color(0xFF777777);
-  static const bgTop = Color(0xFFE8F5D8);
-  static const bgBottom = Color(0xFFC8E6FF);
+  static const bg = Color(0xFF0F1117);
+  static const surface = Color(0xFF1A1D27);
+  static const raised = Color(0xFF242836);
+  static const border = Color(0xFF2E3347);
+  static const accent = Color(0xFF7C6EF5);
+  static const streak = Color(0xFFFF6B35);
+  static const gems = Color(0xFF34D399);
+  static const xp = Color(0xFF60A5FA);
+  static const gold = Color(0xFFF5B942);
+  static const success = Color(0xFF34D399);
+  static const warning = Color(0xFFF5B942);
+  static const danger = Color(0xFFF87171);
+  static const textPrimary = Color(0xFFE8EAED);
+  static const textMuted = Color(0xFF8B92A8);
+  static const textDim = Color(0xFF4A5068);
+  static const textBody = Color(0xFFC8CCDA);
 }
+
+/// LevelThresholds mirrors config/levels.go cumulative XP per level.
+const levelThresholds = [0, 100, 250, 500, 800, 1200, 1700, 2300, 3000, 3800];
 
 /// CompanyColors maps target companies to ring colors.
 const companyRingColors = <String, Color>{
-  'google': Color(0xFF1CB0F6),
-  'amazon': Color(0xFFFF9600),
-  'meta': Color(0xFF7B5CFF),
-  'uber': Color(0xFF58CC02),
+  'google': Color(0xFF4285F4),
+  'amazon': Color(0xFFFF9900),
+  'meta': Color(0xFF7C6EF5),
+  'uber': Color(0xFF34D399),
   'atlassian': Color(0xFF0052CC),
+  'netflix': Color(0xFFE50914),
 };
 
-/// CompanionVisual holds emoji and gradient for each companion species.
+/// RoundTypeColors maps question round types to accent colors.
+const roundTypeColors = <String, Color>{
+  'dsa': Color(0xFF7C6EF5),
+  'system_design': Color(0xFF60A5FA),
+  'lld': Color(0xFF34D399),
+  'behavioral': Color(0xFFFF6B35),
+  'aptitude': Color(0xFFF5B942),
+  'fundamentals': Color(0xFFA99EFA),
+};
+
+/// CompanionVisual holds emoji and glow for each companion species.
 class CompanionVisual {
-  const CompanionVisual({required this.emoji, required this.colors});
+  const CompanionVisual({required this.emoji, required this.glow});
   final String emoji;
-  final List<Color> colors;
+  final Color glow;
 }
 
 /// companionFor returns visual identity by name or species.
 CompanionVisual companionFor({String? name, String? species}) {
   final key = (name ?? species ?? 'byte').toLowerCase();
   const map = <String, CompanionVisual>{
-    'byte': CompanionVisual(emoji: '🦫', colors: [Color(0xFF8B5E3C), Color(0xFFD4A574), Color(0xFF7CB342)]),
-    'capybara': CompanionVisual(emoji: '🦫', colors: [Color(0xFF8B5E3C), Color(0xFFD4A574), Color(0xFF7CB342)]),
-    'pip': CompanionVisual(emoji: '🐼', colors: [Color(0xFFFF6B35), Color(0xFFFFB84D), Color(0xFFE63946)]),
-    'red_panda': CompanionVisual(emoji: '🐼', colors: [Color(0xFFFF6B35), Color(0xFFFFB84D), Color(0xFFE63946)]),
-    'nova': CompanionVisual(emoji: '🦔', colors: [Color(0xFF7B5CFF), Color(0xFF9B59B6), Color(0xFFFFC800)]),
-    'pangolin': CompanionVisual(emoji: '🦔', colors: [Color(0xFF7B5CFF), Color(0xFF9B59B6), Color(0xFFFFC800)]),
-    'kodo': CompanionVisual(emoji: '🦎', colors: [Color(0xFFFF85C0), Color(0xFFFFB4E6), Color(0xFF87CEEB)]),
-    'axolotl': CompanionVisual(emoji: '🦎', colors: [Color(0xFFFF85C0), Color(0xFFFFB4E6), Color(0xFF87CEEB)]),
-    'zara': CompanionVisual(emoji: '🐆', colors: [Color(0xFF94A3B8), Color(0xFFBAE6FD), Color(0xFFFFFFFF)]),
-    'snow_leopard': CompanionVisual(emoji: '🐆', colors: [Color(0xFF94A3B8), Color(0xFFBAE6FD), Color(0xFFFFFFFF)]),
+    'byte': CompanionVisual(emoji: '🦫', glow: Color(0xFF7CB342)),
+    'capybara': CompanionVisual(emoji: '🦫', glow: Color(0xFF7CB342)),
+    'pip': CompanionVisual(emoji: '🐼', glow: Color(0xFFFF6B35)),
+    'red_panda': CompanionVisual(emoji: '🐼', glow: Color(0xFFFF6B35)),
+    'nova': CompanionVisual(emoji: '🦔', glow: Color(0xFF7C6EF5)),
+    'pangolin': CompanionVisual(emoji: '🦔', glow: Color(0xFF7C6EF5)),
+    'kodo': CompanionVisual(emoji: '🦎', glow: Color(0xFFFF6B9D)),
+    'axolotl': CompanionVisual(emoji: '🦎', glow: Color(0xFFFF6B9D)),
+    'zara': CompanionVisual(emoji: '🐆', glow: Color(0xFF60A5FA)),
+    'snow_leopard': CompanionVisual(emoji: '🐆', glow: Color(0xFF60A5FA)),
   };
   return map[key] ?? map['byte']!;
 }

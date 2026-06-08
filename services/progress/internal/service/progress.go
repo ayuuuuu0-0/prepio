@@ -34,14 +34,26 @@ func (s *ProgressService) ProcessQuestionAnswered(ctx context.Context, event eve
 		return nil
 	}
 
-	xp := config.XPByDifficulty[event.Difficulty]
-	for _, company := range event.CompanyTags {
-		if config.TopTierCompanies[company] {
-			xp = int(float64(xp) * config.TopTierCompanyXPMultiplier)
-			break
+	xp := event.XPAwarded
+	gems := event.GemsAwarded
+	if xp == 0 {
+		xp = config.XPByDifficulty[event.Difficulty]
+		for _, company := range event.CompanyTags {
+			if config.TopTierCompanies[company] {
+				xp = int(float64(xp) * config.TopTierCompanyXPMultiplier)
+				break
+			}
+		}
+		if event.Score > 0 {
+			xp = xp * event.Score / 100
 		}
 	}
-	gems := config.GemsByDifficulty[event.Difficulty]
+	if gems == 0 {
+		gems = config.GemsByDifficulty[event.Difficulty]
+		if event.Score > 0 && event.Score < 80 {
+			gems = gems / 2
+		}
+	}
 
 	state, err := s.progress.Get(ctx, event.UserID)
 	if err != nil {

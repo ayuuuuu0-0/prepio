@@ -804,3 +804,40 @@ A user should be able to open the app after 100 days and immediately feel:
 That feeling is the core product.
 
 Everything else exists to support it.
+
+---
+
+# Audience Differentiation
+
+Duolingo's user: Learning French for vacation, hobby, personal growth.
+Prepio's user:   Trying to get their first job at Google or double their salary.
+
+The stakes are categorically different.
+
+Duolingo can be whimsical because nothing rides on a missed lesson.
+Prepio users are under real pressure. The UI must honor that.
+
+Playful: Yes — this is a game and games should feel rewarding.
+Childish: Never — users are making career decisions that affect their income.
+
+The emotional target for every session:
+"I made measurable progress toward the job I want."
+
+Not:
+"I earned a fun star today!"
+
+---
+
+# Design Reference Points
+
+Primary inspiration: Duolingo (genre, mechanics, companion)
+Secondary inspiration: Linear, Vercel, Raycast (professionalism, dark theme)
+Tertiary inspiration: Pokémon (collection, evolution, world progression)
+
+The combination:
+- Duolingo's daily habit loop
+- Linear's dark professional aesthetic
+- Pokémon's emotional attachment to companions
+
+This combination does not currently exist in the market.
+It is Prepio's moat.

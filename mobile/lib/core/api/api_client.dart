@@ -3,15 +3,37 @@ import 'package:http/http.dart' as http;
 
 /// ApiClient talks to the Prepio gateway REST API.
 class ApiClient {
-  ApiClient({this.baseUrl = 'http://localhost:8080', this.token});
+  ApiClient({this.baseUrl = 'http://localhost:8080', this.token, this.refreshToken});
 
   final String baseUrl;
   String? token;
+  String? refreshToken;
+
+  /// refreshAccessToken exchanges the refresh token for a new access token.
+  Future<bool> refreshAccessToken() async {
+    if (refreshToken == null || refreshToken!.isEmpty) return false;
+    try {
+      final res = await http.post(
+        Uri.parse('$baseUrl/api/v1/auth/refresh'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'refresh_token': refreshToken}),
+      );
+      if (res.statusCode >= 400) return false;
+      final decoded = _decodeBody(res.body);
+      final data = decoded['data'] as Map<String, dynamic>;
+      token = data['access_token'] as String;
+      refreshToken = data['refresh_token'] as String;
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
 
   Future<Map<String, dynamic>> _request(
     String method,
     String path, {
     Map<String, dynamic>? body,
+    bool retry = true,
   }) async {
     final headers = <String, String>{'Content-Type': 'application/json'};
     if (token != null && token!.isNotEmpty) {
@@ -28,6 +50,11 @@ class ApiClient {
         res = await http.post(uri, headers: headers, body: jsonEncode(body));
       default:
         throw UnsupportedError(method);
+    }
+
+    if (res.statusCode == 401 && retry) {
+      final refreshed = await refreshAccessToken();
+      if (refreshed) return _request(method, path, body: body, retry: false);
     }
 
     if (res.statusCode >= 400) {
@@ -157,6 +184,16 @@ class ApiClient {
     final data = await _request('GET', '/api/v1/dashboard/home');
     return DashboardHome.fromJson(data);
   }
+
+  Future<List<HistoryEntry>> getQuestionHistory(String sessionId) async {
+    final list = await _requestList('/api/v1/questions/history?session_id=$sessionId');
+    return list.map((e) => HistoryEntry.fromJson(e as Map<String, dynamic>)).toList();
+  }
+
+  Future<JourneyData> getJourney() async {
+    final data = await _request('GET', '/api/v1/journey');
+    return JourneyData.fromJson(data);
+  }
 }
 
 class ApiException implements Exception {
@@ -168,14 +205,16 @@ class ApiException implements Exception {
 }
 
 class AuthResult {
-  AuthResult({required this.accessToken, required this.username});
+  AuthResult({required this.accessToken, required this.refreshToken, required this.username});
   final String accessToken;
+  final String refreshToken;
   final String username;
 
   factory AuthResult.fromJson(Map<String, dynamic> json) {
     final user = json['user'] as Map<String, dynamic>;
     return AuthResult(
       accessToken: json['access_token'] as String,
+      refreshToken: json['refresh_token'] as String,
       username: user['username'] as String,
     );
   }
@@ -195,29 +234,56 @@ class DailyPaper {
 }
 
 class QuestionItem {
-  QuestionItem({required this.id, required this.body, required this.difficulty});
+  QuestionItem({required this.id, required this.body, required this.difficulty, required this.roundType});
   final String id;
   final String body;
   final String difficulty;
+  final String roundType;
 
   factory QuestionItem.fromJson(Map<String, dynamic> json) {
     return QuestionItem(
       id: json['id'] as String,
       body: json['body'] as String,
       difficulty: json['difficulty'] as String,
+      roundType: json['round_type'] as String? ?? 'dsa',
     );
   }
 }
 
+/// SubmitResult holds scored evaluation output from answer submission.
 class SubmitResult {
-  SubmitResult({required this.correct, required this.feedback});
+  SubmitResult({
+    required this.correct,
+    required this.score,
+    required this.feedback,
+    required this.xpAwarded,
+    required this.gemsAwarded,
+    required this.strengths,
+    required this.gaps,
+    required this.readinessDelta,
+    required this.streakUpdated,
+  });
   final bool correct;
+  final int score;
   final String feedback;
+  final int xpAwarded;
+  final int gemsAwarded;
+  final List<String> strengths;
+  final List<String> gaps;
+  final int readinessDelta;
+  final bool streakUpdated;
 
   factory SubmitResult.fromJson(Map<String, dynamic> json) {
     return SubmitResult(
       correct: json['correct'] as bool,
+      score: json['score'] as int? ?? 0,
       feedback: json['feedback'] as String,
+      xpAwarded: json['xp_awarded'] as int? ?? 0,
+      gemsAwarded: json['gems_awarded'] as int? ?? 0,
+      strengths: (json['strengths'] as List<dynamic>? ?? []).cast<String>(),
+      gaps: (json['gaps'] as List<dynamic>? ?? []).cast<String>(),
+      readinessDelta: json['readiness_delta'] as int? ?? 0,
+      streakUpdated: json['streak_updated'] as bool? ?? false,
     );
   }
 }
@@ -236,16 +302,23 @@ class StreakInfo {
 }
 
 class ProgressInfo {
-  ProgressInfo({required this.totalXp, required this.currentLevel, required this.gemBalance});
+  ProgressInfo({
+    required this.totalXp,
+    required this.currentLevel,
+    required this.gemBalance,
+    required this.xpToNextLevel,
+  });
   final int totalXp;
   final int currentLevel;
   final int gemBalance;
+  final int xpToNextLevel;
 
   factory ProgressInfo.fromJson(Map<String, dynamic> json) {
     return ProgressInfo(
       totalXp: json['total_xp'] as int,
       currentLevel: json['current_level'] as int,
       gemBalance: json['gem_balance'] as int,
+      xpToNextLevel: json['xp_to_next_level'] as int? ?? 0,
     );
   }
 }
@@ -287,16 +360,18 @@ class ProfileInfo {
 
 /// LeagueInfo summarizes the user's league tier and rank.
 class LeagueInfo {
-  LeagueInfo({required this.tier, required this.rank, required this.label});
+  LeagueInfo({required this.tier, required this.rank, required this.label, required this.available});
   final String tier;
   final int rank;
   final String label;
+  final bool available;
 
   factory LeagueInfo.fromJson(Map<String, dynamic> json) {
     return LeagueInfo(
-      tier: json['tier'] as String,
-      rank: json['rank'] as int,
+      tier: json['tier'] as String? ?? '',
+      rank: json['rank'] as int? ?? 0,
       label: json['label'] as String,
+      available: json['available'] as bool? ?? false,
     );
   }
 }
@@ -355,18 +430,101 @@ class ReadinessInfo {
 }
 
 class DailyQuestInfo {
-  DailyQuestInfo({required this.title, required this.progress, required this.target, required this.completed});
+  DailyQuestInfo({
+    required this.id,
+    required this.title,
+    required this.progress,
+    required this.target,
+    required this.completed,
+    required this.rewardXp,
+    required this.rewardGems,
+    required this.comingSoon,
+  });
+  final String id;
   final String title;
   final int progress;
   final int target;
   final bool completed;
+  final int rewardXp;
+  final int rewardGems;
+  final bool comingSoon;
 
   factory DailyQuestInfo.fromJson(Map<String, dynamic> json) {
     return DailyQuestInfo(
+      id: json['id'] as String? ?? '',
       title: json['title'] as String,
       progress: json['progress'] as int,
       target: json['target'] as int,
       completed: json['completed'] as bool,
+      rewardXp: json['reward_xp'] as int? ?? 0,
+      rewardGems: json['reward_gems'] as int? ?? 0,
+      comingSoon: json['coming_soon'] as bool? ?? false,
+    );
+  }
+}
+
+class HistoryEntry {
+  HistoryEntry({required this.questionId, required this.correct, required this.score});
+  final String questionId;
+  final bool correct;
+  final int score;
+
+  factory HistoryEntry.fromJson(Map<String, dynamic> json) {
+    return HistoryEntry(
+      questionId: json['question_id'] as String,
+      correct: json['correct'] as bool,
+      score: json['score'] as int? ?? 0,
+    );
+  }
+}
+
+class JourneyData {
+  JourneyData({required this.world, required this.nodes, required this.sessionId});
+  final JourneyWorld world;
+  final List<JourneyNode> nodes;
+  final String sessionId;
+
+  factory JourneyData.fromJson(Map<String, dynamic> json) {
+    return JourneyData(
+      world: JourneyWorld.fromJson(json['world'] as Map<String, dynamic>),
+      nodes: (json['nodes'] as List<dynamic>)
+          .map((e) => JourneyNode.fromJson(e as Map<String, dynamic>))
+          .toList(),
+      sessionId: json['session_id'] as String,
+    );
+  }
+}
+
+class JourneyWorld {
+  JourneyWorld({required this.name, required this.description, required this.theme});
+  final String name;
+  final String description;
+  final String theme;
+
+  factory JourneyWorld.fromJson(Map<String, dynamic> json) {
+    return JourneyWorld(
+      name: json['name'] as String,
+      description: json['description'] as String,
+      theme: json['theme'] as String,
+    );
+  }
+}
+
+class JourneyNode {
+  JourneyNode({required this.id, required this.label, required this.nodeType, required this.status, this.questionId});
+  final String id;
+  final String label;
+  final String nodeType;
+  final String status;
+  final String? questionId;
+
+  factory JourneyNode.fromJson(Map<String, dynamic> json) {
+    return JourneyNode(
+      id: json['id'] as String,
+      label: json['label'] as String,
+      nodeType: json['node_type'] as String,
+      status: json['status'] as String,
+      questionId: json['question_id'] as String?,
     );
   }
 }

@@ -1,112 +1,210 @@
 @import "tailwindcss";
 
+/* ─── Design Tokens ──────────────────────────────────────────────── */
 :root {
-  --prepio-green: #58cc02;
-  --prepio-green-dark: #46a302;
-  --prepio-purple: #7b5cff;
-  --prepio-orange: #ff9600;
-  --prepio-blue: #1cb0f6;
-  --prepio-gold: #ffc800;
-  --prepio-bg-top: #e8f5d8;
-  --prepio-bg-bottom: #c8e6ff;
-  --prepio-text: #3c3c3c;
+  /* Backgrounds */
+  --prepio-bg:          #0F1117;
+  --prepio-surface:     #1A1D27;
+  --prepio-raised:      #242836;
+  --prepio-border:      #2E3347;
+
+  /* Accent — electric purple, not Duolingo green */
+  --prepio-accent:      #7C6EF5;
+  --prepio-accent-dim:  rgba(124, 110, 245, 0.15);
+  --prepio-accent-glow: rgba(124, 110, 245, 0.35);
+
+  /* Game indicators */
+  --prepio-streak:      #FF6B35;
+  --prepio-gems:        #34D399;
+  --prepio-gold:        #F5B942;
+  --prepio-xp:          #60A5FA;
+
+  /* Semantic */
+  --prepio-success:     #34D399;
+  --prepio-warning:     #F5B942;
+  --prepio-danger:      #F87171;
+
+  /* Text */
+  --prepio-text:        #E8EAED;
+  --prepio-text-muted:  #8B92A8;
+  --prepio-text-dim:    #4A5068;
 }
 
 @theme inline {
-  --font-display: var(--font-fredoka);
-  --font-body: var(--font-nunito);
+  --font-display: var(--font-display);
+  --font-body: var(--font-body);
+  --font-mono: var(--font-mono);
 }
 
+/* ─── Base ───────────────────────────────────────────────────────── */
 body {
+  background-color: var(--prepio-bg);
   color: var(--prepio-text);
-  font-family: var(--font-nunito), system-ui, sans-serif;
+  font-family: var(--font-body), system-ui, sans-serif;
 }
 
 .font-display {
-  font-family: var(--font-fredoka), system-ui, sans-serif;
+  font-family: var(--font-display), system-ui, sans-serif;
 }
 
-/* Game background — never plain white */
+.font-mono {
+  font-family: var(--font-mono), monospace;
+}
+
+/* ─── Game backgrounds ───────────────────────────────────────────── */
 .game-bg {
-  background: linear-gradient(165deg, var(--prepio-bg-top) 0%, #f0ffe8 35%, var(--prepio-bg-bottom) 100%);
+  background:
+    radial-gradient(ellipse 60% 40% at 10% 10%, rgba(124, 110, 245, 0.10) 0%, transparent 70%),
+    radial-gradient(ellipse 50% 40% at 90% 85%, rgba(52, 211, 153, 0.06) 0%, transparent 70%),
+    var(--prepio-bg);
   min-height: 100vh;
 }
 
 .game-bg-forest {
-  background: linear-gradient(180deg, #b8e986 0%, #7ec850 40%, #5a9e3a 100%);
+  background:
+    radial-gradient(ellipse 60% 50% at 50% 0%, rgba(52, 211, 153, 0.12) 0%, transparent 70%),
+    linear-gradient(180deg, #0D1F14 0%, #0F1A10 50%, #0F1117 100%);
+  min-height: 100vh;
 }
 
 .game-bg-challenge {
-  background: linear-gradient(180deg, #e8f5ff 0%, #d4ebff 50%, #c8e6ff 100%);
+  background:
+    radial-gradient(ellipse 70% 50% at 50% 0%, rgba(124, 110, 245, 0.12) 0%, transparent 70%),
+    linear-gradient(180deg, #0F1020 0%, #0F1117 60%);
+  min-height: 100vh;
 }
 
-/* Companion idle bounce */
+.game-bg::before,
+.game-bg-forest::before,
+.game-bg-challenge::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* ─── Companion animations ───────────────────────────────────────── */
 @keyframes companion-idle {
   0%, 100% { transform: translateY(0) scale(1); }
-  50% { transform: translateY(-8px) scale(1.02); }
+  50%       { transform: translateY(-6px) scale(1.02); }
 }
 
 .animate-companion-idle {
-  animation: companion-idle 2.5s ease-in-out infinite;
+  animation: companion-idle 3s ease-in-out infinite;
 }
 
-/* Node pulse for journey */
+@keyframes companion-react-correct {
+  0%   { transform: translateY(0) scale(1) rotate(0deg); }
+  25%  { transform: translateY(-14px) scale(1.1) rotate(-5deg); }
+  50%  { transform: translateY(-10px) scale(1.08) rotate(5deg); }
+  75%  { transform: translateY(-14px) scale(1.1) rotate(-3deg); }
+  100% { transform: translateY(0) scale(1) rotate(0deg); }
+}
+
+.animate-companion-correct {
+  animation: companion-react-correct 0.7s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+@keyframes companion-react-wrong {
+  0%   { transform: translateX(0) rotate(0deg); }
+  20%  { transform: translateX(-6px) rotate(-4deg); }
+  40%  { transform: translateX(6px) rotate(4deg); }
+  60%  { transform: translateX(-4px) rotate(-2deg); }
+  80%  { transform: translateX(4px) rotate(2deg); }
+  100% { transform: translateX(0) rotate(0deg); }
+}
+
+.animate-companion-wrong {
+  animation: companion-react-wrong 0.6s ease-out forwards;
+}
+
+/* ─── Journey node animations ────────────────────────────────────── */
 @keyframes node-pulse {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(88, 204, 2, 0.5); }
-  50% { box-shadow: 0 0 0 12px rgba(88, 204, 2, 0); }
+  0%, 100% { box-shadow: 0 0 0 0 var(--prepio-accent-glow); }
+  50%       { box-shadow: 0 0 0 14px transparent; }
 }
 
 .animate-node-pulse {
-  animation: node-pulse 2s ease-in-out infinite;
+  animation: node-pulse 2.2s ease-in-out infinite;
 }
 
-/* Progress ring fill */
+/* ─── Readiness ring ─────────────────────────────────────────────── */
 @keyframes ring-fill {
   from { stroke-dashoffset: 283; }
 }
 
 .animate-ring-fill {
-  animation: ring-fill 1.2s ease-out forwards;
+  animation: ring-fill 1.4s cubic-bezier(0.4, 0, 0.2, 1) forwards;
 }
 
-/* Confetti burst */
-@keyframes confetti-pop {
-  0% { transform: scale(0); opacity: 0; }
-  50% { transform: scale(1.2); opacity: 1; }
-  100% { transform: scale(1); opacity: 1; }
+/* ─── Result screen ──────────────────────────────────────────────── */
+@keyframes result-enter {
+  0%   { transform: scale(0.92) translateY(12px); opacity: 0; }
+  100% { transform: scale(1) translateY(0); opacity: 1; }
 }
 
-.animate-confetti {
-  animation: confetti-pop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+.animate-result {
+  animation: result-enter 0.45s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
 }
 
-/* Pill button press */
+@keyframes xp-count {
+  from { opacity: 0; transform: translateY(8px) scale(0.9); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.animate-xp {
+  animation: xp-count 0.4s 0.2s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+.animate-gems {
+  animation: xp-count 0.4s 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+/* ─── Button ─────────────────────────────────────────────────────── */
 .game-btn {
-  transition: transform 0.1s ease, box-shadow 0.1s ease;
-  box-shadow: 0 4px 0 var(--btn-shadow, #46a302);
+  transition: transform 0.1s ease, box-shadow 0.15s ease, opacity 0.15s ease;
+  box-shadow: 0 4px 0 var(--btn-shadow, #5B50D4);
 }
 
 .game-btn:hover:not(:disabled) {
-  transform: scale(1.03);
+  transform: translateY(-1px) scale(1.02);
+  box-shadow: 0 6px 0 var(--btn-shadow, #5B50D4);
 }
 
 .game-btn:active:not(:disabled) {
-  transform: scale(0.97);
-  box-shadow: 0 2px 0 var(--btn-shadow, #46a302);
+  transform: translateY(2px) scale(0.98);
+  box-shadow: 0 2px 0 var(--btn-shadow, #5B50D4);
 }
 
 .game-btn:disabled {
-  opacity: 0.6;
+  opacity: 0.45;
   box-shadow: none;
+  cursor: not-allowed;
 }
 
-/* Speech bubble tail */
+/* ─── Speech bubble tail ─────────────────────────────────────────── */
 .speech-bubble::after {
   content: "";
   position: absolute;
   bottom: -10px;
-  left: 28px;
+  left: 24px;
   border-width: 10px 10px 0;
   border-style: solid;
-  border-color: white transparent transparent;
+  border-color: var(--prepio-surface) transparent transparent;
 }
+
+/* ─── XP bar ─────────────────────────────────────────────────────── */
+@keyframes xp-bar-fill {
+  from { width: 0%; }
+}
+
+.animate-xp-bar {
+  animation: xp-bar-fill 1.2s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+.stagger-1 { animation-delay: 0.05s; }
+.stagger-2 { animation-delay: 0.10s; }
+.stagger-3 { animation-delay: 0.15s; }
+.stagger-4 { animation-delay: 0.20s; }

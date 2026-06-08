@@ -479,3 +479,55 @@ Redesign.
 The UI should feel like a game first.
 
 Everything else second.
+
+---
+
+# Target Audience
+
+Users are 19–28 year old engineers and CS students.
+They are chasing real career outcomes — job offers, salary bumps, FAANG placements.
+They respect competence. They distrust condescension.
+
+The UI should feel like:
+A senior engineer built a game to help you get their job.
+
+Not like:
+A teacher praising a child for finishing homework.
+
+---
+
+# Dark Theme Mandate
+
+Primary background: #0F1117
+Primary surface:    #1A1D27
+Primary accent:     #7C6EF5 (electric purple)
+
+NEVER use:
+- White or light grey backgrounds
+- Duolingo green (#58CC02) as the primary CTA color
+- Fredoka font outside companion dialogue
+
+ALWAYS use:
+- JetBrains Mono for all numbers (XP, gems, streak, levels, %scores)
+- Plus Jakarta Sans for display headings
+- #E8EAED for primary text on dark backgrounds
+
+---
+
+# What is and is not Duolingo
+
+Prepio is in the same genre: gamified daily-habit learning.
+Prepio is NOT the same product: children's language app.
+
+Structural patterns we share (intentionally):
+- Bottom tab navigation
+- Companion with speech bubble
+- XP, gems, streak mechanics
+- Progress rings and bars
+
+Patterns we do NOT share:
+- Lime green as primary CTA
+- White/pastel backgrounds
+- Childish rounded display fonts
+- Overly enthusiastic copy ("AMAZING! YOU DID IT!")
+- Single-column centered form layouts

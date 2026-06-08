@@ -777,3 +777,52 @@ If not:
 Redesign again.
 
 That standard is mandatory for all Prepio interfaces.
+
+---
+
+# Voice Guidelines
+
+Every string visible to the user should pass this test:
+"Would a senior engineer say this to a junior colleague?"
+
+WRONG:  "You've got this! Take your time and think it through."
+RIGHT:  "Think about hash maps for this one."
+
+WRONG:  "Amazing! You're on a roll!"
+RIGHT:  "Solid." or "Good — time complexity covered."
+
+WRONG:  "Almost there! Keep going!"
+RIGHT:  "Not quite. Here's what was missing: [specific bullet points]"
+
+WRONG:  "LET'S GO!" (button copy)
+RIGHT:  "Continue Prep" or "Submit" or "Start Session"
+
+WRONG:  "New adventurer? Start your journey"
+RIGHT:  "No account? Join 12k engineers in prep"
+
+The companion can be warm and encouraging.
+The companion cannot be condescending or childish.
+There is a difference between "I believe in you!" and "One challenge from Level 12."
+One is generic. One is specific and motivating.
+
+---
+
+# Input Styling
+
+Dark background inputs, not white:
+background: #1A1D27
+border: 1px solid #2E3347
+focus border: #7C6EF5
+text: #E8EAED
+
+No white or grey form fields anywhere.
+
+---
+
+# Result Screen Rules
+
+Correct answer: Do NOT say "Amazing!" Say "Solid."
+Wrong answer:   Do NOT say "Almost there!" Show what was missed.
+Wrong answer:   Do NOT use red. Use orange (#FF6B35) or amber (#F5B942).
+XP and gems:    Always animate with count-up. Never appear statically.
+Feedback:       At least 2 bullet points. Never a single vague sentence.

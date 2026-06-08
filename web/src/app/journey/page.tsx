@@ -2,80 +2,95 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect } from "react";
-import { api } from "@/lib/api";
+import { useCallback, useEffect, useState } from "react";
+import { api, JourneyData } from "@/lib/api";
 import { GameBackground } from "@/components/game/GameBackground";
 import { CompanionHero } from "@/components/game/CompanionHero";
 import { GameButton } from "@/components/game/GameButton";
 import { BottomNav } from "@/components/game/BottomNav";
 
-/** Journey nodes for Foundation Forest — hero screen placeholder per SCREEN_SPECS. */
-const nodes = [
-  { id: 1, type: "done", label: "Arrays" },
-  { id: 2, type: "done", label: "Strings" },
-  { id: 3, type: "current", label: "Hashing" },
-  { id: 4, type: "locked", label: "Sorting" },
-  { id: 5, type: "boss", label: "Boss" },
-];
-
-function NodeCircle({ type, label }: { type: string; label: string }) {
+function NodeCircle({ status, label, nodeType }: { status: string; label: string; nodeType: string }) {
   const styles: Record<string, string> = {
-    done: "bg-[#58CC02] text-white",
-    current: "animate-node-pulse bg-[#1CB0F6] text-white ring-4 ring-sky-200",
-    locked: "bg-gray-300 text-gray-500",
-    boss: "h-20 w-20 bg-gradient-to-br from-[#FFC800] to-[#FF9600] text-white text-2xl",
+    done: "bg-[#34D399] text-[#0F1117]",
+    current: "animate-node-pulse bg-[#7C6EF5] text-white ring-2 ring-[#7C6EF5]/40",
+    locked: "bg-[#242836] text-[#4A5068] border border-[#2E3347]",
   };
   const icons: Record<string, string> = {
     done: "✓",
     current: "⚡",
     locked: "🔒",
-    boss: "👑",
   };
-  const isBoss = type === "boss";
+  const isBoss = nodeType === "boss";
 
   return (
     <div className="flex flex-col items-center gap-2">
       <div
-        className={`flex items-center justify-center rounded-full font-display text-xl font-extrabold shadow-lg ${styles[type]} ${
+        className={`flex items-center justify-center rounded-full font-display text-xl font-extrabold shadow-lg ${styles[status] ?? styles.locked} ${
           isBoss ? "h-20 w-20" : "h-16 w-16"
         }`}
       >
-        {icons[type]}
+        {isBoss && status !== "locked" ? "👑" : icons[status] ?? "🔒"}
       </div>
-      <span className="font-display text-xs font-bold text-white drop-shadow">{label}</span>
+      <span className="font-display max-w-[110px] text-center text-xs font-bold" style={{ color: "#C8CCDA" }}>{label}</span>
     </div>
   );
 }
 
 export default function JourneyPage() {
   const router = useRouter();
+  const [journey, setJourney] = useState<JourneyData | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  const load = useCallback(async () => {
+    try {
+      setJourney(await api.getJourney());
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
-    if (!api.loadToken()) router.replace("/login");
-  }, [router]);
+    (async () => {
+      const ok = await api.ensureSession();
+      if (!ok) {
+        router.replace("/login");
+        return;
+      }
+      load();
+    })();
+  }, [router, load]);
+
+  const bgVariant = journey?.world.theme === "forest" ? "forest" : "default";
 
   return (
-    <GameBackground variant="forest">
+    <GameBackground variant={bgVariant as "forest" | "default"}>
       <main className="relative mx-auto min-h-screen max-w-lg px-4 pb-28 pt-6">
         <div className="text-center">
-          <h1 className="font-display text-2xl font-extrabold text-white drop-shadow-lg">🌲 Foundation Forest</h1>
-          <p className="mt-1 text-sm font-semibold text-white/80">World 1 · Beginner Journey</p>
+          <h1 className="font-display text-2xl font-extrabold" style={{ color: "#E8EAED" }}>
+            🌲 {journey?.world.name ?? "Journey"}
+          </h1>
+          <p className="mt-1 text-sm font-semibold" style={{ color: "#8B92A8" }}>
+            {journey?.world.description ?? "Loading..."}
+          </p>
         </div>
 
-        {/* Winding path of nodes */}
-        <div className="relative mt-12 flex flex-col items-center gap-8">
-          <div className="absolute left-1/2 top-0 h-full w-1 -translate-x-1/2 rounded-full bg-white/30" />
-          {nodes.map((node, i) => (
-            <div key={node.id} className={`relative z-10 ${i % 2 === 0 ? "-ml-16" : "ml-16"}`}>
-              {node.type === "current" && (
-                <div className="absolute -right-14 -top-2">
-                  <CompanionHero size="sm" />
-                </div>
-              )}
-              <NodeCircle type={node.type} label={node.label} />
-            </div>
-          ))}
-        </div>
+        {loading ? (
+          <p className="mt-12 text-center font-semibold text-white">Loading journey...</p>
+        ) : (
+          <div className="relative mt-12 flex flex-col items-center gap-8">
+            <div className="absolute left-1/2 top-0 h-full w-1 -translate-x-1/2 rounded-full bg-white/30" />
+            {journey?.nodes.map((node, i) => (
+              <div key={node.id} className={`relative z-10 ${i % 2 === 0 ? "-ml-16" : "ml-16"}`}>
+                {node.status === "current" && (
+                  <div className="absolute -right-14 -top-2">
+                    <CompanionHero size="sm" reaction="idle" />
+                  </div>
+                )}
+                <NodeCircle status={node.status} label={node.label} nodeType={node.node_type} />
+              </div>
+            ))}
+          </div>
+        )}
 
         <div className="mt-10 px-4">
           <Link href="/challenge">

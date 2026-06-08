@@ -14,6 +14,7 @@ func NewService(pool *pgxpool.Pool, redisClient *redis.Client, publisher service
 		store.NewQuestionStore(pool),
 		store.NewDailyPaperStore(pool),
 		store.NewHistoryStore(pool),
+		store.NewJourneyStore(pool),
 		store.NewUserStore(pool),
 		redisClient,
 		publisher,

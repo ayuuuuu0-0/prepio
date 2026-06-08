@@ -64,6 +64,59 @@ func (h *QuestionHandler) Submit(w http.ResponseWriter, r *http.Request) {
 	response.Data(w, http.StatusOK, resp)
 }
 
+// GetJourney handles GET /api/v1/journey.
+func (h *QuestionHandler) GetJourney(w http.ResponseWriter, r *http.Request) {
+	userID, ok := middleware.UserIDFromContext(r.Context())
+	if !ok {
+		response.Error(w, http.StatusUnauthorized, constants.ErrUnauthorized, "authorization required")
+		return
+	}
+
+	timezone := r.URL.Query().Get("timezone")
+	resp, err := h.questions.GetJourney(r.Context(), userID, timezone)
+	if err != nil {
+		writeError(w, err)
+		return
+	}
+
+	response.Data(w, http.StatusOK, resp)
+}
+
+// GetHistory handles GET /api/v1/questions/history.
+func (h *QuestionHandler) GetHistory(w http.ResponseWriter, r *http.Request) {
+	userID, ok := middleware.UserIDFromContext(r.Context())
+	if !ok {
+		response.Error(w, http.StatusUnauthorized, constants.ErrUnauthorized, "authorization required")
+		return
+	}
+
+	sessionID := r.URL.Query().Get("session_id")
+	entries, err := h.questions.GetSessionHistory(r.Context(), userID, sessionID)
+	if err != nil {
+		writeError(w, err)
+		return
+	}
+
+	response.Data(w, http.StatusOK, entries)
+}
+
+// GetReadinessStats handles GET /api/v1/questions/stats/readiness.
+func (h *QuestionHandler) GetReadinessStats(w http.ResponseWriter, r *http.Request) {
+	userID, ok := middleware.UserIDFromContext(r.Context())
+	if !ok {
+		response.Error(w, http.StatusUnauthorized, constants.ErrUnauthorized, "authorization required")
+		return
+	}
+
+	stats, err := h.questions.GetReadinessStats(r.Context(), userID)
+	if err != nil {
+		writeError(w, err)
+		return
+	}
+
+	response.Data(w, http.StatusOK, stats)
+}
+
 // ListCompanies handles GET /api/v1/questions/companies.
 func (h *QuestionHandler) ListCompanies(w http.ResponseWriter, r *http.Request) {
 	companies, err := h.questions.ListCompanies(r.Context())
