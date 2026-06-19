@@ -1,4 +1,4 @@
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080";
+const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "https://ayuuuuu0-0-prepio.hf.space";
 const REFRESH_KEY = "prepio_refresh_token"; // mobile fallback only
 
 export type ApiError = { code: string; message: string };

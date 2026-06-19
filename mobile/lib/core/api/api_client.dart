@@ -3,7 +3,7 @@ import 'package:http/http.dart' as http;
 
 /// ApiClient talks to the Prepio gateway REST API.
 class ApiClient {
-  ApiClient({this.baseUrl = 'http://localhost:8080', this.token, this.refreshToken});
+  ApiClient({this.baseUrl = 'https://ayuuuuu0-0-prepio.hf.space', this.token, this.refreshToken});
 
   final String baseUrl;
   String? token;
