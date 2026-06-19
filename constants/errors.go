@@ -28,6 +28,12 @@ const (
 	ErrInsufficientGems        = "insufficient_gems"
 	ErrDeviceNotFound          = "device_not_found"
 
+	// Skills
+	ErrSkillNotFound           = "skill_not_found"
+
+	// Journey
+	ErrJourneyNodeNotFound     = "journey_node_not_found"
+
 	// Questions
 	ErrQuestionNotFound        = "question_not_found"
 	ErrQuestionNotInSession    = "question_not_in_session"

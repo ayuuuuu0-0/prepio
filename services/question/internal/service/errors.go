@@ -9,4 +9,5 @@ var (
 	ErrQuestionNotInSession   = errors.New("question not in session")
 	ErrAnswerAlreadySubmitted = errors.New("answer already submitted")
 	ErrUserNotFound           = errors.New("user not found")
+	ErrSkillNotFound          = errors.New("skill not found")
 )

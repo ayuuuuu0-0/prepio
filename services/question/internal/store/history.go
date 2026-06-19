@@ -69,6 +69,48 @@ func (s *HistoryStore) ExistsForSession(ctx context.Context, userID, questionID,
 	return true, nil
 }
 
+// ListAnsweredQuestionIDs returns distinct question IDs the user has answered.
+func (s *HistoryStore) ListAnsweredQuestionIDs(ctx context.Context, userID string) ([]string, error) {
+	if len(userID) == 0 {
+		return nil, fmt.Errorf("user id is required")
+	}
+
+	const q = `
+		SELECT DISTINCT question_id
+		FROM user_question_history
+		WHERE user_id = $1
+		ORDER BY question_id`
+
+	rows, err := s.pool.Query(ctx, q, userID)
+	if err != nil {
+		return nil, fmt.Errorf("list answered questions: %w", err)
+	}
+	defer rows.Close()
+
+	ids := make([]string, 0)
+	for rows.Next() {
+		var id string
+		if err := rows.Scan(&id); err != nil {
+			return nil, fmt.Errorf("scan answered question id: %w", err)
+		}
+		ids = append(ids, id)
+	}
+	return ids, rows.Err()
+}
+
+// AnsweredQuestionSet returns a set of question IDs the user has answered.
+func (s *HistoryStore) AnsweredQuestionSet(ctx context.Context, userID string) (map[string]bool, error) {
+	ids, err := s.ListAnsweredQuestionIDs(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+	seen := make(map[string]bool, len(ids))
+	for _, id := range ids {
+		seen[id] = true
+	}
+	return seen, nil
+}
+
 // ListBySession returns answer records for a daily paper session.
 func (s *HistoryStore) ListBySession(ctx context.Context, userID, sessionID string) ([]AnswerRecord, error) {
 	const q = `

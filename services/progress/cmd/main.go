@@ -47,6 +47,8 @@ func main() {
 		store.NewLedgerStore(pool),
 		producer,
 	)
+	readinessStore := store.NewReadinessStore(pool)
+	readinessService := service.NewReadinessService(readinessStore)
 
 	if !devSyncEnabled() {
 		brokers := strings.Split(envOrDefault("KAFKA_BROKERS", "localhost:9092"), ",")
@@ -66,7 +68,7 @@ func main() {
 		}
 		defer streakConsumer.Close()
 
-		eventHandler := consumer.NewHandler(progressService)
+		eventHandler := consumer.NewHandler(progressService, readinessService)
 		go func() {
 			if err := consumer.RunQuestionAnswered(ctx, questionConsumer, eventHandler); err != nil && ctx.Err() == nil {
 				log.Printf("question consumer: %v", err)
@@ -92,7 +94,8 @@ func main() {
 		log.Fatalf("jwt: %v", err)
 	}
 
-	progressHandler := handler.NewProgressHandler(progressService)
+	progressHandler := handler.NewProgressHandler(progressService, readinessService)
+	readinessHandler := handler.NewReadinessHandler(readinessService)
 	r := chi.NewRouter()
 	r.Use(chimw.Recoverer)
 	r.Get("/internal/progress/{userID}/gems", progressHandler.InternalGetGems)
@@ -102,6 +105,9 @@ func main() {
 	r.Route("/api/v1", func(r chi.Router) {
 		r.Use(middleware.Auth(signer, redisClient))
 		r.Get("/progress/me", progressHandler.GetMe)
+		r.Get("/skills/readiness", readinessHandler.GetSkillReadiness)
+		r.Get("/companies/readiness", readinessHandler.GetCompanyReadiness)
+		r.Get("/readiness/dashboard", readinessHandler.GetReadinessDashboard)
 	})
 
 	port := envOrDefault("PROGRESS_SERVICE_PORT", "8084")

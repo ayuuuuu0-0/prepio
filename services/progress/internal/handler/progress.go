@@ -14,12 +14,13 @@ import (
 
 // ProgressHandler serves progress endpoints.
 type ProgressHandler struct {
-	progress *service.ProgressService
+	progress  *service.ProgressService
+	readiness *service.ReadinessService
 }
 
 // NewProgressHandler creates a ProgressHandler.
-func NewProgressHandler(progress *service.ProgressService) *ProgressHandler {
-	return &ProgressHandler{progress: progress}
+func NewProgressHandler(progress *service.ProgressService, readiness *service.ReadinessService) *ProgressHandler {
+	return &ProgressHandler{progress: progress, readiness: readiness}
 }
 
 // GetMe handles GET /api/v1/progress/me.

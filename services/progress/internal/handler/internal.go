@@ -20,6 +20,12 @@ func (h *ProgressHandler) InternalQuestionAnswered(w http.ResponseWriter, r *htt
 		response.Error(w, http.StatusInternalServerError, constants.ErrInternal, "internal error")
 		return
 	}
+	if h.readiness != nil {
+		if err := h.readiness.ProcessQuestionAnswered(r.Context(), event); err != nil {
+			response.Error(w, http.StatusInternalServerError, constants.ErrInternal, "internal error")
+			return
+		}
+	}
 	response.Data(w, http.StatusOK, map[string]bool{"ok": true})
 }
 

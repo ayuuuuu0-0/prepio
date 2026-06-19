@@ -50,12 +50,15 @@ type JourneyWorldResponse struct {
 
 // JourneyNodeResponse is a node on the journey map with live status.
 type JourneyNodeResponse struct {
-	ID         string `json:"id"`
-	Label      string `json:"label"`
-	NodeType   string `json:"node_type"`
-	Status     string `json:"status"`
-	QuestionID string `json:"question_id,omitempty"`
-	SortOrder  int    `json:"sort_order"`
+	ID         string              `json:"id"`
+	Slug       string              `json:"slug,omitempty"`
+	Label      string              `json:"label"`
+	NodeType   string              `json:"node_type"`
+	Status     string              `json:"status"`
+	QuestionID string              `json:"question_id,omitempty"`
+	SortOrder  int                 `json:"sort_order"`
+	Skills     []NodeSkillResponse `json:"skills,omitempty"`
+	Pools      []NodePoolResponse  `json:"pools,omitempty"`
 }
 
 // JourneyResponse is returned by GET /api/v1/journey.

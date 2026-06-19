@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/prepio/prepio/config"
+	"github.com/prepio/prepio/shared/readiness"
 )
 
 // Service aggregates dashboard data from upstream microservices.
@@ -37,6 +38,8 @@ type HomeResponse struct {
 	Progress         ProgressCard     `json:"progress"`
 	Companion        CompanionCard    `json:"companion"`
 	Readiness        []ReadinessCard  `json:"readiness"`
+	ReadinessV2      []ReadinessCard  `json:"readiness_v2,omitempty"`
+	ReadinessV2Enabled bool           `json:"readiness_v2_enabled"`
 	League           LeagueCard       `json:"league"`
 	DailyQuests      []DailyQuestCard `json:"daily_quests"`
 	CompanionMessage string           `json:"companion_message"`
@@ -133,6 +136,13 @@ func (s *Service) GetHome(ctx context.Context, token string) (*HomeResponse, err
 	}
 
 	resp.Readiness = computeReadiness(profile.TargetCompanies, readinessStats)
+	resp.ReadinessV2Enabled = config.ReadinessV2Enabled()
+	if resp.ReadinessV2Enabled {
+		v2Cards, err := s.fetchCompanyReadinessV2(ctx, token)
+		if err == nil {
+			resp.ReadinessV2 = v2Cards
+		}
+	}
 	resp.CompanionMessage = companionMessage(resp.Companion.Name, progress)
 
 	return resp, nil
@@ -237,33 +247,28 @@ func (s *Service) get(ctx context.Context, url, token string) ([]byte, error) {
 	return body, nil
 }
 
-// computeReadiness derives company readiness from actual answer history.
+// computeReadiness derives company readiness from actual answer history (V1).
 func computeReadiness(targets []string, stats *readinessStatsPayload) []ReadinessCard {
 	if len(targets) == 0 {
 		return []ReadinessCard{}
 	}
 
-	byCompany := map[string]companyStatsPayload{}
+	byCompany := map[string]readiness.CompanyStats{}
 	if stats != nil {
 		for _, row := range stats.ByCompany {
-			byCompany[row.Company] = row
+			byCompany[row.Company] = readiness.CompanyStats{
+				Company:  row.Company,
+				Answered: row.Answered,
+				Correct:  row.Correct,
+				ScoreAvg: row.ScoreAvg,
+			}
 		}
 	}
 
-	cards := make([]ReadinessCard, 0, len(targets))
-	for _, company := range targets {
-		row, ok := byCompany[company]
-		score := 0
-		if ok && row.Answered > 0 {
-			score = (row.Correct * 100) / row.Answered
-			if row.ScoreAvg > 0 {
-				score = (score + row.ScoreAvg) / 2
-			}
-			if score > 95 {
-				score = 95
-			}
-		}
-		cards = append(cards, ReadinessCard{Company: company, Score: score})
+	v1Scores := readiness.ComputeV1Readiness(targets, byCompany)
+	cards := make([]ReadinessCard, 0, len(v1Scores))
+	for _, score := range v1Scores {
+		cards = append(cards, ReadinessCard{Company: score.Company, Score: score.Score})
 	}
 	return cards
 }

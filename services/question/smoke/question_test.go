@@ -36,16 +36,20 @@ func TestDailyPaperAndSubmitEmitsEvent(t *testing.T) {
 	signer, err := jwt.NewSigner("question-smoke-secret")
 	require.NoError(t, err)
 
+	journeyStore := store.NewJourneyStore(pool)
+	contentService := service.NewContentService(store.NewContentStore(pool), journeyStore)
+
 	questionService := service.NewQuestionService(
 		store.NewQuestionStore(pool),
 		store.NewDailyPaperStore(pool),
 		store.NewHistoryStore(pool),
-		store.NewJourneyStore(pool),
+		journeyStore,
+		store.NewContentStore(pool),
 		store.NewUserStore(pool),
 		redisClient,
 		publisher,
 	)
-	questionHandler := handler.NewQuestionHandler(questionService)
+	questionHandler := handler.NewQuestionHandler(questionService, contentService)
 
 	r := chi.NewRouter()
 	r.Route("/api/v1", func(r chi.Router) {

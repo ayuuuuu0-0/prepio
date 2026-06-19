@@ -25,6 +25,7 @@ type QuestionService struct {
 	dailyPapers *store.DailyPaperStore
 	history     *store.HistoryStore
 	journey     *store.JourneyStore
+	content     *store.ContentStore
 	users       *store.UserStore
 	redis       *redis.Client
 	publisher   EventPublisher
@@ -36,6 +37,7 @@ func NewQuestionService(
 	dailyPapers *store.DailyPaperStore,
 	history *store.HistoryStore,
 	journey *store.JourneyStore,
+	content *store.ContentStore,
 	users *store.UserStore,
 	redisClient *redis.Client,
 	publisher EventPublisher,
@@ -45,6 +47,7 @@ func NewQuestionService(
 		dailyPapers: dailyPapers,
 		history:     history,
 		journey:     journey,
+		content:     content,
 		users:       users,
 		redis:       redisClient,
 		publisher:   publisher,

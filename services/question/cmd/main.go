@@ -53,17 +53,26 @@ func main() {
 		log.Fatalf("jwt: %v", err)
 	}
 
+	skillStore := store.NewSkillStore(pool)
+	contentStore := store.NewContentStore(pool)
+	journeyStore := store.NewJourneyStore(pool)
+
 	questionService := service.NewQuestionService(
 		store.NewQuestionStore(pool),
 		store.NewDailyPaperStore(pool),
 		store.NewHistoryStore(pool),
-		store.NewJourneyStore(pool),
+		journeyStore,
+		contentStore,
 		store.NewUserStore(pool),
 		redisClient,
 		producer,
 	)
+	skillService := service.NewSkillService(skillStore)
+	contentService := service.NewContentService(contentStore, journeyStore)
 
-	questionHandler := handler.NewQuestionHandler(questionService)
+	questionHandler := handler.NewQuestionHandler(questionService, contentService)
+	skillHandler := handler.NewSkillHandler(skillService)
+	contentHandler := handler.NewContentHandler(contentService, questionService)
 
 	r := chi.NewRouter()
 	r.Use(chimw.RequestID)
@@ -74,9 +83,13 @@ func main() {
 	r.Route("/api/v1", func(r chi.Router) {
 		r.Use(middleware.Auth(signer, redisClient))
 		r.Get("/journey", questionHandler.GetJourney)
+		r.Get("/journey/nodes/{id}/content", contentHandler.GetNodeContent)
+		r.Get("/skills", skillHandler.ListSkills)
+		r.Get("/skills/{slug}", skillHandler.GetSkill)
 		r.Get("/questions/daily", questionHandler.GetDaily)
 		r.Get("/questions/history", questionHandler.GetHistory)
 		r.Get("/questions/stats/readiness", questionHandler.GetReadinessStats)
+		r.Get("/questions/{id}/skills", skillHandler.GetQuestionSkills)
 		r.Post("/questions/{id}/submit", questionHandler.Submit)
 		r.Get("/questions/companies", questionHandler.ListCompanies)
 	})

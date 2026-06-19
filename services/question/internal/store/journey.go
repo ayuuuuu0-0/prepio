@@ -2,8 +2,10 @@ package store
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -20,6 +22,7 @@ type World struct {
 type JourneyNode struct {
 	ID        string
 	WorldID   string
+	Slug      string
 	Label     string
 	NodeType  string
 	SortOrder int
@@ -49,7 +52,7 @@ func (s *JourneyStore) GetWorldBySlug(ctx context.Context, slug string) (*World,
 // ListNodesByWorld returns ordered nodes for a world.
 func (s *JourneyStore) ListNodesByWorld(ctx context.Context, worldID string) ([]JourneyNode, error) {
 	const q = `
-		SELECT id, world_id, label, node_type, sort_order
+		SELECT id, world_id, COALESCE(slug, ''), label, node_type, sort_order
 		FROM journey_nodes
 		WHERE world_id = $1
 		ORDER BY sort_order ASC`
@@ -63,12 +66,36 @@ func (s *JourneyStore) ListNodesByWorld(ctx context.Context, worldID string) ([]
 	nodes := make([]JourneyNode, 0)
 	for rows.Next() {
 		var n JourneyNode
-		if err := rows.Scan(&n.ID, &n.WorldID, &n.Label, &n.NodeType, &n.SortOrder); err != nil {
+		if err := rows.Scan(&n.ID, &n.WorldID, &n.Slug, &n.Label, &n.NodeType, &n.SortOrder); err != nil {
 			return nil, fmt.Errorf("scan journey node: %w", err)
 		}
 		nodes = append(nodes, n)
 	}
 	return nodes, rows.Err()
+}
+
+// GetNodeByID returns a journey node by ID.
+func (s *JourneyStore) GetNodeByID(ctx context.Context, nodeID string) (*JourneyNode, error) {
+	if len(nodeID) == 0 {
+		return nil, fmt.Errorf("node id is required")
+	}
+
+	const q = `
+		SELECT id, world_id, COALESCE(slug, ''), label, node_type, sort_order
+		FROM journey_nodes
+		WHERE id = $1`
+
+	var n JourneyNode
+	err := s.pool.QueryRow(ctx, q, nodeID).Scan(
+		&n.ID, &n.WorldID, &n.Slug, &n.Label, &n.NodeType, &n.SortOrder,
+	)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, fmt.Errorf("get journey node: %w", err)
+	}
+	return &n, nil
 }
 
 // UpsertProgress marks a node complete for a user.

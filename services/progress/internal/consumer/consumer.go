@@ -12,12 +12,13 @@ import (
 
 // Handler routes Kafka messages to progress logic.
 type Handler struct {
-	progress *service.ProgressService
+	progress  *service.ProgressService
+	readiness *service.ReadinessService
 }
 
 // NewHandler creates a Handler.
-func NewHandler(progress *service.ProgressService) *Handler {
-	return &Handler{progress: progress}
+func NewHandler(progress *service.ProgressService, readiness *service.ReadinessService) *Handler {
+	return &Handler{progress: progress, readiness: readiness}
 }
 
 // HandleQuestionAnswered processes question.answered events.
@@ -26,7 +27,13 @@ func (h *Handler) HandleQuestionAnswered(ctx context.Context, _, value []byte) e
 	if err := json.Unmarshal(value, &event); err != nil {
 		return fmt.Errorf("decode question answered: %w", err)
 	}
-	return h.progress.ProcessQuestionAnswered(ctx, event)
+	if err := h.progress.ProcessQuestionAnswered(ctx, event); err != nil {
+		return err
+	}
+	if h.readiness != nil {
+		return h.readiness.ProcessQuestionAnswered(ctx, event)
+	}
+	return nil
 }
 
 // HandleStreakUpdated processes streak.updated events.

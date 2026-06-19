@@ -15,11 +15,12 @@ import (
 // QuestionHandler serves question endpoints.
 type QuestionHandler struct {
 	questions *service.QuestionService
+	content   *service.ContentService
 }
 
 // NewQuestionHandler creates a QuestionHandler.
-func NewQuestionHandler(questions *service.QuestionService) *QuestionHandler {
-	return &QuestionHandler{questions: questions}
+func NewQuestionHandler(questions *service.QuestionService, content *service.ContentService) *QuestionHandler {
+	return &QuestionHandler{questions: questions, content: content}
 }
 
 // GetDaily handles GET /api/v1/questions/daily.
@@ -77,6 +78,13 @@ func (h *QuestionHandler) GetJourney(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		writeError(w, err)
 		return
+	}
+
+	if h.content != nil {
+		if err := h.content.EnrichJourneyNodes(r.Context(), resp.Nodes); err != nil {
+			response.Error(w, http.StatusInternalServerError, constants.ErrInternal, "internal error")
+			return
+		}
 	}
 
 	response.Data(w, http.StatusOK, resp)
