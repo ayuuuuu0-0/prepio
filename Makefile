@@ -41,5 +41,8 @@ docker-up-all:
 dev:
 	./scripts/start-dev.sh
 
+dev-all:
+	./scripts/start-all.sh
+
 e2e:
 	./scripts/e2e-test.sh
