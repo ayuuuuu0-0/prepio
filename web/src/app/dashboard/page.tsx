@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
+import Image from "next/image";
 import { api, DashboardHome } from "@/lib/api";
 import { companyColors, leagueThemes } from "@/lib/design/tokens";
 import { GameBackground } from "@/components/game/GameBackground";
@@ -82,6 +83,16 @@ export default function DashboardPage() {
   return (
     <GameBackground>
       <main className="mx-auto max-w-lg px-4 pb-28 pt-6">
+        <div className="flex items-center gap-2.5 mb-6 justify-start border-b pb-4" style={{ borderColor: "#2E3347" }}>
+          <Image src="/logo.png" alt="Prepio Logo" width={28} height={28} className="rounded-lg" />
+          <span className="font-display text-base font-extrabold tracking-wide" style={{ color: "#7C6EF5" }}>
+            PREPIO
+          </span>
+          <span className="font-mono text-[9px] font-bold px-2 py-0.5 rounded-md" style={{ color: "#8B92A8", background: "#1A1D27", border: "1px solid #2E3347" }}>
+            Beta
+          </span>
+        </div>
+
         <section className="flex items-start gap-4">
           <CompanionHero name={home.companion?.name} species={home.companion?.species} size="md" />
           <SpeechBubble className="mt-2 flex-1" speakerName={home.companion?.name ?? "Byte"}>

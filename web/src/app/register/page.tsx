@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import { FormEvent, useState } from "react";
 import { GameBackground } from "@/components/game/GameBackground";
 import { CompanionHero } from "@/components/game/CompanionHero";
@@ -45,13 +46,16 @@ export default function RegisterPage() {
           className="hidden lg:flex lg:w-1/2 flex-col justify-between p-12"
           style={{ borderRight: "1px solid #2E3347" }}
         >
-          <div>
-            <p className="font-display text-xl font-bold" style={{ color: "#7C6EF5" }}>
-              PREPIO
-            </p>
-            <p className="font-mono text-xs font-medium mt-1" style={{ color: "#4A5068" }}>
-              Career RPG
-            </p>
+          <div className="flex items-center gap-3">
+            <Image src="/logo.png" alt="Prepio Logo" width={36} height={36} className="rounded-xl" />
+            <div>
+              <p className="font-display text-xl font-bold leading-none" style={{ color: "#7C6EF5" }}>
+                PREPIO
+              </p>
+              <p className="font-mono text-[10px] font-medium mt-0.5" style={{ color: "#4A5068" }}>
+                Career RPG
+              </p>
+            </div>
           </div>
 
           <div className="flex flex-col items-center gap-6 py-12">
@@ -80,10 +84,13 @@ export default function RegisterPage() {
         </div>
 
         <div className="flex w-full lg:w-1/2 flex-col items-center justify-center px-6 py-12">
-          <div className="mb-8 text-center lg:hidden">
-            <p className="font-display text-2xl font-bold" style={{ color: "#7C6EF5" }}>
-              PREPIO
-            </p>
+          <div className="mb-8 flex flex-col items-center gap-2 lg:hidden">
+            <div className="flex items-center gap-2">
+              <Image src="/logo.png" alt="Prepio Logo" width={32} height={32} className="rounded-lg" />
+              <p className="font-display text-2xl font-bold" style={{ color: "#7C6EF5" }}>
+                PREPIO
+              </p>
+            </div>
             <CompanionHero name="Pip" species="red_panda" size="md" />
           </div>
 
