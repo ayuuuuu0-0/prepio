@@ -1,4 +1,2 @@
-2026/06/09 01:54:10 DEV_SYNC_EVENTS=true — kafka consumers disabled
-2026/06/09 01:54:10 notification service listening on :8085
-2026/06/09 01:54:10 server: listen tcp :8085: bind: address already in use
-exit status 1
+2026/06/19 16:27:09 DEV_SYNC_EVENTS=true — kafka consumers disabled
+2026/06/19 16:27:09 notification service listening on :8085
