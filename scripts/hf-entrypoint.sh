@@ -42,6 +42,9 @@ export REDIS_ADDR="localhost:6379"
 export DEV_SYNC_EVENTS="true"
 export JWT_SECRET="${JWT_SECRET:-huggingface-portfolio-prepio-secret-key-32-chars-long}"
 
+# Allow the Vercel frontend to call this API (plus any value set via HF Secret)
+export CORS_ALLOWED_ORIGINS="${CORS_ALLOWED_ORIGINS:-https://prepio-ai.vercel.app,http://localhost:3000,http://localhost:3002}"
+
 export USER_SERVICE_URL="http://localhost:8081"
 export QUESTION_SERVICE_URL="http://localhost:8082"
 export STREAK_SERVICE_URL="http://localhost:8083"
