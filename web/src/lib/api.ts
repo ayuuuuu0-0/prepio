@@ -56,7 +56,6 @@ export class ApiClient {
         const res = await fetch(`${API_URL}/api/v1/auth/refresh`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          credentials: "include",
           body: JSON.stringify({ refresh_token: "" }),
         });
         const body = await res.json();
@@ -84,7 +83,7 @@ export class ApiClient {
       headers.Authorization = `Bearer ${this.accessToken}`;
     }
 
-    const res = await fetch(`${API_URL}${path}`, { ...init, headers, credentials: "include" });
+    const res = await fetch(`${API_URL}${path}`, { ...init, headers });
     const body = await res.json();
 
     if (res.status === 401 && retry) {
