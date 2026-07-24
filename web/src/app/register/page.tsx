@@ -67,9 +67,9 @@ export default function RegisterPage() {
 
           <div className="grid grid-cols-3 gap-4">
             {[
-              { label: "Engineers in prep", value: "12k+" },
-              { label: "Avg readiness gain", value: "34%" },
-              { label: "Offers received", value: "2.1k" },
+              { label: "Target companies", value: "Google, Amazon, Meta" },
+              { label: "Lessons captured", value: "Misses, patterns, next steps" },
+              { label: "Readiness focus", value: "Skills over streaks" },
             ].map((s) => (
               <div key={s.label}>
                 <p className="font-mono text-2xl font-bold" style={{ color: "#7C6EF5" }}>

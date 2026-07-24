@@ -91,7 +91,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               TextButton(
                 onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const RegisterScreen())),
                 child: Text(
-                  'No account? Join 12k engineers in prep',
+                  'No account? Start your target-company plan',
                   style: GoogleFonts.nunito(color: PrepioColors.accent, fontWeight: FontWeight.w600),
                 ),
               ),

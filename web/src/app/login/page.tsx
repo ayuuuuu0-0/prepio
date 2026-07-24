@@ -11,9 +11,9 @@ import { GameButton } from "@/components/game/GameButton";
 import { api } from "@/lib/api";
 
 const socialProof = [
-  { label: "Engineers in prep", value: "★" },
-  { label: "Avg readiness gain", value: "34%" },
-  { label: "Offers received", value: "2.1k" },
+  { label: "Target companies", value: "Google, Amazon, Meta" },
+  { label: "Lessons captured", value: "Misses, patterns, next steps" },
+  { label: "Readiness focus", value: "Skills over streaks" },
 ];
 
 const inputStyle = {
@@ -149,7 +149,7 @@ export default function LoginPage() {
             <p className="mt-6 text-center text-sm" style={{ color: "#4A5068" }}>
               No account?{" "}
               <Link href="/register" className="font-semibold" style={{ color: "#7C6EF5" }}>
-                Join engineers in prep
+                Start your target-company plan
               </Link>
             </p>
           </div>
