@@ -72,10 +72,10 @@ export default function RegisterPage() {
               { label: "Readiness focus", value: "Skills over streaks" },
             ].map((s) => (
               <div key={s.label}>
-                <p className="font-mono text-2xl font-bold" style={{ color: "#7C6EF5" }}>
+                <p className="font-body text-sm font-semibold leading-snug lg:text-base" style={{ color: "#E8EAED" }}>
                   {s.value}
                 </p>
-                <p className="font-body text-xs mt-1" style={{ color: "#4A5068" }}>
+                <p className="font-mono mt-1 text-[10px] font-semibold uppercase tracking-widest" style={{ color: "#7C6EF5" }}>
                   {s.label}
                 </p>
               </div>
