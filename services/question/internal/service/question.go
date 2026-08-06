@@ -29,9 +29,13 @@ type QuestionService struct {
 	users       *store.UserStore
 	redis       *redis.Client
 	publisher   EventPublisher
+	evaluator   Evaluator
 }
 
 // NewQuestionService creates a QuestionService.
+// evaluator determines which evaluation pipeline runs on answer submission.
+// Pass NewPipelineEvaluator(nil) for structural-only (Stages 1+2).
+// Pass NewPipelineEvaluator(geminiClient) to also run Stage 3.
 func NewQuestionService(
 	questions *store.QuestionStore,
 	dailyPapers *store.DailyPaperStore,
@@ -41,6 +45,7 @@ func NewQuestionService(
 	users *store.UserStore,
 	redisClient *redis.Client,
 	publisher EventPublisher,
+	evaluator Evaluator,
 ) *QuestionService {
 	return &QuestionService{
 		questions:   questions,
@@ -51,6 +56,7 @@ func NewQuestionService(
 		users:       users,
 		redis:       redisClient,
 		publisher:   publisher,
+		evaluator:   evaluator,
 	}
 }
 
@@ -161,7 +167,7 @@ func (s *QuestionService) SubmitAnswer(ctx context.Context, userID, questionID s
 
 	readinessBefore, _ := s.history.AvgScoreByUser(ctx, userID)
 
-	eval := EvaluateAnswer(req.Answer, question.AnswerGuide)
+	eval := s.evaluator.Evaluate(req.Answer, question.AnswerGuide)
 	xpAwarded, gemsAwarded := computeRewards(question, eval)
 
 	if err := s.history.Insert(ctx, userID, questionID, req.SessionID, eval.Correct, eval.Score, submittedAt); err != nil {

@@ -35,6 +35,7 @@ func TestGetJourneyPoolSelection(t *testing.T) {
 		store.NewUserStore(pool),
 		redisClient,
 		&fakes.KafkaProducer{},
+		service.NewPipelineEvaluator(nil),
 	)
 
 	t.Run("index mode when flag disabled", func(t *testing.T) {

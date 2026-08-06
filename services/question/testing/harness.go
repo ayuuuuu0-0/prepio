@@ -9,6 +9,8 @@ import (
 )
 
 // NewService wires the question service for integration tests.
+// It uses structural-only evaluation (Stages 1+2, no LLM) so tests are fast
+// and do not require an API key.
 func NewService(pool *pgxpool.Pool, redisClient *redis.Client, publisher service.EventPublisher) *service.QuestionService {
 	return service.NewQuestionService(
 		store.NewQuestionStore(pool),
@@ -19,6 +21,7 @@ func NewService(pool *pgxpool.Pool, redisClient *redis.Client, publisher service
 		store.NewUserStore(pool),
 		redisClient,
 		publisher,
+		service.NewPipelineEvaluator(nil), // nil = structural-only, no LLM
 	)
 }
 

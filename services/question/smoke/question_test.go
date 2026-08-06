@@ -48,6 +48,7 @@ func TestDailyPaperAndSubmitEmitsEvent(t *testing.T) {
 		store.NewUserStore(pool),
 		redisClient,
 		publisher,
+		service.NewPipelineEvaluator(nil),
 	)
 	questionHandler := handler.NewQuestionHandler(questionService, contentService)
 

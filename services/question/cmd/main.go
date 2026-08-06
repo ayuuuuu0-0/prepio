@@ -57,6 +57,19 @@ func main() {
 	contentStore := store.NewContentStore(pool)
 	journeyStore := store.NewJourneyStore(pool)
 
+	// Build the evaluation pipeline.
+	// Stage 1 (keyword filter) + Stage 2 (structural coverage) always run.
+	// Stage 3 (LLM) activates only when GEMINI_API_KEY is present.
+	geminiClient := service.NewGeminiClient(os.Getenv("GEMINI_API_KEY"))
+	var llm service.LLMEvaluator
+	if geminiClient != nil {
+		llm = geminiClient // only assign after confirming the pointer is non-nil
+		log.Println("evaluator: gemini stage 3 enabled")
+	} else {
+		log.Println("evaluator: structural-only (stages 1+2), set GEMINI_API_KEY to enable stage 3")
+	}
+	evaluator := service.NewPipelineEvaluator(llm)
+
 	questionService := service.NewQuestionService(
 		store.NewQuestionStore(pool),
 		store.NewDailyPaperStore(pool),
@@ -66,6 +79,7 @@ func main() {
 		store.NewUserStore(pool),
 		redisClient,
 		producer,
+		evaluator,
 	)
 	skillService := service.NewSkillService(skillStore)
 	contentService := service.NewContentService(contentStore, journeyStore)
