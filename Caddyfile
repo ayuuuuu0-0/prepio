@@ -1,0 +1,15 @@
+# Prepio Production Caddy Configuration
+
+# 1. Direct IP / Default HTTP Access (before custom domain is configured)
+:80 {
+    # Proxy all traffic to the Go API gateway
+    reverse_proxy backend:8080
+
+    encode gzip zstd
+}
+
+# 2. Custom Domain (Uncomment when you have configured your domain DNS A Record)
+# api.yourdomain.com {
+#     reverse_proxy backend:8080
+#     encode gzip zstd
+# }

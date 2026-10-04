@@ -1,4 +1,5 @@
-FROM golang:1.25-alpine AS builder
+# === Stage 1: Build static Go binaries ===
+FROM golang:1.24-alpine AS builder
 WORKDIR /build
 
 COPY go.mod go.sum ./
@@ -6,7 +7,7 @@ RUN go mod download
 
 COPY . .
 
-# Compile each microservice as a static binary
+# Compile each microservice as a static, lightweight binary
 RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-s -w" -o user ./services/user/cmd
 RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-s -w" -o question ./services/question/cmd
 RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-s -w" -o streak ./services/streak/cmd
@@ -17,22 +18,18 @@ RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-s -w" -o gateway ./services/gat
 # === Stage 2: Extract migrate binary ===
 FROM migrate/migrate:v4.18.1 AS migrate-bin
 
-# === Stage 3: Runner container ===
-FROM alpine:3.19
+# === Stage 3: Minimal production runner ===
+FROM alpine:3.20
 
-# Install dependencies (PostgreSQL, Redis, Bash, curl)
-RUN apk add --no-cache postgresql redis bash curl
-
-# Copy the migration tool to system path
-COPY --from=migrate-bin /migrate /usr/local/bin/migrate
+# Install runtime utilities: postgresql-client (for pg_isready), bash, curl, ca-certificates
+RUN apk add --no-cache bash curl ca-certificates postgresql-client
 
 WORKDIR /app
 
-# Ensure we create a non-root user (UID 1000) match Hugging Face's environment
-# If UID 1000 doesn't exist, create it.
-RUN getent passwd 1000 >/dev/null || adduser -u 1000 -D -g "" user
+# Copy the migration tool
+COPY --from=migrate-bin /migrate /usr/local/bin/migrate
 
-# Copy build output from Stage 1
+# Copy compiled binaries
 COPY --from=builder /build/user /app/user
 COPY --from=builder /build/question /app/question
 COPY --from=builder /build/streak /app/streak
@@ -40,20 +37,13 @@ COPY --from=builder /build/progress /app/progress
 COPY --from=builder /build/notification /app/notification
 COPY --from=builder /build/gateway /app/gateway
 
-# Copy migrations files
+# Copy database migrations
 COPY migrations /app/migrations
 
-# Copy and configure the startup script
-COPY scripts/hf-entrypoint.sh /app/hf-entrypoint.sh
-RUN chmod +x /app/hf-entrypoint.sh
+# Copy entrypoint script
+COPY scripts/prod-entrypoint.sh /app/prod-entrypoint.sh
+RUN chmod +x /app/prod-entrypoint.sh
 
-# Change ownership of /app to the non-root user
-RUN chown -R 1000:1000 /app
+EXPOSE 8080
 
-# Switch to the non-root user
-USER 1000
-
-# Expose Hugging Face default port
-EXPOSE 7860
-
-ENTRYPOINT ["/app/hf-entrypoint.sh"]
+ENTRYPOINT ["/app/prod-entrypoint.sh"]

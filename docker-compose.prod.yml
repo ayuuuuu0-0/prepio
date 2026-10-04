@@ -1,0 +1,70 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: prepio_postgres
+    restart: always
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-prepio}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-prepio}
+      POSTGRES_DB: ${POSTGRES_DB:-prepio}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-prepio}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    container_name: prepio_redis
+    restart: always
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: prepio_backend
+    restart: always
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    env_file:
+      - .env
+    environment:
+      - DATABASE_URL=postgres://${POSTGRES_USER:-prepio}:${POSTGRES_PASSWORD:-prepio}@postgres:5432/${POSTGRES_DB:-prepio}?sslmode=disable
+      - REDIS_ADDR=redis:6379
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DEV_SYNC_EVENTS=true
+      - GATEWAY_PORT=8080
+
+  caddy:
+    image: caddy:2-alpine
+    container_name: prepio_caddy
+    restart: always
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - backend
+
+volumes:
+  postgres_data:
+  redis_data:
+  caddy_data:
+  caddy_config:
