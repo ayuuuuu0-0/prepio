@@ -1,6 +1,6 @@
 # Prepio
 
-Prepio is a progression-focused interview preparation platform. The repository contains a Go backend, a Next.js web client, and a Flutter mobile client.
+Prepio is a lesson-based progression platform for working engineers: short, instantly graded lessons in system design, backend and production, low-level design, and DSA, with per-topic mastery. The repository contains a Go backend, a Next.js web client, and a Flutter mobile client (paused; see `.ai/EXECUTION.MD`).
 
 ## Repository layout
 
@@ -8,10 +8,11 @@ Prepio is a progression-focused interview preparation platform. The repository c
 - `shared/` - shared packages used across services
 - `migrations/` - Postgres schema migrations
 - `web/` - Next.js application
-- `mobile/` - Flutter application
-- `scripts/` - local development and validation scripts
+- `mobile/` - Flutter application (paused)
+- `scripts/` - local development, deployment, and validation scripts
 - `config/` and `constants/` - runtime configuration and shared values
-- `agent/` - consolidated AI context and working notes
+- `.ai/` - product, architecture, content, and execution documents (the source of truth)
+- `agent/` - index for AI agents
 
 ## Local development
 
@@ -20,7 +21,7 @@ Prerequisites:
 - Go
 - Docker and Docker Compose
 - Node.js for the web client
-- Flutter for the mobile client
+- Flutter for the mobile client (optional while paused)
 
 Start local infrastructure:
 
@@ -42,14 +43,6 @@ npm install
 npm run dev
 ```
 
-Run the mobile client:
-
-```bash
-cd mobile
-flutter pub get
-flutter run
-```
-
 ## Common commands
 
 ```bash
@@ -68,15 +61,19 @@ make docker-down
 
 | Service | Port | Purpose |
 | --- | --- | --- |
-| gateway | 8080 | Entry point and request routing |
-| user | 8081 | Authentication, profile, companion state |
-| question | 8082 | Question bank, skills, and daily paper generation |
+| gateway | 8080 | Entry point, request routing, response aggregation |
+| user | 8081 | Authentication, profile, preferences, companion state |
+| question | 8082 | Content and journey: skills, lessons, attempts, grading (historical name) |
 | streak | 8083 | Daily check-ins and streak tracking |
-| progress | 8084 | Readiness and progression state |
+| progress | 8084 | XP, levels, skill mastery, topic readiness |
 | notification | 8085 | Event-driven notifications |
 
 Supporting infrastructure is Postgres, Redis, and Kafka.
 
+## Production deployment
+
+Production runs on a single host with Docker Compose (`docker-compose.prod.yml`, `Dockerfile`, `Caddyfile`, `scripts/aws-setup.sh`). Copy `.env.example` to `.env` and set strong secrets.
+
 ## Engineering context
 
-The product is built around progression, readiness, skills, and journey-based content. The canonical implementation and agent-facing notes live in [agent/README.md](agent/README.md).
+Product, architecture, content, and execution rules live in [`.ai/`](.ai/). Start with [`agent/README.md`](agent/README.md) for the read order.

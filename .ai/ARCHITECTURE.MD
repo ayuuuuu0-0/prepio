@@ -1,722 +1,177 @@
 # ARCHITECTURE.md
 
-# AGENT INSTRUCTIONS
+## AGENT INSTRUCTIONS
 
-Before making any code changes:
+Before any code change, read in this order: PRODUCT.MD, ARCHITECTURE.MD, CONTENT_SYSTEM.MD, EXECUTION.MD.
 
-Read:
-
-1. PRODUCT.md
-2. ARCHITECTURE.md
-3. CONTENT_SYSTEM.md
-4. EXECUTION.md
-
-If a proposed implementation violates architecture ownership:
-
-STOP.
-
-Do not implement.
-
-Explain the violation.
+If a proposed implementation violates ownership boundaries or any rule below: **STOP. Do not implement. Explain the violation.**
 
 ---
 
-# Purpose
+## Purpose
 
-This document defines:
+Defines the system architecture, ownership boundaries, domain model, engineering standards, and decision rules, so Prepio stays maintainable as it grows. Architecture exists to support the product, not the other way around.
 
-* System architecture
-* Ownership boundaries
-* Domain model
-* Service responsibilities
-* Engineering standards
-* Architectural decision rules
+## Philosophy
 
-The goal is to ensure Prepio remains maintainable as it grows.
-
-Architecture exists to support the product.
-
-Not the other way around.
+Optimize for maintainability, extensibility, content growth, and product evolution. Do not optimize for premature scale, premature microservices, or theoretical performance. Build the simplest version of the correct architecture.
 
 ---
 
-# Architecture Philosophy
+## Core Domain Model
 
-Prepio is a progression platform.
+```
+World → Node → Lesson → Step
+                 │
+                 └── maps (weighted) to ──▶ Skill
 
-Architecture should optimize for:
+Step result → Skill mastery → Topic readiness
+```
 
-* Maintainability
-* Extensibility
-* Content growth
-* Product evolution
+This hierarchy is never bypassed.
 
-Architecture should NOT optimize for:
+| Concept | Definition |
+|---|---|
+| **World** | A progression destination. Contains nodes. Never contains lessons directly. |
+| **Node** | A milestone on the path. Binds exactly one lesson. Does not own step content. |
+| **Lesson** | The unit of learning: an ordered list of steps (≤ 5 min), mapped to one or more skills. A *boss* lesson is an ordinary authored lesson with `kind: boss` (longer, mixed review). There is no dynamic question selection. |
+| **Step** | One screen in a lesson: `intro` or an exercise (`mcq`, `true_false`, `fill_blank`, `arrange`, `prose`). |
+| **Skill** | The unit of mastery (0–100). Lessons teach and measure skills. |
+| **Topic** | A user-facing grouping of skills (a skill category). Readiness is computed per topic. |
+| **Attempt** | One user run through a lesson. Holds step results. Owned by the Journey domain. |
 
-* Premature scale
-* Premature microservices
-* Theoretical performance
-
-Build systems that can evolve.
-
-Avoid systems that require rewrites.
-
----
-
-# Core Domain Model
-
-Everything in Prepio revolves around progression.
-
-The hierarchy is:
-
-World
-
-↓
-
-Node
-
-↓
-
-Skill
-
-↓
-
-Question Pool
-
-↓
-
-Question
-
-↓
-
-Skill Progress
-
-↓
-
-Readiness
-
-This hierarchy should never be bypassed.
+Skills drive readiness. Lessons exist to build and measure skills.
 
 ---
 
-# Domain Definitions
+## Ownership Model
 
-## World
+Ownership is absolute. **No service may mutate data owned by another service.**
 
-Large progression destination.
+| Domain | Owns | Hosted in |
+|---|---|---|
+| **User** | Authentication, profile, preferences (experience level, focus topics), account settings | `user` service |
+| **Companion** | Companions, evolution, dialogue, cosmetics | `user` service (today) |
+| **Content** | Skills, subskills, topics, lessons, steps and their payloads, authoring validation | `question` service |
+| **Journey** | Worlds, nodes, unlock rules, journey progress, **lesson attempts and step results**, grading | `question` service |
+| **Progress** | XP, levels, gems, skill mastery + mastery ledger, topic readiness, achievements, quest progress | `progress` service |
+| **Streak** | Streak state | `streak` service |
+| **Notification** | Dispatch | `notification` service |
+| **Analytics** | Events, reports, funnels (not built yet). Never owns business state. | n/a |
 
-Examples:
+> **Known naming debt:** the `question` service now hosts the Content and Journey domains. Renaming it is deferred until it is cheap; do not create a new service for this.
 
-Foundation Forest
-
-Google Mountain
-
-Amazon Jungle
-
-System Design City
-
-A world contains nodes.
-
-A world never contains questions directly.
-
----
-
-## Node
-
-A progression checkpoint.
-
-Examples:
-
-Arrays Basics
-
-Hash Maps
-
-Trees
-
-Sliding Window
-
-A node contains skills.
-
-A node never owns questions.
+If ownership is unclear: do not implement. Ask.
 
 ---
 
-## Skill
+## Data Flow
 
-Fundamental learning unit.
+```
+Answer a step ──▶ server grades (Journey) ──▶ step result stored
+Attempt completes (all graded steps correct) ──▶ node marked done (Journey)
+                                             └─▶ `lesson.completed` fact
+`lesson.completed` ──▶ Progress: skill mastery + ledger, XP, gems
+                   ├─▶ Streak: streak update
+                   └─▶ (Progress emits) skill.progress.updated, readiness.updated, level.up
+```
 
-Examples:
+Progress flows downward, never backwards. The gateway may aggregate responses for the client (as it does for the dashboard); aggregation does not change ownership.
 
-Arrays
+## Event-Driven Principles
 
-Graphs
+Events communicate **facts**, not actions, and contain no business logic. XP and mastery calculation belong to Progress, never to the publisher.
 
-Dynamic Programming
+Good: `lesson.completed`. Bad: `lesson.completed_and_grant_xp`.
 
-System Design
+**Approved event types:** `lesson.completed`, `skill.progress.updated`, `readiness.updated`, `journey.node.completed`, `world.completed`, `achievement.unlocked`, `quest.completed`, `companion.evolved`, `level.up`.
 
-Skills drive readiness.
-
-Questions exist to evaluate skills.
-
----
-
-## Question Pool
-
-A collection of questions associated with a skill.
-
-Example:
-
-Arrays
-
-↓
-
-Question Pool
-
-↓
-
-20 Questions
-
-Question pools allow expansion without modifying progression.
+The `lesson.completed` payload carries performance facts only (user, lesson, attempt, per-skill weights, first-attempt correctness, step counts, timestamp).
 
 ---
 
-## Question
+## Grading Rules (the server is the only grader)
 
-Smallest content unit.
+1. **The client never receives answers or rubrics.** Lesson payloads sent to clients have all answer fields stripped. This is enforced by a test.
+2. Deterministic step types (`mcq`, `true_false`, `fill_blank`, `arrange`) are graded by **pure functions in one Go package**, table-tested. `prose` is graded by the rubric evaluator (structural stages now; LLM stage when wired). The LLM is never used for deterministic types.
+3. A grading response contains: correctness, the explanation, and **only after an incorrect answer**, the correct answer.
+4. **Attempt integrity:**
+   * One in-progress attempt per user and lesson; resumable.
+   * Step answers are idempotent per (attempt, step, try number).
+   * An attempt completes only when **every graded step has a correct result**.
+   * Mastery uses **first-attempt correctness**. XP and mastery deltas are capped server-side.
+5. **Re-queueing missed steps is UI sequencing** (presentation order is frontend state). Correctness and completion are server decisions.
+6. Latency budget: step-answer p95 < 150 ms server-side. The UI shows the pressed state immediately and never blocks on animation.
 
-Questions should never directly drive progression.
+## Lesson Runtime Capabilities
 
-Questions drive skill evaluation.
+APIs expose capabilities, not tables:
 
----
-
-# Ownership Model
-
-Ownership is absolute.
-
-No service may mutate data owned by another service.
-
----
-
-# User Domain
-
-Owns:
-
-Authentication
-
-Profiles
-
-Preferences
-
-Target Companies
-
-Account Settings
-
-No other domain modifies user profile data.
+* `GET /journey`: path with node status plus preview fields (lesson title, takeaways, minutes, XP)
+* `POST /lessons/{id}/attempts`: start or resume; returns steps **without answers**
+* `POST /attempts/{id}/steps/{stepId}/answer`: server-graded feedback
+* `POST /attempts/{id}/complete`: performance summary (the gateway adds rewards from Progress)
+* `GET /progress/...`: topic mastery, explained mastery changes
 
 ---
 
-# Content Domain
+## Frontend Architecture
 
-Owns:
+UI is a consumer, not a source of truth.
 
-Skills
+The frontend **may**: render, animate, collect input, show optimistic pressed states, and sequence steps (including re-queue ordering).
+The frontend **must not**: grade answers, hold answers, or calculate mastery, readiness, XP, or rewards. Never duplicate business logic in the client.
 
-Subskills
+Frontend state is UI, screen, and temporary interaction state only. Progress, mastery, journey, rewards, and achievements are backend state.
 
-Questions
+## Content Configuration Rule
 
-Question Pools
+Content is configurable, not hardcoded in application code.
 
-Company Mapping
+* Worlds, nodes, and lessons are **content-as-code**: files in `content/`, validated in CI, and loaded into the database by an **idempotent `content-sync` command that runs after migrations on every deploy**.
+* The database is the runtime source of truth. The repo files are the authoring source of truth.
+* Sync **never deletes user data**; removed content is deprecated, not dropped.
+* The skill catalog (structure) changes through migrations; it changes rarely.
+* No lesson text, options, or answers appear in application code. Test fixtures live only under test directories.
 
-Difficulty
+## Database Principles
 
-Content Metadata
+Tables represent domains, not screens. (Good: `lessons`, `lesson_attempts`, `skills`. Bad: `dashboard_cards`.) Tables model reality, not UI.
 
-No other domain stores question metadata.
+## Migration Rules
 
----
+Every schema change requires: a migration, a rollback, an index review, and a documentation update.
+**Historical migrations are never edited.** Removals are new migrations. Never alter production schemas manually.
 
-# Journey Domain
+## Engineering Standards
 
-Owns:
-
-Worlds
-
-Nodes
-
-Unlock Rules
-
-Journey Progress
-
-World Progression
-
-No other domain modifies journey structure.
+* **Production quality only:** no demo shortcuts, hardcoded content, mock data, or stubbed shipped paths.
+* **Dead code is removed in the phase that makes it dead:** unused routes, env vars, flags, tests, components, tables. Feature flags are deleted when their phase ends.
+* Every phase ends with the sweep and gates defined in EXECUTION.MD.
+* Prefer extending existing domains; create a new domain only when ownership genuinely changes.
 
 ---
 
-# Progress Domain
-
-Owns:
-
-XP
-
-Levels
-
-Readiness
-
-Achievements
-
-Quest Progress
-
-User Skill Scores
-
-No other domain calculates readiness.
-
----
-
-# Companion Domain
-
-Owns:
-
-Companions
-
-Evolution
-
-Dialogue
-
-Companion Cosmetics
-
-No other domain modifies companion state.
-
----
-
-# Analytics Domain
-
-Owns:
-
-Events
-
-Reports
-
-Metrics
-
-Funnels
-
-Retention
-
-Analytics never owns business state.
-
----
-
-# Architectural Rule
-
-If ownership is unclear:
-
-Do not implement.
-
-Ask.
-
----
-
-# Data Flow
-
-The correct flow:
-
-Question
-
-↓
-
-Skill Evaluation
-
-↓
-
-Skill Progress
-
-↓
-
-Readiness Update
-
-↓
-
-Journey Update
-
-↓
-
-Reward Update
-
-↓
-
-Companion Update
-
-Progress flows downward.
-
-Never backwards.
-
----
-
-# Event Driven Principles
-
-Events communicate state changes.
-
-Events do not contain business logic.
-
-Example:
-
-Good
-
-question.completed
-
-Bad
-
-question.completed_and_grant_xp
-
-XP calculation belongs elsewhere.
-
----
-
-# Approved Event Types
-
-question.completed
-
-skill.progress.updated
-
-readiness.updated
-
-journey.node.completed
-
-world.completed
-
-achievement.unlocked
-
-quest.completed
-
-companion.evolved
-
-level.up
-
-Events should be generic.
-
-Events should describe facts.
-
-Not actions.
-
----
-
-# API Design Principles
-
-APIs expose capabilities.
-
-Not database tables.
-
-Bad:
-
-GET /questions
-
-Good:
-
-GET /journey/current-node
-
-GET /skills/readiness
-
-GET /dashboard
-
-Design around user experience.
-
-Not storage.
-
----
-
-# Database Principles
-
-Database tables represent domains.
-
-Not screens.
-
-Bad:
-
-dashboard_cards
-
-home_widgets
-
-screen_state
-
-Good:
-
-skills
-
-questions
-
-worlds
-
-nodes
-
-Tables model reality.
-
-Not UI.
-
----
-
-# Migration Rules
-
-Every schema change requires:
-
-Migration
-
-Rollback
-
-Index Review
-
-Documentation Update
-
-Never manually alter production schemas.
-
----
-
-# Content Configuration Rule
-
-Content should be configurable.
-
-Not hardcoded.
-
-Examples:
-
-Worlds
-
-Nodes
-
-Skills
-
-Question Pools
-
-Company mappings
-
-Difficulty weights
-
-Should all be content-driven.
-
-Code should not change when content changes.
-
----
-
-# Frontend Architecture
-
-UI is a consumer.
-
-Not a source of truth.
-
-Business logic belongs in backend domains.
-
-The frontend should:
-
-Render
-
-Display
-
-Animate
-
-Interact
-
-Not calculate progression.
-
-Not calculate readiness.
-
-Not calculate rewards.
-
----
-
-# State Management Rule
-
-Frontend state:
-
-UI state
-
-Screen state
-
-Temporary interaction state
-
-Backend state:
-
-Progress
-
-Readiness
-
-Journey
-
-Rewards
-
-Achievements
-
-Never duplicate business logic in the client.
-
----
-
-# Companion Rules
-
-Companions are product-critical.
-
-Companions must:
-
-Appear frequently
-
-React consistently
-
-Reflect progression
-
-Companions should not be cosmetic-only.
-
----
-
-# Readiness Rules
-
-Readiness is the most important metric.
-
-Readiness should never be derived from:
-
-XP
-
-Levels
-
-Streaks
-
-Readiness should derive from:
-
-Skill mastery
-
-Performance
-
-Consistency
-
-Question outcomes
-
-Users should be able to explain readiness.
-
----
-
-# Anti Patterns
-
-The following are forbidden.
-
----
-
-## Hardcoded Progression
-
-Bad:
-
-if level == 10 unlock world
-
-Good:
-
-Configurable unlock rules
-
----
-
-## Direct Question Progression
-
-Bad:
-
-Question → World
-
-Good:
-
-Question → Skill → Readiness → Progression
-
----
-
-## UI Driven Logic
-
-Bad:
-
-Frontend calculates readiness
-
-Frontend calculates rewards
-
-Good:
-
-Backend owns calculations
-
----
-
-## Duplicate Ownership
-
-Bad:
-
-Progress service updates companions
-
-Good:
-
-Progress emits event
-
-Companion reacts
-
----
-
-## Feature-Driven Architecture
-
-Bad:
-
-Create new service for every feature
-
-Good:
-
-Extend existing domains
-
-Only create new domains when ownership genuinely changes.
-
----
-
-# Decision Tree
-
-Need question information?
-
-Use Content Domain.
-
-Need skill information?
-
-Use Content Domain.
-
-Need readiness?
-
-Use Progress Domain.
-
-Need journey progression?
-
-Use Journey Domain.
-
-Need companion data?
-
-Use Companion Domain.
-
-Need analytics?
-
-Use Analytics Domain.
-
-If unsure:
-
-Stop.
-
-Do not create new ownership.
-
----
-
-# Success Criteria
-
-A successful architecture:
-
-Supports new content without code changes.
-
-Supports new worlds without rewrites.
-
-Supports new companions without rewrites.
-
-Supports new skills without rewrites.
-
-Supports future growth without major redesign.
-
-The goal is not perfection.
-
-The goal is avoiding future rewrites.
-
-Build the simplest version of the correct architecture.
+## Anti-Patterns (forbidden)
+
+* Hardcoded progression or unlock rules (use configurable rules)
+* Step or lesson results driving world progress directly (use Result → Mastery → Progression)
+* Client-side grading, or answers present in client payloads
+* UI-driven logic (frontend calculating mastery, XP, readiness)
+* Duplicate ownership (Progress updating companions; emit an event, Companion reacts)
+* A new service per feature
+* Company-specific data or logic anywhere
+* Content in application code
+
+## Decision Tree
+
+* Need skill or lesson content → Content domain
+* Need journey state, attempts, or grading → Journey domain
+* Need mastery, readiness, XP → Progress domain
+* Need companion data → Companion domain
+* Need profile or preferences → User domain
+* Unsure → STOP. Do not create new ownership.
+
+## Success Criteria
+
+The architecture supports new lessons, worlds, skills, topics, and companions **without code changes or rewrites**. The goal is not perfection; it is avoiding future rewrites.

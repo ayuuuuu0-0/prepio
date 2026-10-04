@@ -1,653 +1,150 @@
 # PRODUCT.md
 
-# AGENT INSTRUCTIONS
+## AGENT INSTRUCTIONS
 
-Before making any product, UI, UX, or feature decision:
+Before any product, UI, UX, or feature decision, read in this order:
 
-Read:
+1. PRODUCT.MD
+2. ARCHITECTURE.MD
+3. CONTENT_SYSTEM.MD
+4. EXECUTION.MD
 
-1. PRODUCT.md
-2. ARCHITECTURE.md
-3. CONTENT_SYSTEM.md
-4. EXECUTION.md
-
-If a proposed implementation conflicts with any of these documents:
-
-STOP.
-
-Do not implement.
-
-Explain the conflict.
+If a proposed implementation conflicts with any of them: **STOP. Do not implement. Explain the conflict.**
+If you believe a document is wrong, use the change process in EXECUTION.MD. Never work around a document silently, and never leave a document contradicting the code.
 
 ---
 
-# What Is Prepio?
+## What Is Prepio?
 
-Prepio is not an interview preparation platform.
+Prepio is a progression game for working engineers. Getting measurably better at the skills that matter on the job and in interviews is the reward.
 
-Prepio is a progression game where becoming interview-ready is the reward.
+Most learning products fail the same way: users start motivated, then quit, not because they are incapable but because the experience is a grind. Prepio fixes the experience: short lessons, instant feedback, and visible mastery.
 
-The platform exists because most interview preparation products fail to keep users engaged long enough to become genuinely skilled.
+## Core Belief
 
-Users start motivated.
+People do not wake up wanting to do exercises. They want to be better engineers, grow in their careers, and walk into hard conversations (design reviews, interviews, incidents) with confidence. Lessons are the vehicle. **Career progression is the product.**
 
-Then quit.
-
-Not because they are incapable.
-
-Because the experience is boring.
-
-Prepio solves this by making progress visible, rewarding, and emotionally engaging.
-
----
-
-# The Core Belief
-
-People do not wake up wanting to solve questions.
-
-People wake up wanting:
-
-* Better jobs
-* Better companies
-* Better salaries
-* Better careers
-
-Questions are not the product.
-
-Questions are the vehicle.
-
-Career progression is the product.
-
-Every feature should reinforce this belief.
-
----
-
-# Product Positioning
+## Positioning
 
 We are NOT:
 
-* LeetCode
-* GeeksForGeeks
-* InterviewBit
-* Question banks
-* Coding practice websites
+* LeetCode or any problem-grinding site
+* A question bank
+* A video course library
+* A company-specific interview-prep tool
 
-Those products primarily deliver content.
+We borrow **Duolingo's engagement model** (short daily lessons, instant feedback, a path, streaks) and **boot.dev's hands-on feel** (write and complete real code and designs), applied to engineering depth: system design, backend and production concepts, low-level design, and a DSA refresher.
 
-We primarily deliver progression.
+## Target User
 
-Content supports progression.
+**Primary: working software engineers** who want to deepen system design, production/backend knowledge, low-level design, and refresh DSA, for their job or for interviews.
 
-Not the other way around.
+Other audiences (students, early-career) would be separate paths. They are out of scope until the primary path is validated.
 
----
+The product should feel professional. Not childish. Not corporate.
 
-# Product Vision
+## Core Product Loop
 
-The long-term vision is to create a platform where users feel they are progressing through an engineering career journey.
+```
+User opens app → companion greets
+→ dashboard shows topic mastery + the next lesson
+→ Continue → journey path → (tap node → preview) → lesson
+→ lesson: intro → exercises with instant feedback → celebration → summary
+→ mastery updates (explained) → next node unlocks → companion reacts
+→ user returns tomorrow
+```
 
-The experience should feel closer to:
+Every system exists to strengthen this loop.
 
-Duolingo
+## Product Pillars
 
-*
+Every feature must support at least one pillar. If it supports none, it should not exist.
 
-Pokemon
+### 1. Progression
+Users must always see progress: journey, mastery, levels, achievements, companion evolution. Users never wonder "am I improving?"
 
-*
+### 2. Readiness (= topic mastery)
+Readiness is the most important metric. It is **per-topic mastery from 0–100**, for the topics: **System Design, Backend & Production, Low-Level Design, DSA Refresher.**
 
-Career Growth
+* Derived from skill mastery. Never from XP, levels, or streaks.
+* Always explainable: why it rose, which lessons and skills moved it, and what to do next.
+* Not company-specific. There is no company selection and no company readiness.
 
-than
+### 3. Journey
+The journey is the primary experience. Users move through worlds, not lists, tables, or folders. World and node names are authored in content and should be memorable.
 
-Traditional Interview Platforms
+### 4. Companions
+Companions are emotional progression systems, not avatars. They appear on every major screen, **including inside the lesson player**, and react to results. If a companion could be removed without changing the experience, the implementation is wrong.
 
-Users should feel:
-
-"I am becoming interview ready."
-
-Not:
-
-"I am solving interview questions."
-
----
-
-# Core Product Loop
-
-User opens app
-
-↓
-
-Companion greets user
-
-↓
-
-User sees readiness score
-
-↓
-
-User continues journey
-
-↓
-
-User completes challenge
-
-↓
-
-User earns rewards
-
-↓
-
-User improves readiness
-
-↓
-
-Companion reacts
-
-↓
-
-Journey progresses
-
-↓
-
-User returns tomorrow
-
-Every system in Prepio exists to strengthen this loop.
+### 5. Collection
+Achievements, badges, titles, world trophies, companion evolutions, skins.
 
 ---
 
-# Product Pillars
+## The Lesson Experience (UX contract)
 
-All features must support at least one pillar.
+A lesson is the unit of learning. These rules are product requirements, not suggestions.
 
-If a feature supports none of them, it should not exist.
+**Shape**
+* ≤ 5 minutes: one intro (30–40 s, always skippable) + 3–5 exercises.
+* Focus mode: bottom navigation hidden; leaving asks for confirmation.
 
----
+**Every exercise follows one flow:** select → **Check** → feedback tray → **Continue**.
+* Feedback is instant and never relies on colour alone (icon + text).
+* Correct: short reason it works. Incorrect: the correct answer + why, in an encouraging tone.
+* Missed exercises **return at the end of the lesson**. There are no hearts, lives, or penalties.
 
-## Pillar 1 — Progression
+**Exercise types:** multiple choice, true/false, fill-in-the-blank (word bank), arrange-in-order, and rare rubric-graded prose. Interaction is tap-based (no drag required), keyboard accessible (1–4 select, Enter checks), and respects reduced-motion settings.
 
-The platform must always show progress.
+**Finish**
+1. Celebration: XP, accuracy, streak, companion reaction.
+2. Summary card: key takeaways and the worked answer for design problems.
+3. Back to the journey; the completed node animates and the next one unlocks.
 
-Users should never wonder:
+**Journey interaction:** tapping a node opens a preview (what you'll learn, time, XP). Locked nodes state exactly what unlocks them. No dead taps.
 
-"Am I improving?"
+**Sound:** optional, default off, remembered.
 
-Progress should be visible through:
+## Onboarding
 
-* Journey
-* Readiness
-* Levels
-* Achievements
-* Companion evolution
+1. **What do you want to sharpen?** Pick 1–3 topics. Topics reorder and highlight the path. They never lock content.
+2. **Experience level.** Sets the starting point.
+3. **Choose a companion.**
 
-Progress is mandatory.
+No company selection. No "what are you here for" quiz.
 
----
+## Dashboard Philosophy
 
-## Pillar 2 — Readiness
+The dashboard is the most important screen. In seconds, the user must understand: where they are (topic mastery), what to do next (Continue → next lesson), how they're improving, and what reward is next. It motivates action; it does not display analytics. **It never shows placeholders for unbuilt features.**
 
-Readiness is the most important metric.
+## Visual Identity
 
-Not XP.
+Dark theme, purple accents, modern gradients, developer-oriented. Intentional.
+Do not copy Duolingo's colours or mascot. We want its engagement model, not its look.
 
-Not streaks.
+## Rewards Philosophy
 
-Not solved questions.
+Every action produces visible feedback: XP gained, mastery moved (and why), companion reacts, progress updates, an animation plays. Streaks reward showing up: completing one lesson keeps the streak.
 
-Readiness represents capability.
+## Psychology
 
-Examples:
+Create motivation, curiosity, momentum, achievement. Avoid fear, punishment, guilt, shame. Users should feel encouraged to return, not pressured.
 
-Google Readiness
+## Anti-Patterns (forbidden)
 
-Amazon Readiness
+* Generic question lists or a "questions page"
+* Dashboard analytics: charts, tables, and metrics everywhere
+* Enterprise/admin UI: white backgrounds, plain cards, data-heavy screens
+* Company-specific preparation features
+* Punishment mechanics: hearts, lives, shaming, guilt copy
+* "Coming soon" placeholders in shipped UI
+* Hardcoded content or mock data in shipped paths
+* Feature creep: AI interviewers, voice, guilds, marketplaces, multiplayer (see EXECUTION.MD)
 
-Meta Readiness
+## Success Metrics
 
-Uber Readiness
+A successful user understands their mastery, understands the path, completes lessons, returns consistently, feels improvement, and asks for more content, without external motivation, manual tracking, or a complex onboarding.
 
-Every readiness score should be explainable.
+## Long-Term Goal
 
-Users must understand:
-
-Why their readiness increased.
-
-Why it decreased.
-
-How to improve it.
-
----
-
-## Pillar 3 — Journey
-
-Journey is the primary experience.
-
-Questions are content.
-
-Journey is progression.
-
-Users should move through worlds.
-
-Not lists.
-
-Not tables.
-
-Not folders.
-
-Journey is the product.
-
----
-
-## Pillar 4 — Companions
-
-Companions are emotional progression systems.
-
-Companions are NOT avatars.
-
-Companions are NOT profile pictures.
-
-Companions should:
-
-React
-
-Celebrate
-
-Encourage
-
-Evolve
-
-Create attachment
-
-Every major screen should include the companion.
-
----
-
-## Pillar 5 — Collection
-
-Humans enjoy collecting.
-
-Users should collect:
-
-Achievements
-
-Badges
-
-Titles
-
-World trophies
-
-Companion evolutions
-
-Skins
-
-Collection increases retention.
-
----
-
-# Target User
-
-Primary User:
-
-Engineering students
-
-Recent graduates
-
-Early career engineers
-
-Preparing for:
-
-Internships
-
-SDE-1
-
-SDE-2
-
-Top technology companies
-
-The product should feel professional.
-
-Not childish.
-
-Not corporate.
-
----
-
-# User Psychology
-
-The platform should create:
-
-Motivation
-
-Curiosity
-
-Progress
-
-Momentum
-
-Achievement
-
-The platform should avoid:
-
-Fear
-
-Punishment
-
-Guilt
-
-Shame
-
-Users should feel encouraged to return.
-
-Not pressured.
-
----
-
-# Design Philosophy
-
-Prepio should feel:
-
-Modern
-
-Premium
-
-Playful
-
-Motivating
-
-Alive
-
-Progressive
-
-Prepio should NOT feel:
-
-Corporate
-
-Enterprise
-
-Administrative
-
-Academic
-
-Governmental
-
-Boring
-
----
-
-# Visual Identity
-
-Current direction:
-
-Dark theme
-
-Purple accents
-
-Modern gradients
-
-Developer-oriented visuals
-
-Career-oriented progression
-
-This is intentional.
-
-Do not move toward a Duolingo clone.
-
-Do not copy Duolingo colors.
-
-Do not copy Duolingo mascot design.
-
-We want Duolingo's engagement model.
-
-Not Duolingo's visual identity.
-
----
-
-# Dashboard Philosophy
-
-Dashboard is the most important screen.
-
-Not the journey.
-
-Not questions.
-
-Not profile.
-
-Dashboard.
-
-Users should immediately understand:
-
-Where they are.
-
-What they should do next.
-
-How they are improving.
-
-What reward is next.
-
-Dashboard should motivate action.
-
-Not display analytics.
-
----
-
-# Journey Philosophy
-
-Journey should feel like exploration.
-
-Not curriculum.
-
-Not a course.
-
-Not a folder structure.
-
-Users should feel like they are moving through meaningful destinations.
-
-Examples:
-
-Foundation Forest
-
-Problem Solving Canyon
-
-System Design City
-
-Google Mountain
-
-Amazon Jungle
-
-Worlds should feel memorable.
-
----
-
-# Companion Philosophy
-
-Companions are a product feature.
-
-Not decoration.
-
-Companions should:
-
-Appear frequently
-
-React frequently
-
-Grow visibly
-
-Feel alive
-
-If a companion could be removed without changing user experience:
-
-The implementation is wrong.
-
----
-
-# Rewards Philosophy
-
-Every action should produce visible feedback.
-
-Bad:
-
-Question completed.
-
-Nothing happens.
-
-Good:
-
-XP gained
-
-Readiness increased
-
-Companion reacts
-
-Progress updates
-
-Animation plays
-
-Users should feel rewarded.
-
----
-
-# Anti Patterns
-
-The following are explicitly forbidden.
-
----
-
-## Generic Question Lists
-
-Bad:
-
-Questions page
-
-Question 1
-
-Question 2
-
-Question 3
-
-Question 4
-
-Good:
-
-Journey
-
-Skill progression
-
-World progression
-
----
-
-## Dashboard Analytics
-
-Bad:
-
-Charts everywhere
-
-Tables everywhere
-
-Metrics everywhere
-
-Good:
-
-Progress
-
-Goals
-
-Journey
-
-Readiness
-
-Companion
-
----
-
-## Enterprise UI
-
-Bad:
-
-Bootstrap appearance
-
-Admin panel layouts
-
-Data-heavy screens
-
-White backgrounds
-
-Plain cards
-
-Corporate visuals
-
-Good:
-
-Purposeful motion
-
-Illustrations
-
-Progress visualization
-
-Strong visual hierarchy
-
----
-
-## Feature Creep
-
-Do not build features simply because they sound impressive.
-
-Examples:
-
-AI interviewers
-
-Voice interviews
-
-Guilds
-
-Marketplace systems
-
-Multiplayer systems
-
-These are not currently product priorities.
-
-Follow EXECUTION.md.
-
----
-
-# Success Metrics
-
-A successful user should:
-
-Understand readiness
-
-Understand progression
-
-Complete journeys
-
-Return consistently
-
-Feel improvement
-
-Ask for more content
-
-A successful user should NOT need:
-
-External motivation
-
-Manual tracking
-
-Complex onboarding
-
-To understand how the product works
-
----
-
-# Long-Term Goal
-
-The final version of Prepio should feel like:
-
-A career progression RPG for engineers.
-
-Users should not feel like they are studying.
-
-Users should feel like they are advancing toward their dream company.
-
-That feeling is the product.
-
-Everything else exists to support it.
+A career progression RPG for engineers. Users should not feel like they are studying; they should feel like they are leveling up. That feeling is the product.

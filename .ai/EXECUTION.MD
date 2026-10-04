@@ -1,630 +1,130 @@
 # EXECUTION.md
 
-# AGENT INSTRUCTIONS
+## AGENT INSTRUCTIONS
 
-This document is the current source of truth for implementation priorities.
+This document is the source of truth for implementation priorities.
 
-Before implementing any feature:
+Before implementing any feature, read: PRODUCT.MD, ARCHITECTURE.MD, CONTENT_SYSTEM.MD, EXECUTION.MD.
 
-Read:
-
-1. PRODUCT.md
-2. ARCHITECTURE.md
-3. CONTENT_SYSTEM.md
-4. EXECUTION.md
-
-If a feature is not listed in the current phase:
-
-Do not build it.
-
-If uncertain:
-
-Ask for clarification.
+* If a feature is not listed in the **current phase**: do not build it.
+* If uncertain: ask for clarification.
+* If a conflict exists between code and these documents: the documents are updated **in the same change** (see Change Process). They are never left stale.
 
 ---
 
-# Purpose
+## Change Process
 
-This document controls execution.
+If you discover a better design, or a decision here is wrong, do not implement it immediately. Document:
 
-It defines:
+1. Problem
+2. Proposed solution
+3. Benefits
+4. Risks
+5. Migration impact
 
-* Current phase
-* Current priorities
-* Build order
-* Out-of-scope work
-* Definition of done
-* Launch criteria
-
-This is the only document expected to change frequently.
+Then request approval. When approved, update every affected document in the same change so no conflicting statement survives.
 
 ---
 
-# Current Project Status
+## Phase History
 
-The product has undergone a major redesign.
-
-The old version proved that:
-
-* Authentication works
-* Questions work
-* Progression works
-* Journey concept works
-
-The redesign identified weaknesses in:
-
-* Content architecture
-* Readiness architecture
-* Progression architecture
-* Product identity
-
-The goal is not adding features.
-
-The goal is building the correct foundation.
+| Phase | Outcome |
+|---|---|
+| **Phase A, Foundation Rebuild** | **Superseded.** A1 skill graph, A2 content architecture, A3 question schema: done and kept (skills, subskills, `user_skill_scores`). A4 company-based Readiness V2: **superseded** by per-topic mastery and removed in L1. A5 content management: **replaced** by content-as-code (L2). |
 
 ---
 
 # CURRENT PHASE
 
-## Phase A — Foundation Rebuild
+## Phase L: Lesson Platform
 
-Status:
+**Status: ACTIVE.** Goal: turn Prepio into a production lesson-based learning platform for working engineers: short lessons, server-graded exercises, per-topic mastery, a journey that means something.
 
-ACTIVE
+### Standing rules (apply to every task in this phase)
 
-Priority:
+* **Production quality only.** No hardcoded content, mock data, fixtures, or stubbed paths in shipped code.
+* **Dead-code sweep at the end of each task:** orphaned symbols, routes, env vars, feature flags, tests, components, tables, docs.
+* **Gates before a task is done:**
+  1. `go build ./... && go vet ./... && go test ./...`
+  2. Web: lint, typecheck, build, plus unit tests for non-trivial logic
+  3. Migrations apply **up and down** on a fresh database
+  4. UI work: screenshots reviewed at **390×844 (mobile) and 1280×800 (desktop)**
+  5. Docs updated in the same change
+* Historical migrations are never edited. Work happens on feature branches.
+* The mobile (Flutter) client is **paused**: not updated or gated in this phase. It will be rebuilt against the new contract after the web experience is validated.
 
-CRITICAL
+### Tasks (in order)
 
-No major feature work should begin until this phase is complete.
+**L1, Purge company targeting and company-based readiness**
+Remove: `user_targets`, `question_tags`, `company_skill_weights` (new migration, with down); company logic in user, question, progress, and gateway services; `shared/readiness`; company constants, config, and events fields; the `READINESS_V2` flag; web and dashboard company UI; the dashboard readiness card (reintroduced as topic mastery in L4). Keep skills, subskills, `question_skills`, `user_skill_scores`, XP, gems, streaks.
+*Done when:* grep for `company|companies|target_compan|readiness_v2|question_tags|user_targets` is clean outside historical migrations; migration up/down passes; gates pass; login → onboarding (experience, companion) → dashboard works.
 
----
+**L2, Lesson platform backend**
+Schema (`lessons`, `lesson_steps`, `lesson_skills`, `lesson_attempts`, `lesson_step_results`, `mastery_ledger`); topic catalog migration; `content/` with the validator and `content-sync` (wired into the deploy entrypoint after migrations); grading package (pure, table-tested) and prose via the rubric evaluator; lesson runtime API; `lesson.completed` event; Progress consumer writes mastery + ledger + XP; Journey binds nodes to lessons and derives status from attempts; the first real lesson of the Working Professionals path authored in `content/`.
+*Done when:* integration tests cover the attempt lifecycle, idempotency, invalid answers, and completion rules; a test proves client payloads contain no answers; `content-sync` is idempotent; gates pass.
 
-# Phase A Goal
+**L3, Lesson player (web) and legacy removal**
+Player shell (focus mode, top bar, progress, combo), feedback tray, MCQ step, miss re-queue, celebration, summary card, journey preview sheet, node-completion animation, unlock messaging; companion in the player. Then **remove the legacy loop**: `/challenge`, daily papers, the legacy question/answer flow and `question.answered` event, journey index/pool builders and the `JourneyPoolSelection` flag, `question_pools*`, `questions`, `daily_papers*`, `user_question_history` (new migration). Keep the rubric evaluator for `prose`.
+*Done when:* a user completes a real lesson end to end from the journey; legacy grep is clean; screenshots reviewed; gates pass.
 
-Build the foundational systems correctly.
+**L4, Onboarding and dashboard**
+Topic picker (1–3) → experience → companion; `focus_topics` stored by the User domain. Dashboard: per-topic mastery rings, Continue → next lesson, explained mastery changes on the celebration screen. Remove "coming soon" quest/league cards and dead nav tabs until their phases.
+*Done when:* new users pick topics and land on a dashboard that shows real topic mastery and the next lesson; no placeholders remain; gates pass.
 
-Avoid temporary solutions.
+**L5, Intro motion stage:** beat-based motion renderer, tap to advance, skip, replay, optional `mediaUrl`.
 
-Avoid future rewrites.
+**L6, Exercise types:** `true_false`, `fill_blank` (tap-to-place), `arrange` (tap-to-order); validator rules and player support.
 
-Build systems that can support:
+**L7, Retention polish:** mistakes review, replay intro, sound toggle, keyboard and accessibility audit.
 
-* Thousands of questions
-* Hundreds of skills
-* Many companies
-* Many worlds
+**L8, Working Professionals path content:** worlds, nodes, and lessons authored with the product owner. Quality over quantity; first world complete before the second begins.
 
-without architectural changes.
+### Phase L Success Criteria
 
----
-
-# PHASE A TASKS
-
----
-
-## A1 Skill Graph
-
-Priority:
-
-P0
-
-Goal:
-
-Create the learning foundation.
-
----
-
-Required:
-
-skills
-
-subskills
-
-question_skills
-
-skill_categories
+* A user can complete lessons end to end with instant, server-graded feedback.
+* Topic mastery is real, explained, and visible on the dashboard.
+* Content is authored as code, validated in CI, and synced on deploy.
+* No company logic, legacy question loop, or dead flags remain.
 
 ---
 
-Example:
+## OUT OF SCOPE (forbidden before launch)
 
-Arrays
+Arena · Multiplayer · Guilds · Voice interviews · AI interviewers · AI resume review · Recruiter marketplace · Season pass · Advanced recommendation engine · Community content · Complex social features · Company-specific prep · Hearts/lives · Code-execution sandbox · AI-generated lessons · Leagues and quests (until a later phase) · Mobile client updates · Additional audience paths · Marketing/landing page
 
-├ Two Pointers
+These solve scale or breadth, not validation.
 
-├ Sliding Window
+## DEFINITION OF DONE
 
-├ Prefix Sum
+A task is **not** done because the code compiles, the UI renders, or the API responds. It is done when:
 
-└ Hash Maps
+* Architecture and content model respected
+* Documentation updated
+* Tests pass and all gates above are met
+* UI matches PRODUCT.MD
+* No hardcoded content or assumptions
+* No ownership violations
+* Dead code removed
 
----
+## AGENT DECISION RULES
 
-Completion Criteria:
+1. Prefer configurable, content-driven systems.
+2. Avoid hardcoding.
+3. Avoid shortcuts that require rewrites.
+4. Avoid speculative scale work.
+5. Avoid creating new services.
+6. Follow existing ownership.
+7. Remove what you make dead.
 
-Every question maps to skills.
+## LAUNCH CRITERIA
 
-Every skill maps to a category.
+* Users can progress through the path lesson by lesson.
+* Users understand their topic mastery and why it changes.
+* Users feel progression and return voluntarily.
+* Content supports at least 30 days of daily use.
 
----
+The goal is validation, not feature completeness.
 
-## A2 Content Architecture
+## FINAL RULE
 
-Priority:
-
-P0
-
-Goal:
-
-Decouple progression from questions.
-
----
-
-Current:
-
-Question → Progress
-
----
-
-Target:
-
-World
-
-↓
-
-Node
-
-↓
-
-Skill
-
-↓
-
-Question Pool
-
-↓
-
-Question
-
----
-
-Completion Criteria:
-
-Nodes reference skills.
-
-Not questions.
-
----
-
-## A3 Question Schema Upgrade
-
-Priority:
-
-P0
-
-Goal:
-
-Create scalable question structure.
-
----
-
-Every question must support:
-
-Skill
-
-Subskill
-
-Difficulty
-
-Companies
-
-Readiness Weight
-
-Estimated Time
-
-Explanation
-
-Hints
-
-Status
-
-Evaluation Type
-
----
-
-Completion Criteria:
-
-Question model supports future growth.
-
----
-
-## A4 Readiness Engine V2
-
-Priority:
-
-P0
-
-Goal:
-
-Make readiness meaningful.
-
----
-
-Current readiness is insufficient.
-
----
-
-Target:
-
-Question
-
-↓
-
-Skill Score
-
-↓
-
-Company Readiness
-
-↓
-
-Overall Readiness
-
----
-
-Completion Criteria:
-
-Every readiness score is explainable.
-
----
-
-## A5 Content Management Foundation
-
-Priority:
-
-P1
-
-Goal:
-
-Remove dependency on migrations for content.
-
----
-
-Build internal content management capabilities.
-
----
-
-Must Support:
-
-Create Skills
-
-Create Questions
-
-Create Pools
-
-Create Nodes
-
-Assign Companies
-
-Assign Difficulty
-
----
-
-Completion Criteria:
-
-Content can be managed without code changes.
-
----
-
-# PHASE A SUCCESS CRITERIA
-
-Phase A is complete when:
-
-✓ Skill graph exists
-
-✓ Question schema upgraded
-
-✓ Readiness V2 works
-
-✓ Content architecture works
-
-✓ Content management foundation exists
-
-Only then proceed.
-
----
-
-# NEXT PHASE
-
-## Phase B — Content Expansion
-
-Status:
-
-LOCKED
-
-Do not begin until Phase A is complete.
-
----
-
-Goal:
-
-Create enough content to validate the product.
-
-Not enough content to scale.
-
----
-
-Target:
-
-100–150 high-quality questions
-
----
-
-Coverage:
-
-Programming Fundamentals
-
-Arrays
-
-Strings
-
-Hash Maps
-
-Trees
-
-Graphs
-
-DP
-
-LLD
-
-System Design
-
-Behavioral
-
----
-
-Important:
-
-Quality over quantity.
-
-Depth over breadth.
-
----
-
-# PHASE C
-
-Status:
-
-LOCKED
-
----
-
-Goal:
-
-Create retention.
-
-Build emotional systems.
-
----
-
-Features:
-
-Companion Evolution
-
-Session Summary
-
-Daily Quests
-
-Weekly Quests
-
-World Expansion
-
-Achievement System
-
----
-
-Reason:
-
-Retention should sit on top of progression.
-
-Not replace it.
-
----
-
-# PHASE D
-
-Status:
-
-LOCKED
-
----
-
-Goal:
-
-Launch readiness.
-
----
-
-Features:
-
-Analytics
-
-Reliability
-
-Performance
-
-UX Polish
-
-Beta Testing
-
----
-
-Target:
-
-20–50 real users
-
----
-
-Questions To Answer:
-
-Do users understand readiness?
-
-Do users understand progression?
-
-Do companions matter?
-
-Do worlds matter?
-
-Do users return?
-
----
-
-# OUT OF SCOPE
-
-The following are explicitly forbidden before launch.
-
----
-
-Arena
-
-Multiplayer
-
-Guilds
-
-Voice Interviews
-
-AI Interviewers
-
-AI Resume Review
-
-Recruiter Marketplace
-
-Season Pass
-
-Advanced Recommendation Engine
-
-Community Content
-
-Complex Social Features
-
----
-
-Reason:
-
-These features solve scale.
-
-Not validation.
-
----
-
-# DEFINITION OF DONE
-
-A task is NOT complete because:
-
-* Code compiles
-* UI renders
-* API responds
-
-A task is complete when:
-
-Architecture respected
-
-Content model respected
-
-Documentation updated
-
-Tests pass
-
-UI matches PRODUCT.md
-
-No hardcoded assumptions
-
-No ownership violations
-
----
-
-# AGENT DECISION RULES
-
-When making decisions:
-
-1. Prefer configurable systems.
-
-2. Prefer content-driven systems.
-
-3. Avoid hardcoding.
-
-4. Avoid shortcuts requiring rewrites.
-
-5. Avoid speculative scale work.
-
-6. Avoid creating new services.
-
-7. Follow existing ownership.
-
----
-
-# IF YOU DISCOVER A BETTER DESIGN
-
-Do not implement immediately.
-
-Instead:
-
-Document:
-
-Problem
-
-Proposed Solution
-
-Benefits
-
-Risks
-
-Migration Impact
-
-Then request approval.
-
----
-
-# LAUNCH CRITERIA
-
-The product is ready for launch when:
-
-Users can progress through worlds.
-
-Users understand readiness.
-
-Users understand skills.
-
-Users feel progression.
-
-Users receive meaningful feedback.
-
-Users return voluntarily.
-
-Content supports at least 30 days of usage.
-
-The goal is not feature completeness.
-
-The goal is validation.
-
----
-
-# FINAL RULE
-
-Do not optimize for:
-
-100,000 users.
-
-Optimize for:
-
-20 users who genuinely love the product.
-
-If 20 users love it:
-
-Scaling can be solved later.
-
-If 20 users do not love it:
-
-Nothing else matters.
+Do not optimize for 100,000 users. Optimize for 20 users who genuinely love the product. If 20 users love it, scaling can be solved later. If they do not, nothing else matters.
