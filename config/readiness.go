@@ -27,9 +27,6 @@ const MasterySmoothingFactor = 0.15
 // MaxSkillMastery is the upper bound for per-skill mastery scores.
 const MaxSkillMastery = 100
 
-// MaxCompanyReadiness caps company readiness to avoid implying certainty.
-const MaxCompanyReadiness = 95
-
 // ReadinessSourceLive marks scores updated from live answer events.
 const ReadinessSourceLive = "live"
 

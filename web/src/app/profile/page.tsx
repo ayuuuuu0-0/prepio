@@ -52,16 +52,7 @@ export default function ProfilePage() {
           </p>
         </div>
 
-        <GameCard className="mt-6" icon="🎯" accentColor="#7C6EF5">
-          <p className="font-display font-bold" style={{ color: "#E8EAED" }}>
-            Target Companies
-          </p>
-          <p className="mt-2 text-sm font-semibold" style={{ color: "#8B92A8" }}>
-            {profile.target_companies.length > 0 ? profile.target_companies.join(", ") : "Not set"}
-          </p>
-        </GameCard>
-
-        <GameCard className="mt-4" icon="📚" accentColor="#60A5FA">
+        <GameCard className="mt-6" icon="📚" accentColor="#60A5FA">
           <p className="font-display font-bold" style={{ color: "#E8EAED" }}>
             Experience
           </p>

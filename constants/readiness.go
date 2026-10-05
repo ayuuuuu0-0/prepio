@@ -6,10 +6,3 @@ const (
 	ReadinessSourceBackfill = "backfill"
 )
 
-// Supported company slugs with seeded skill weight profiles.
-var ReadinessCompanies = []string{
-	"google",
-	"amazon",
-	"meta",
-	"uber",
-}

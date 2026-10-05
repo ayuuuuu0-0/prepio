@@ -102,10 +102,8 @@ func main() {
 		r.Get("/skills/{slug}", skillHandler.GetSkill)
 		r.Get("/questions/daily", questionHandler.GetDaily)
 		r.Get("/questions/history", questionHandler.GetHistory)
-		r.Get("/questions/stats/readiness", questionHandler.GetReadinessStats)
 		r.Get("/questions/{id}/skills", skillHandler.GetQuestionSkills)
 		r.Post("/questions/{id}/submit", questionHandler.Submit)
-		r.Get("/questions/companies", questionHandler.ListCompanies)
 	})
 
 	port := envOrDefault("QUESTION_SERVICE_PORT", "8082")

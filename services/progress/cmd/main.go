@@ -106,8 +106,6 @@ func main() {
 		r.Use(middleware.Auth(signer, redisClient))
 		r.Get("/progress/me", progressHandler.GetMe)
 		r.Get("/skills/readiness", readinessHandler.GetSkillReadiness)
-		r.Get("/companies/readiness", readinessHandler.GetCompanyReadiness)
-		r.Get("/readiness/dashboard", readinessHandler.GetReadinessDashboard)
 	})
 
 	port := envOrDefault("PROGRESS_SERVICE_PORT", "8084")

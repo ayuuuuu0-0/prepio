@@ -17,7 +17,6 @@ type QuestionAnswered struct {
 	QuestionID  string    `json:"question_id"`
 	RoundType   string    `json:"round_type"`
 	Difficulty  string    `json:"difficulty"`
-	CompanyTags []string  `json:"company_tags"`
 	Correct     bool      `json:"correct"`
 	Score       int       `json:"score"`
 	XPAwarded   int       `json:"xp_awarded"`

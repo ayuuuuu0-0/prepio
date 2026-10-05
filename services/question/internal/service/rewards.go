@@ -6,7 +6,7 @@ import (
 	"github.com/prepio/prepio/services/question/internal/store"
 )
 
-// computeRewards estimates XP and gems from difficulty, score, and company tags.
+// computeRewards estimates XP and gems from difficulty and score.
 func computeRewards(question *store.Question, eval EvaluationResult) (xp, gems int) {
 	if !eval.Correct || eval.Score < constants.MinEvaluationScore {
 		return 0, 0
@@ -19,13 +19,6 @@ func computeRewards(question *store.Question, eval EvaluationResult) (xp, gems i
 	gemsBase, ok := config.GemsByDifficulty[question.Difficulty]
 	if !ok {
 		gemsBase = config.GemsByDifficulty["medium"]
-	}
-
-	for _, tag := range question.CompanyTags {
-		if config.TopTierCompanies[tag] {
-			xpBase = int(float64(xpBase) * config.TopTierCompanyXPMultiplier)
-			break
-		}
 	}
 
 	xp = xpBase * eval.Score / 100

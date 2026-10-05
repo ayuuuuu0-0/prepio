@@ -74,35 +74,24 @@ func WeakestSkills(summaries []dto.SkillSummary, limit int) []dto.SkillSummary {
 	return filtered
 }
 
-// ComputeSkillGapScore measures urgency: weighted distance from full mastery.
-func ComputeSkillGapScore(mastery, weight int) int {
-	if weight <= 0 {
-		return 0
-	}
-	return weight * (config.MaxSkillMastery - mastery) / config.MaxSkillMastery
+// ComputeSkillGapScore measures distance from full mastery.
+func ComputeSkillGapScore(mastery int) int {
+	return config.MaxSkillMastery - mastery
 }
 
-// BuildCompanySkillGaps returns weighted skills limiting company readiness.
-func BuildCompanySkillGaps(
-	company string,
-	weights []store.CompanySkillWeight,
-	masteryBySkill map[string]int,
-) []dto.SkillGap {
-	gaps := make([]dto.SkillGap, 0, len(weights))
-	for _, weight := range weights {
-		mastery := masteryBySkill[weight.SkillID]
-		gapScore := ComputeSkillGapScore(mastery, weight.Weight)
-		if mastery >= readinessGapMasteryThreshold {
+// BuildSkillGaps identifies practiced skills holding back mastery.
+func BuildSkillGaps(weakest []dto.SkillSummary) []dto.SkillGap {
+	gaps := make([]dto.SkillGap, 0, len(weakest))
+	for _, skill := range weakest {
+		if skill.Mastery >= readinessGapMasteryThreshold {
 			continue
 		}
 		gaps = append(gaps, dto.SkillGap{
-			Company:     company,
-			SkillSlug:   weight.SkillSlug,
-			SkillName:   weight.SkillName,
-			Mastery:     mastery,
-			Weight:      weight.Weight,
-			GapScore:    gapScore,
-			Explanation: fmt.Sprintf("%s mastery is %d — carries %d%% weight for %s readiness", weight.SkillName, mastery, weight.Weight, company),
+			SkillSlug:   skill.SkillSlug,
+			SkillName:   skill.SkillName,
+			Mastery:     skill.Mastery,
+			GapScore:    ComputeSkillGapScore(skill.Mastery),
+			Explanation: fmt.Sprintf("%s mastery is %d after %d attempts", skill.SkillName, skill.Mastery, skill.Attempts),
 		})
 	}
 	sort.Slice(gaps, func(i, j int) bool {
@@ -112,30 +101,6 @@ func BuildCompanySkillGaps(
 		return gaps[i].GapScore > gaps[j].GapScore
 	})
 	return gaps
-}
-
-// BuildCompanyExplanation summarizes company readiness from weighted skills.
-func BuildCompanyExplanation(company string, readiness int, gaps []dto.SkillGap) dto.ReadinessExplanation {
-	details := make([]string, 0, len(gaps))
-	for i, gap := range gaps {
-		if i >= 3 {
-			break
-		}
-		details = append(details, gap.Explanation)
-	}
-
-	summary := fmt.Sprintf("%s readiness is %d based on weighted skill mastery", company, readiness)
-	if len(gaps) == 0 {
-		summary = fmt.Sprintf("%s readiness is %d — no major weighted skill gaps below %d", company, readiness, readinessGapMasteryThreshold)
-	} else if len(gaps) > 0 {
-		summary = fmt.Sprintf("%s readiness is %d — weakest weighted skill is %s (%d mastery)", company, readiness, gaps[0].SkillName, gaps[0].Mastery)
-	}
-
-	return dto.ReadinessExplanation{
-		Scope:   company,
-		Summary: summary,
-		Details: details,
-	}
 }
 
 // BuildSkillMasteryExplanation summarizes overall skill mastery state.
@@ -149,26 +114,4 @@ func BuildSkillMasteryExplanation(overall int, weakest []dto.SkillSummary) dto.R
 		Summary: fmt.Sprintf("Overall skill mastery average is %d across practiced skills", overall),
 		Details: details,
 	}
-}
-
-// MergeSkillGaps combines company gaps sorted by urgency.
-func MergeSkillGaps(gapGroups ...[]dto.SkillGap) []dto.SkillGap {
-	total := 0
-	for _, group := range gapGroups {
-		total += len(group)
-	}
-	merged := make([]dto.SkillGap, 0, total)
-	for _, group := range gapGroups {
-		merged = append(merged, group...)
-	}
-	sort.Slice(merged, func(i, j int) bool {
-		if merged[i].GapScore == merged[j].GapScore {
-			return merged[i].SkillName < merged[j].SkillName
-		}
-		return merged[i].GapScore > merged[j].GapScore
-	})
-	if len(merged) > maxTopWeakestSkills*2 {
-		merged = merged[:maxTopWeakestSkills*2]
-	}
-	return merged
 }

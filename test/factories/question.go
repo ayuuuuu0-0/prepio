@@ -11,7 +11,6 @@ type QuestionFactory struct {
 	Status      string
 	IsWeekend   bool
 	Source      string
-	Companies   []string
 }
 
 // NewQuestionFactory returns a QuestionFactory with defaults.
@@ -24,7 +23,6 @@ func NewQuestionFactory() QuestionFactory {
 		Status:      "approved",
 		IsWeekend:   false,
 		Source:      "manual",
-		Companies:   []string{"google"},
 	}
 }
 

@@ -21,14 +21,6 @@ type AnswerRecord struct {
 	SessionID   string
 }
 
-// CompanyPerformance aggregates answer stats per company tag.
-type CompanyPerformance struct {
-	Company  string
-	Answered int
-	Correct  int
-	ScoreAvg int
-}
-
 // HistoryStore handles user_question_history queries.
 type HistoryStore struct {
 	pool *pgxpool.Pool
@@ -152,45 +144,4 @@ func (s *HistoryStore) HasAnswerToday(ctx context.Context, userID string) (bool,
 		return false, fmt.Errorf("check answer today: %w", err)
 	}
 	return true, nil
-}
-
-// AvgScoreByUser returns the average evaluation score across all answers.
-func (s *HistoryStore) AvgScoreByUser(ctx context.Context, userID string) (int, error) {
-	const q = `SELECT COALESCE(AVG(score), 0)::int FROM user_question_history WHERE user_id = $1`
-	var avg int
-	err := s.pool.QueryRow(ctx, q, userID).Scan(&avg)
-	if err != nil {
-		return 0, fmt.Errorf("avg score: %w", err)
-	}
-	return avg, nil
-}
-
-// CompanyPerformanceByUser aggregates correctness by company tag.
-func (s *HistoryStore) CompanyPerformanceByUser(ctx context.Context, userID string) ([]CompanyPerformance, error) {
-	const q = `
-		SELECT qt.company,
-		       COUNT(*)::int AS answered,
-		       SUM(CASE WHEN h.correct THEN 1 ELSE 0 END)::int AS correct,
-		       COALESCE(AVG(h.score), 0)::int AS score_avg
-		FROM user_question_history h
-		JOIN question_tags qt ON qt.question_id = h.question_id
-		WHERE h.user_id = $1
-		GROUP BY qt.company
-		ORDER BY qt.company`
-
-	rows, err := s.pool.Query(ctx, q, userID)
-	if err != nil {
-		return nil, fmt.Errorf("company performance: %w", err)
-	}
-	defer rows.Close()
-
-	stats := make([]CompanyPerformance, 0)
-	for rows.Next() {
-		var row CompanyPerformance
-		if err := rows.Scan(&row.Company, &row.Answered, &row.Correct, &row.ScoreAvg); err != nil {
-			return nil, fmt.Errorf("scan company performance: %w", err)
-		}
-		stats = append(stats, row)
-	}
-	return stats, rows.Err()
 }

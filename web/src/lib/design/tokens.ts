@@ -25,15 +25,6 @@ export const colors = {
   textDim: "#4A5068",
 } as const;
 
-export const companyColors: Record<string, { ring: string; bg: string; text: string }> = {
-  google: { ring: "#4285F4", bg: "rgba(66,133,244,0.12)", text: "#7EB3FF" },
-  amazon: { ring: "#FF9900", bg: "rgba(255,153,0,0.12)", text: "#FFB84D" },
-  meta: { ring: "#7C6EF5", bg: "rgba(124,110,245,0.12)", text: "#A99EFA" },
-  uber: { ring: "#34D399", bg: "rgba(52,211,153,0.12)", text: "#6EE7B7" },
-  atlassian: { ring: "#0052CC", bg: "rgba(0,82,204,0.12)", text: "#5B9BD5" },
-  netflix: { ring: "#E50914", bg: "rgba(229,9,20,0.12)", text: "#FF6B6B" },
-};
-
 export const leagueThemes: Record<string, { gradient: string; icon: string; border: string }> = {
   bronze: { gradient: "from-amber-900/80 to-amber-700/80", icon: "🥉", border: "#92400E" },
   silver: { gradient: "from-slate-700/80 to-slate-500/80", icon: "🥈", border: "#64748B" },

@@ -23,15 +23,6 @@ type UserSkillScore struct {
 	Source          string
 }
 
-// CompanySkillWeight is a weighted skill importance for a company profile.
-type CompanySkillWeight struct {
-	Company   string
-	SkillID   string
-	SkillSlug string
-	SkillName string
-	Weight    int
-}
-
 // QuestionSkillContribution holds data needed to update mastery from an answer.
 type QuestionSkillContribution struct {
 	SkillID         string
@@ -40,7 +31,7 @@ type QuestionSkillContribution struct {
 	Difficulty      string
 }
 
-// ReadinessStore handles skill mastery and company weight queries.
+// ReadinessStore handles skill mastery queries.
 type ReadinessStore struct {
 	pool *pgxpool.Pool
 }
@@ -137,60 +128,6 @@ func (s *ReadinessStore) UpsertUserSkillScore(
 		return fmt.Errorf("upsert user skill score: %w", err)
 	}
 	return nil
-}
-
-// ListCompanySkillWeights returns weighted skills for a company profile.
-func (s *ReadinessStore) ListCompanySkillWeights(ctx context.Context, company string) ([]CompanySkillWeight, error) {
-	if len(company) == 0 {
-		return nil, fmt.Errorf("company is required")
-	}
-
-	const q = `
-		SELECT csw.company, csw.skill_id, sk.slug, sk.name, csw.weight
-		FROM company_skill_weights csw
-		JOIN skills sk ON sk.id = csw.skill_id
-		WHERE csw.company = $1
-		ORDER BY csw.weight DESC, sk.name`
-
-	rows, err := s.pool.Query(ctx, q, company)
-	if err != nil {
-		return nil, fmt.Errorf("list company skill weights: %w", err)
-	}
-	defer rows.Close()
-
-	weights := make([]CompanySkillWeight, 0)
-	for rows.Next() {
-		var row CompanySkillWeight
-		if err := rows.Scan(&row.Company, &row.SkillID, &row.SkillSlug, &row.SkillName, &row.Weight); err != nil {
-			return nil, fmt.Errorf("scan company skill weight: %w", err)
-		}
-		weights = append(weights, row)
-	}
-	return weights, rows.Err()
-}
-
-// ListUserTargetCompanies returns onboarding target companies for a user.
-func (s *ReadinessStore) ListUserTargetCompanies(ctx context.Context, userID string) ([]string, error) {
-	if len(userID) == 0 {
-		return nil, fmt.Errorf("user id is required")
-	}
-
-	const q = `SELECT company FROM user_targets WHERE user_id = $1 ORDER BY company`
-	rows, err := s.pool.Query(ctx, q, userID)
-	if err != nil {
-		return nil, fmt.Errorf("list user targets: %w", err)
-	}
-	defer rows.Close()
-
-	companies := make([]string, 0)
-	for rows.Next() {
-		var company string
-		if err := rows.Scan(&company); err != nil {
-			return nil, fmt.Errorf("scan target company: %w", err)
-		}
-		companies = append(companies, company)
-	}
-	return companies, rows.Err()
 }
 
 // ListQuestionSkillContributions returns skill mappings and weights for a question.

@@ -165,19 +165,11 @@ func (s *QuestionService) SubmitAnswer(ctx context.Context, userID, questionID s
 		return nil, err
 	}
 
-	readinessBefore, _ := s.history.AvgScoreByUser(ctx, userID)
-
 	eval := s.evaluator.Evaluate(req.Answer, question.AnswerGuide)
 	xpAwarded, gemsAwarded := computeRewards(question, eval)
 
 	if err := s.history.Insert(ctx, userID, questionID, req.SessionID, eval.Correct, eval.Score, submittedAt); err != nil {
 		return nil, err
-	}
-
-	readinessAfter, _ := s.history.AvgScoreByUser(ctx, userID)
-	readinessDelta := readinessAfter - readinessBefore
-	if readinessDelta == 0 && eval.Correct {
-		readinessDelta = 1
 	}
 
 	streakUpdated := eval.Correct && !hadAnswerToday
@@ -188,7 +180,6 @@ func (s *QuestionService) SubmitAnswer(ctx context.Context, userID, questionID s
 		QuestionID:  questionID,
 		RoundType:   question.RoundType,
 		Difficulty:  question.Difficulty,
-		CompanyTags: question.CompanyTags,
 		Correct:     eval.Correct,
 		Score:       eval.Score,
 		XPAwarded:   xpAwarded,
@@ -201,21 +192,15 @@ func (s *QuestionService) SubmitAnswer(ctx context.Context, userID, questionID s
 	}
 
 	return &dto.SubmitResponse{
-		Correct:        eval.Correct,
-		Score:          eval.Score,
-		XPAwarded:      xpAwarded,
-		GemsAwarded:    gemsAwarded,
-		StreakUpdated:  streakUpdated,
-		ReadinessDelta: readinessDelta,
-		Feedback:       eval.Summary,
-		Strengths:      eval.Strengths,
-		Gaps:           eval.Gaps,
+		Correct:       eval.Correct,
+		Score:         eval.Score,
+		XPAwarded:     xpAwarded,
+		GemsAwarded:   gemsAwarded,
+		StreakUpdated: streakUpdated,
+		Feedback:      eval.Summary,
+		Strengths:     eval.Strengths,
+		Gaps:          eval.Gaps,
 	}, nil
-}
-
-// ListCompanies returns available company tags.
-func (s *QuestionService) ListCompanies(ctx context.Context) ([]string, error) {
-	return s.questions.ListCompanies(ctx)
 }
 
 // GetSessionHistory returns answer history, optionally scoped to a daily session.
@@ -242,30 +227,9 @@ func (s *QuestionService) GetSessionHistory(ctx context.Context, userID, session
 	return entries, nil
 }
 
-// GetReadinessStats aggregates per-company answer performance for readiness.
-func (s *QuestionService) GetReadinessStats(ctx context.Context, userID string) (*dto.ReadinessStats, error) {
-	rows, err := s.history.CompanyPerformanceByUser(ctx, userID)
-	if err != nil {
-		return nil, err
-	}
-
-	stats := make([]dto.CompanyStats, 0, len(rows))
-	for _, row := range rows {
-		stats = append(stats, dto.CompanyStats{
-			Company:  row.Company,
-			Answered: row.Answered,
-			Correct:  row.Correct,
-			ScoreAvg: row.ScoreAvg,
-		})
-	}
-
-	return &dto.ReadinessStats{ByCompany: stats}, nil
-}
-
 func (s *QuestionService) selectQuestions(ctx context.Context, userID, difficulty string, weekendOnly bool) ([]store.Question, error) {
 	limit := config.DailyPaperMaxQuestions
 
-	// priorities 1-2 require target companies; skipped when none are configured
 	questions, err := s.questions.SelectUnseenByDifficulty(ctx, userID, difficulty, limit, weekendOnly)
 	if err != nil {
 		return nil, err
@@ -289,12 +253,11 @@ func toDailyPaperResponse(paper *store.DailyPaper, questions []store.Question) *
 	}
 	for _, q := range questions {
 		resp.Questions = append(resp.Questions, dto.QuestionResponse{
-			ID:          q.ID,
-			Body:        q.Body,
-			RoundType:   q.RoundType,
-			Difficulty:  q.Difficulty,
-			CompanyTags: q.CompanyTags,
-			IsWeekend:   q.IsWeekend,
+			ID:         q.ID,
+			Body:       q.Body,
+			RoundType:  q.RoundType,
+			Difficulty: q.Difficulty,
+			IsWeekend:  q.IsWeekend,
 		})
 	}
 	return resp

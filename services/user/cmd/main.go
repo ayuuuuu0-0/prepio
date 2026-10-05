@@ -47,12 +47,11 @@ func main() {
 	userStore := store.NewUserStore(pool)
 	refreshStore := store.NewRefreshTokenStore(pool)
 	deviceStore := store.NewUserDeviceStore(pool)
-	targetStore := store.NewTargetStore(pool)
 	characterStore := store.NewCharacterStore(pool)
 
 	authService := service.NewAuthService(userStore, refreshStore, signer, redisClient)
 	userService := service.NewUserService(userStore, deviceStore)
-	onboardingService := service.NewOnboardingService(userStore, targetStore, characterStore)
+	onboardingService := service.NewOnboardingService(userStore, characterStore)
 
 	authHandler := handler.NewAuthHandler(authService)
 	userHandler := handler.NewUserHandler(userService)

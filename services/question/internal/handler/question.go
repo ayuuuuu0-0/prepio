@@ -108,33 +108,6 @@ func (h *QuestionHandler) GetHistory(w http.ResponseWriter, r *http.Request) {
 	response.Data(w, http.StatusOK, entries)
 }
 
-// GetReadinessStats handles GET /api/v1/questions/stats/readiness.
-func (h *QuestionHandler) GetReadinessStats(w http.ResponseWriter, r *http.Request) {
-	userID, ok := middleware.UserIDFromContext(r.Context())
-	if !ok {
-		response.Error(w, http.StatusUnauthorized, constants.ErrUnauthorized, "authorization required")
-		return
-	}
-
-	stats, err := h.questions.GetReadinessStats(r.Context(), userID)
-	if err != nil {
-		writeError(w, err)
-		return
-	}
-
-	response.Data(w, http.StatusOK, stats)
-}
-
-// ListCompanies handles GET /api/v1/questions/companies.
-func (h *QuestionHandler) ListCompanies(w http.ResponseWriter, r *http.Request) {
-	companies, err := h.questions.ListCompanies(r.Context())
-	if err != nil {
-		response.Error(w, http.StatusInternalServerError, constants.ErrInternal, "internal error")
-		return
-	}
-	response.Data(w, http.StatusOK, companies)
-}
-
 func writeError(w http.ResponseWriter, err error) {
 	switch {
 	case errors.Is(err, service.ErrInvalidRequest):

@@ -12,13 +12,12 @@ import (
 // OnboardingService handles onboarding and companion selection.
 type OnboardingService struct {
 	users      *store.UserStore
-	targets    *store.TargetStore
 	characters *store.CharacterStore
 }
 
 // NewOnboardingService creates an OnboardingService.
-func NewOnboardingService(users *store.UserStore, targets *store.TargetStore, characters *store.CharacterStore) *OnboardingService {
-	return &OnboardingService{users: users, targets: targets, characters: characters}
+func NewOnboardingService(users *store.UserStore, characters *store.CharacterStore) *OnboardingService {
+	return &OnboardingService{users: users, characters: characters}
 }
 
 // ListCompanions returns starter companions for onboarding.
@@ -43,20 +42,11 @@ func (s *OnboardingService) Complete(ctx context.Context, userID string, req dto
 	if len(req.ExperienceLevel) == 0 || len(req.CompanionID) == 0 {
 		return nil, ErrInvalidRequest
 	}
-	if len(req.TargetCompanies) == 0 {
-		return nil, ErrInvalidRequest
-	}
 	if !slices.Contains(constants.ExperienceLevels, req.ExperienceLevel) {
 		return nil, ErrInvalidRequest
 	}
 	if !slices.Contains(constants.StarterCompanionIDs, req.CompanionID) {
 		return nil, ErrInvalidRequest
-	}
-
-	for _, company := range req.TargetCompanies {
-		if !slices.Contains(constants.TargetCompanies, company) {
-			return nil, ErrInvalidRequest
-		}
 	}
 
 	character, err := s.characters.GetByID(ctx, req.CompanionID)
@@ -67,9 +57,6 @@ func (s *OnboardingService) Complete(ctx context.Context, userID string, req dto
 		return nil, ErrInvalidRequest
 	}
 
-	if err := s.targets.Replace(ctx, userID, req.TargetCompanies); err != nil {
-		return nil, err
-	}
 	if err := s.users.UnlockCharacter(ctx, userID, req.CompanionID); err != nil {
 		return nil, err
 	}
@@ -98,18 +85,12 @@ func (s *OnboardingService) GetProfile(ctx context.Context, userID string) (*dto
 }
 
 func (s *OnboardingService) buildProfile(ctx context.Context, user *store.User) (*dto.ProfileResponse, error) {
-	targets, err := s.targets.List(ctx, user.ID)
-	if err != nil {
-		return nil, err
-	}
-
 	resp := &dto.ProfileResponse{
 		ID:                  user.ID,
 		Email:               user.Email,
 		Username:            user.Username,
 		Timezone:            user.Timezone,
 		OnboardingCompleted: user.OnboardingCompleted,
-		TargetCompanies:     targets,
 	}
 	if user.ExperienceLevel != nil {
 		resp.ExperienceLevel = *user.ExperienceLevel

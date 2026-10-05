@@ -122,11 +122,10 @@ export class ApiClient {
     return this.request<Companion[]>("/api/v1/companions");
   }
 
-  completeOnboarding(targetCompanies: string[], experienceLevel: string, companionId: string) {
+  completeOnboarding(experienceLevel: string, companionId: string) {
     return this.request<Profile>("/api/v1/users/onboarding", {
       method: "POST",
       body: JSON.stringify({
-        target_companies: targetCompanies,
         experience_level: experienceLevel,
         companion_id: companionId,
       }),
@@ -179,7 +178,6 @@ export type Profile = {
   username: string;
   experience_level?: string;
   onboarding_completed: boolean;
-  target_companies: string[];
   companion?: Companion;
 };
 
@@ -197,7 +195,6 @@ export type DashboardHome = {
     xp_to_next_level: number;
   };
   companion: Companion;
-  readiness: { company: string; score: number }[];
   league: { tier: string; rank: number; label: string; available: boolean };
   daily_quests: {
     id: string;
@@ -225,7 +222,6 @@ export type Question = {
   body: string;
   round_type: string;
   difficulty: string;
-  company_tags: string[];
   is_weekend: boolean;
 };
 
@@ -244,7 +240,6 @@ export type SubmitResponse = {
   xp_awarded: number;
   gems_awarded: number;
   streak_updated: boolean;
-  readiness_delta: number;
   strengths: string[];
   gaps: string[];
 };
@@ -264,7 +259,6 @@ export type JourneyData = {
 
 export const api = new ApiClient();
 
-export const TARGET_COMPANIES = ["google", "amazon", "meta", "uber", "atlassian"] as const;
 export const EXPERIENCE_LEVELS = [
   { id: "fresher", label: "Fresher" },
   { id: "junior", label: "Junior" },

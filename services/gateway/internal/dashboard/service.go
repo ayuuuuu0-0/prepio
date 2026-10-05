@@ -9,7 +9,6 @@ import (
 	"strings"
 
 	"github.com/prepio/prepio/config"
-	"github.com/prepio/prepio/shared/readiness"
 )
 
 // Service aggregates dashboard data from upstream microservices.
@@ -37,9 +36,6 @@ type HomeResponse struct {
 	Streak           StreakCard       `json:"streak"`
 	Progress         ProgressCard     `json:"progress"`
 	Companion        CompanionCard    `json:"companion"`
-	Readiness        []ReadinessCard  `json:"readiness"`
-	ReadinessV2      []ReadinessCard  `json:"readiness_v2,omitempty"`
-	ReadinessV2Enabled bool           `json:"readiness_v2_enabled"`
 	League           LeagueCard       `json:"league"`
 	DailyQuests      []DailyQuestCard `json:"daily_quests"`
 	CompanionMessage string           `json:"companion_message"`
@@ -69,12 +65,6 @@ type CompanionCard struct {
 	Species string `json:"species"`
 }
 
-// ReadinessCard shows company-specific readiness.
-type ReadinessCard struct {
-	Company string `json:"company"`
-	Score   int    `json:"score"`
-}
-
 // LeagueCard summarizes league placement (placeholder until Phase 9).
 type LeagueCard struct {
 	Tier      string `json:"tier"`
@@ -85,14 +75,14 @@ type LeagueCard struct {
 
 // DailyQuestCard is a daily quest entry.
 type DailyQuestCard struct {
-	ID          string `json:"id"`
-	Title       string `json:"title"`
-	Progress    int    `json:"progress"`
-	Target      int    `json:"target"`
-	Completed   bool   `json:"completed"`
-	RewardXP    int    `json:"reward_xp"`
-	RewardGems  int    `json:"reward_gems"`
-	ComingSoon  bool   `json:"coming_soon"`
+	ID         string `json:"id"`
+	Title      string `json:"title"`
+	Progress   int    `json:"progress"`
+	Target     int    `json:"target"`
+	Completed  bool   `json:"completed"`
+	RewardXP   int    `json:"reward_xp"`
+	RewardGems int    `json:"reward_gems"`
+	ComingSoon bool   `json:"coming_soon"`
 }
 
 // GetHome aggregates dashboard data for the authenticated user.
@@ -111,8 +101,6 @@ func (s *Service) GetHome(ctx context.Context, token string) (*HomeResponse, err
 	if err != nil {
 		return nil, err
 	}
-
-	readinessStats, _ := s.fetchReadinessStats(ctx, token)
 
 	resp := &HomeResponse{
 		Progress:         progress,
@@ -135,14 +123,6 @@ func (s *Service) GetHome(ctx context.Context, token string) (*HomeResponse, err
 		}
 	}
 
-	resp.Readiness = computeReadiness(profile.TargetCompanies, readinessStats)
-	resp.ReadinessV2Enabled = config.ReadinessV2Enabled()
-	if resp.ReadinessV2Enabled {
-		v2Cards, err := s.fetchCompanyReadinessV2(ctx, token)
-		if err == nil {
-			resp.ReadinessV2 = v2Cards
-		}
-	}
 	resp.CompanionMessage = companionMessage(resp.Companion.Name, progress)
 
 	return resp, nil
@@ -150,19 +130,7 @@ func (s *Service) GetHome(ctx context.Context, token string) (*HomeResponse, err
 
 type profilePayload struct {
 	OnboardingCompleted bool           `json:"onboarding_completed"`
-	TargetCompanies     []string       `json:"target_companies"`
 	Companion           *CompanionCard `json:"companion"`
-}
-
-type companyStatsPayload struct {
-	Company  string `json:"company"`
-	Answered int    `json:"answered"`
-	Correct  int    `json:"correct"`
-	ScoreAvg int    `json:"score_avg"`
-}
-
-type readinessStatsPayload struct {
-	ByCompany []companyStatsPayload `json:"by_company"`
 }
 
 func (s *Service) fetchProfile(ctx context.Context, token string) (*profilePayload, error) {
@@ -207,23 +175,6 @@ func (s *Service) fetchStreak(ctx context.Context, token string) (StreakCard, er
 	return envelope.Data, nil
 }
 
-func (s *Service) fetchReadinessStats(ctx context.Context, token string) (*readinessStatsPayload, error) {
-	if len(s.questionURL) == 0 {
-		return &readinessStatsPayload{}, nil
-	}
-	body, err := s.get(ctx, s.questionURL+"/api/v1/questions/stats/readiness", token)
-	if err != nil {
-		return nil, err
-	}
-	var envelope struct {
-		Data readinessStatsPayload `json:"data"`
-	}
-	if err := json.Unmarshal(body, &envelope); err != nil {
-		return nil, fmt.Errorf("decode readiness stats: %w", err)
-	}
-	return &envelope.Data, nil
-}
-
 func (s *Service) get(ctx context.Context, url, token string) ([]byte, error) {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
@@ -247,32 +198,6 @@ func (s *Service) get(ctx context.Context, url, token string) ([]byte, error) {
 	return body, nil
 }
 
-// computeReadiness derives company readiness from actual answer history (V1).
-func computeReadiness(targets []string, stats *readinessStatsPayload) []ReadinessCard {
-	if len(targets) == 0 {
-		return []ReadinessCard{}
-	}
-
-	byCompany := map[string]readiness.CompanyStats{}
-	if stats != nil {
-		for _, row := range stats.ByCompany {
-			byCompany[row.Company] = readiness.CompanyStats{
-				Company:  row.Company,
-				Answered: row.Answered,
-				Correct:  row.Correct,
-				ScoreAvg: row.ScoreAvg,
-			}
-		}
-	}
-
-	v1Scores := readiness.ComputeV1Readiness(targets, byCompany)
-	cards := make([]ReadinessCard, 0, len(v1Scores))
-	for _, score := range v1Scores {
-		cards = append(cards, ReadinessCard{Company: score.Company, Score: score.Score})
-	}
-	return cards
-}
-
 func companionMessage(name string, progress ProgressCard) string {
 	if len(name) == 0 {
 		name = "Your companion"
@@ -290,7 +215,7 @@ func companionMessage(name string, progress ProgressCard) string {
 	case challenges <= 1:
 		return fmt.Sprintf("One challenge from Level %d. Don't stop now.", level+1)
 	case challenges <= 3:
-		return fmt.Sprintf("%d challenges from Level %d. Google Readiness is watching.", challenges, level+1)
+		return fmt.Sprintf("%d challenges from Level %d. Your companion is watching.", challenges, level+1)
 	case progress.CurrentLevel < 5:
 		return fmt.Sprintf("Level %d. The real prep starts around Level 10 — keep going.", level)
 	default:

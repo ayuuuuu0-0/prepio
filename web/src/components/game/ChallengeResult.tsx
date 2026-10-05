@@ -61,12 +61,6 @@ export function ChallengeResult({
         </p>
         <p className="mt-2 max-w-md text-center font-medium" style={{ color: "#C8CCDA" }}>{result.feedback}</p>
 
-        {result.readiness_delta > 0 && (
-          <p className="font-mono mt-3 rounded-full px-4 py-2 text-sm font-bold" style={{ background: "rgba(96,165,250,0.12)", color: "#60A5FA" }}>
-            Readiness +{result.readiness_delta}%
-          </p>
-        )}
-
         {result.correct && (
           <div className="mt-6 flex gap-4">
             <span className="animate-xp font-mono rounded-full px-5 py-2 text-lg font-bold" style={{ background: "rgba(96,165,250,0.12)", color: "#60A5FA" }}>

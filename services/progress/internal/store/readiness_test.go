@@ -37,25 +37,6 @@ func TestReadinessStoreUpsertAndList(t *testing.T) {
 	require.Equal(t, 3, scores[0].Attempts)
 }
 
-func TestReadinessStoreCompanyWeights(t *testing.T) {
-	pool, _ := testdb.Start(t)
-	testdb.Migrate(t, pool)
-
-	ctx := context.Background()
-	readinessStore := store.NewReadinessStore(pool)
-
-	weights, err := readinessStore.ListCompanySkillWeights(ctx, "google")
-	require.NoError(t, err)
-	require.Len(t, weights, 7)
-
-	total := 0
-	for _, weight := range weights {
-		total += weight.Weight
-		require.NotEmpty(t, weight.SkillSlug)
-	}
-	require.Equal(t, 100, total)
-}
-
 func TestReadinessStoreQuestionSkillContributions(t *testing.T) {
 	pool, _ := testdb.Start(t)
 	testdb.Migrate(t, pool)

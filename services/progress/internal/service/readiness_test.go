@@ -30,35 +30,3 @@ func TestApplyMasteryDeltaSmoothing(t *testing.T) {
 	expected := int(100.0 * config.MasterySmoothingFactor)
 	require.Equal(t, expected, newMastery)
 }
-
-func TestComputeCompanyReadiness(t *testing.T) {
-	weights := []store.CompanySkillWeight{
-		{SkillID: "skill-a", Weight: 50},
-		{SkillID: "skill-b", Weight: 50},
-	}
-	mastery := map[string]int{
-		"skill-a": 80,
-		"skill-b": 60,
-	}
-	score := service.ComputeCompanyReadiness(weights, mastery)
-	require.Equal(t, 70, score)
-}
-
-func TestComputeCompanyReadinessCapsAtMax(t *testing.T) {
-	weights := []store.CompanySkillWeight{
-		{SkillID: "skill-a", Weight: 100},
-	}
-	mastery := map[string]int{
-		"skill-a": 100,
-	}
-	score := service.ComputeCompanyReadiness(weights, mastery)
-	require.Equal(t, config.MaxCompanyReadiness, score)
-}
-
-func TestComputeCompanyReadinessMissingSkill(t *testing.T) {
-	weights := []store.CompanySkillWeight{
-		{SkillID: "skill-a", Weight: 100},
-	}
-	score := service.ComputeCompanyReadiness(weights, map[string]int{})
-	require.Equal(t, 0, score)
-}

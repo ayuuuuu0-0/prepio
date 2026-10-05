@@ -18,7 +18,6 @@ type Question struct {
 	AnswerGuide string
 	Status      string
 	IsWeekend   bool
-	CompanyTags []string
 }
 
 // QuestionStore handles question bank queries.
@@ -61,11 +60,6 @@ func (s *QuestionStore) SelectUnseenByDifficulty(ctx context.Context, userID, di
 		); err != nil {
 			return nil, fmt.Errorf("scan question: %w", err)
 		}
-		tags, err := s.loadTags(ctx, question.ID)
-		if err != nil {
-			return nil, err
-		}
-		question.CompanyTags = tags
 		questions = append(questions, question)
 	}
 	return questions, rows.Err()
@@ -100,11 +94,6 @@ func (s *QuestionStore) SelectRandomApproved(ctx context.Context, userID string,
 		); err != nil {
 			return nil, fmt.Errorf("scan question: %w", err)
 		}
-		tags, err := s.loadTags(ctx, question.ID)
-		if err != nil {
-			return nil, err
-		}
-		question.CompanyTags = tags
 		questions = append(questions, question)
 	}
 	return questions, rows.Err()
@@ -127,49 +116,5 @@ func (s *QuestionStore) GetByID(ctx context.Context, id string) (*Question, erro
 	if err != nil {
 		return nil, fmt.Errorf("get question: %w", err)
 	}
-	tags, err := s.loadTags(ctx, question.ID)
-	if err != nil {
-		return nil, err
-	}
-	question.CompanyTags = tags
 	return &question, nil
-}
-
-// ListCompanies returns distinct company tags.
-func (s *QuestionStore) ListCompanies(ctx context.Context) ([]string, error) {
-	const q = `SELECT DISTINCT company FROM question_tags ORDER BY company`
-	rows, err := s.pool.Query(ctx, q)
-	if err != nil {
-		return nil, fmt.Errorf("list companies: %w", err)
-	}
-	defer rows.Close()
-
-	var companies []string
-	for rows.Next() {
-		var company string
-		if err := rows.Scan(&company); err != nil {
-			return nil, fmt.Errorf("scan company: %w", err)
-		}
-		companies = append(companies, company)
-	}
-	return companies, rows.Err()
-}
-
-func (s *QuestionStore) loadTags(ctx context.Context, questionID string) ([]string, error) {
-	const q = `SELECT company FROM question_tags WHERE question_id = $1 ORDER BY company`
-	rows, err := s.pool.Query(ctx, q, questionID)
-	if err != nil {
-		return nil, fmt.Errorf("load tags: %w", err)
-	}
-	defer rows.Close()
-
-	var tags []string
-	for rows.Next() {
-		var tag string
-		if err := rows.Scan(&tag); err != nil {
-			return nil, fmt.Errorf("scan tag: %w", err)
-		}
-		tags = append(tags, tag)
-	}
-	return tags, rows.Err()
 }

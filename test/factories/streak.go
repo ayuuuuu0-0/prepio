@@ -15,7 +15,6 @@ func QuestionAnsweredEvent(userID string, submittedAt time.Time) events.Question
 		QuestionID:  "test-question",
 		RoundType:   "dsa",
 		Difficulty:  "easy",
-		CompanyTags: []string{"google"},
 		Correct:     true,
 		SubmittedAt: submittedAt,
 		SessionID:   "test-session",

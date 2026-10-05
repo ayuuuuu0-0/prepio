@@ -130,15 +130,6 @@ body {
   animation: node-pulse 2.2s ease-in-out infinite;
 }
 
-/* ─── Readiness ring ─────────────────────────────────────────────── */
-@keyframes ring-fill {
-  from { stroke-dashoffset: 283; }
-}
-
-.animate-ring-fill {
-  animation: ring-fill 1.4s cubic-bezier(0.4, 0, 0.2, 1) forwards;
-}
-
 /* ─── Result screen ──────────────────────────────────────────────── */
 @keyframes result-enter {
   0%   { transform: scale(0.92) translateY(12px); opacity: 0; }

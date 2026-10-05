@@ -61,15 +61,15 @@ export default function RegisterPage() {
           <div className="flex flex-col items-center gap-6 py-12">
             <CompanionHero name="Pip" species="red_panda" size="lg" />
             <SpeechBubble speakerName="Pip" className="max-w-xs text-center">
-              Pick a companion. Start tracking your readiness from day one.
+              Pick a companion. Start mastering engineering topics today.
             </SpeechBubble>
           </div>
 
           <div className="grid grid-cols-3 gap-4">
             {[
-              { label: "Target companies", value: "Google, Amazon, Meta" },
+              { label: "Core Topics", value: "System Design, DSA, LLD" },
               { label: "Lessons captured", value: "Misses, patterns, next steps" },
-              { label: "Readiness focus", value: "Skills over streaks" },
+              { label: "Mastery focus", value: "Skills over streaks" },
             ].map((s) => (
               <div key={s.label}>
                 <p className="font-body text-sm font-semibold leading-snug lg:text-base" style={{ color: "#E8EAED" }}>
@@ -99,7 +99,7 @@ export default function RegisterPage() {
               Create account
             </h1>
             <p className="font-body text-sm mb-8" style={{ color: "#4A5068" }}>
-              Pick a companion. Start tracking your readiness.
+              Pick a companion. Start mastering topics from day one.
             </p>
 
             <form onSubmit={onSubmit} className="space-y-4">

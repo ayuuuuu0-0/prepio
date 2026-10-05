@@ -59,7 +59,6 @@ func (s *DailyPaperStore) GetByUserAndDate(ctx context.Context, userID string, p
 	}
 	defer rows.Close()
 
-	questionStore := NewQuestionStore(s.pool)
 	var questions []Question
 	for rows.Next() {
 		var question Question
@@ -69,11 +68,6 @@ func (s *DailyPaperStore) GetByUserAndDate(ctx context.Context, userID string, p
 		); err != nil {
 			return nil, nil, fmt.Errorf("scan daily question: %w", err)
 		}
-		tags, err := questionStore.loadTags(ctx, question.ID)
-		if err != nil {
-			return nil, nil, err
-		}
-		question.CompanyTags = tags
 		questions = append(questions, question)
 	}
 	return &paper, questions, rows.Err()

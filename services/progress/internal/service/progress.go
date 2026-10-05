@@ -38,12 +38,6 @@ func (s *ProgressService) ProcessQuestionAnswered(ctx context.Context, event eve
 	gems := event.GemsAwarded
 	if xp == 0 {
 		xp = config.XPByDifficulty[event.Difficulty]
-		for _, company := range event.CompanyTags {
-			if config.TopTierCompanies[company] {
-				xp = int(float64(xp) * config.TopTierCompanyXPMultiplier)
-				break
-			}
-		}
 		if event.Score > 0 {
 			xp = xp * event.Score / 100
 		}

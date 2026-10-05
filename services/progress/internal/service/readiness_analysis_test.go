@@ -5,7 +5,6 @@ import (
 
 	"github.com/prepio/prepio/services/progress/internal/dto"
 	"github.com/prepio/prepio/services/progress/internal/service"
-	"github.com/prepio/prepio/services/progress/internal/store"
 	"github.com/stretchr/testify/require"
 )
 
@@ -26,23 +25,19 @@ func TestTopAndWeakestSkills(t *testing.T) {
 }
 
 func TestComputeSkillGapScore(t *testing.T) {
-	require.Equal(t, 15, service.ComputeSkillGapScore(0, 15))
-	require.Equal(t, 7, service.ComputeSkillGapScore(50, 15))
-	require.Equal(t, 0, service.ComputeSkillGapScore(100, 15))
+	require.Equal(t, 100, service.ComputeSkillGapScore(0))
+	require.Equal(t, 50, service.ComputeSkillGapScore(50))
+	require.Equal(t, 0, service.ComputeSkillGapScore(100))
 }
 
-func TestBuildCompanySkillGaps(t *testing.T) {
-	weights := []store.CompanySkillWeight{
-		{SkillID: "skill-a", SkillSlug: "arrays", SkillName: "Arrays", Weight: 15},
-		{SkillID: "skill-b", SkillSlug: "trees", SkillName: "Trees", Weight: 15},
-	}
-	mastery := map[string]int{
-		"skill-a": 85,
-		"skill-b": 41,
+func TestBuildSkillGaps(t *testing.T) {
+	weakest := []dto.SkillSummary{
+		{SkillSlug: "arrays", SkillName: "Arrays", Mastery: 85, Attempts: 3},
+		{SkillSlug: "trees", SkillName: "Trees", Mastery: 41, Attempts: 2},
 	}
 
-	gaps := service.BuildCompanySkillGaps("google", weights, mastery)
+	gaps := service.BuildSkillGaps(weakest)
 	require.Len(t, gaps, 1)
 	require.Equal(t, "trees", gaps[0].SkillSlug)
-	require.Greater(t, gaps[0].GapScore, 0)
+	require.Equal(t, 59, gaps[0].GapScore)
 }

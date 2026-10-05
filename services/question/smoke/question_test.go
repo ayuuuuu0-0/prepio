@@ -117,9 +117,7 @@ func seedUser(t *testing.T, pool *pgxpool.Pool) string {
 func seedQuestion(t *testing.T, pool *pgxpool.Pool) string {
 	t.Helper()
 	ctx := context.Background()
-	_, err := pool.Exec(ctx, `DELETE FROM question_tags`)
-	require.NoError(t, err)
-	_, err = pool.Exec(ctx, `DELETE FROM questions`)
+	_, err := pool.Exec(ctx, `DELETE FROM questions`)
 	require.NoError(t, err)
 
 	var questionID string
@@ -131,9 +129,6 @@ func seedQuestion(t *testing.T, pool *pgxpool.Pool) string {
 			'concepts:hash map|O(n) time|O(n) space|two sum|duplicate handling',
 			'approved', 'manual'
 		) RETURNING id`).Scan(&questionID)
-	require.NoError(t, err)
-
-	_, err = pool.Exec(ctx, `INSERT INTO question_tags (question_id, company) VALUES ($1, 'google')`, questionID)
 	require.NoError(t, err)
 	return questionID
 }

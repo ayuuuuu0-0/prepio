@@ -2,16 +2,14 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { api, Companion, EXPERIENCE_LEVELS, TARGET_COMPANIES } from "@/lib/api";
+import { api, Companion, EXPERIENCE_LEVELS } from "@/lib/api";
 import { companionVisual } from "@/lib/design/companions";
-import { companyColors } from "@/lib/design/tokens";
 import { GameBackground } from "@/components/game/GameBackground";
 import { CompanionHero } from "@/components/game/CompanionHero";
 import { SpeechBubble } from "@/components/game/SpeechBubble";
 import { GameButton } from "@/components/game/GameButton";
 
 const stepMessages = [
-  "Which companies are you targeting? We'll personalise your prep.",
   "How much experience do you have? Sets your starting difficulty.",
   "Choose your companion — they'll grow with you throughout the journey.",
 ];
@@ -20,7 +18,6 @@ export default function OnboardingPage() {
   const router = useRouter();
   const [step, setStep] = useState(1);
   const [companions, setCompanions] = useState<Companion[]>([]);
-  const [targets, setTargets] = useState<string[]>([]);
   const [experience, setExperience] = useState("");
   const [companionId, setCompanionId] = useState("");
   const [error, setError] = useState("");
@@ -38,17 +35,11 @@ export default function OnboardingPage() {
     );
   }, [router]);
 
-  function toggleTarget(company: string) {
-    setTargets((prev) =>
-      prev.includes(company) ? prev.filter((c) => c !== company) : [...prev, company]
-    );
-  }
-
   async function finish() {
     setLoading(true);
     setError("");
     try {
-      await api.completeOnboarding(targets, experience, companionId);
+      await api.completeOnboarding(experience, companionId);
       router.replace("/dashboard");
     } catch (err) {
       setError(err instanceof Error ? err.message : "onboarding failed");
@@ -61,7 +52,7 @@ export default function OnboardingPage() {
     <GameBackground variant="forest">
       <main className="mx-auto min-h-screen max-w-lg px-4 py-8">
         <div className="flex items-center gap-2">
-          {[1, 2, 3].map((s) => (
+          {[1, 2].map((s) => (
             <div
               key={s}
               className={`h-3 flex-1 rounded-full transition ${
@@ -94,37 +85,6 @@ export default function OnboardingPage() {
         )}
 
         {step === 1 && (
-          <section className="mt-6 grid grid-cols-2 gap-3">
-            {TARGET_COMPANIES.map((company) => {
-              const selected = targets.includes(company);
-              const cc = companyColors[company];
-              return (
-                <button
-                  key={company}
-                  type="button"
-                  onClick={() => toggleTarget(company)}
-                  className={`font-display rounded-3xl px-4 py-5 text-lg font-bold capitalize shadow-md transition ${
-                    selected ? "scale-105 ring-2 ring-[#7C6EF5]" : "hover:scale-102"
-                  }`}
-                  style={{
-                    backgroundColor: cc?.bg ?? "rgba(124,110,245,0.12)",
-                    color: cc?.text ?? "#E8EAED",
-                    border: `1px solid ${selected ? "#7C6EF5" : "#2E3347"}`,
-                  }}
-                >
-                  {company}
-                </button>
-              );
-            })}
-            <div className="col-span-2 mt-4">
-              <GameButton disabled={targets.length === 0} onClick={() => setStep(2)}>
-                Continue →
-              </GameButton>
-            </div>
-          </section>
-        )}
-
-        {step === 2 && (
           <section className="mt-6 space-y-3">
             {EXPERIENCE_LEVELS.map((level) => (
               <button
@@ -145,18 +105,15 @@ export default function OnboardingPage() {
                 {level.label}
               </button>
             ))}
-            <div className="mt-4 flex gap-3">
-              <GameButton variant="secondary" className="flex-1" onClick={() => setStep(1)}>
-                Back
-              </GameButton>
-              <GameButton className="flex-1" disabled={experience.length === 0} onClick={() => setStep(3)}>
+            <div className="mt-4">
+              <GameButton disabled={experience.length === 0} onClick={() => setStep(2)}>
                 Continue →
               </GameButton>
             </div>
           </section>
         )}
 
-        {step === 3 && (
+        {step === 2 && (
           <section className="mt-6 space-y-3">
             {companions.map((c) => {
               const v = companionVisual(c.name, c.species);
@@ -185,7 +142,7 @@ export default function OnboardingPage() {
               );
             })}
             <div className="mt-4 flex gap-3">
-              <GameButton variant="secondary" className="flex-1" onClick={() => setStep(2)}>
+              <GameButton variant="secondary" className="flex-1" onClick={() => setStep(1)}>
                 Back
               </GameButton>
               <GameButton
@@ -194,7 +151,7 @@ export default function OnboardingPage() {
                 disabled={companionId.length === 0 || loading}
                 onClick={finish}
               >
-                {loading ? "Setting up..." : "Start Prep"}
+                {loading ? "Setting up..." : "Start Learning"}
               </GameButton>
             </div>
           </section>

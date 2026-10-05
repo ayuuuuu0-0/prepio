@@ -11,9 +11,9 @@ import { GameButton } from "@/components/game/GameButton";
 import { api } from "@/lib/api";
 
 const socialProof = [
-  { label: "Target companies", value: "Google, Amazon, Meta" },
+  { label: "Core Topics", value: "System Design, DSA, LLD" },
   { label: "Lessons captured", value: "Misses, patterns, next steps" },
-  { label: "Readiness focus", value: "Skills over streaks" },
+  { label: "Mastery focus", value: "Skills over streaks" },
 ];
 
 const inputStyle = {
@@ -149,7 +149,7 @@ export default function LoginPage() {
             <p className="mt-6 text-center text-sm" style={{ color: "#4A5068" }}>
               No account?{" "}
               <Link href="/register" className="font-semibold" style={{ color: "#7C6EF5" }}>
-                Start your target-company plan
+                Start your learning path
               </Link>
             </p>
           </div>

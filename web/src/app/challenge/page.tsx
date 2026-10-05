@@ -332,12 +332,6 @@ function ResultCard({
         </div>
       )}
 
-      {result.readiness_delta > 0 && (
-        <p className="font-mono text-xs font-semibold" style={{ color: "#60A5FA" }}>
-          Readiness +{result.readiness_delta}%
-        </p>
-      )}
-
       {hasNext ? (
         <GameButton type="button" onClick={onNext}>
           Next Question →

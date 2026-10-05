@@ -7,18 +7,6 @@ var XPByDifficulty = map[string]int{
 	"hard":   80,
 }
 
-// XP multiplier applied when a question has a top-tier company tag.
-const TopTierCompanyXPMultiplier = 1.5
-
-// TopTierCompanies are FAANG+ tier companies that earn the XP multiplier.
-var TopTierCompanies = map[string]bool{
-	"google": true,
-	"meta":   true,
-	"amazon": true,
-	"apple":  true,
-	"netflix": true,
-}
-
 // Gems awarded per correct answer by difficulty.
 var GemsByDifficulty = map[string]int{
 	"easy":   5,

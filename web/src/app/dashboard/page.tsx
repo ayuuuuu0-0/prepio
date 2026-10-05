@@ -5,11 +5,10 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import Image from "next/image";
 import { api, DashboardHome } from "@/lib/api";
-import { companyColors, leagueThemes } from "@/lib/design/tokens";
+import { leagueThemes } from "@/lib/design/tokens";
 import { GameBackground } from "@/components/game/GameBackground";
 import { CompanionHero } from "@/components/game/CompanionHero";
 import { SpeechBubble } from "@/components/game/SpeechBubble";
-import { ReadinessRing } from "@/components/game/ReadinessRing";
 import { GameCard } from "@/components/game/GameCard";
 import { QuestCard } from "@/components/game/QuestCard";
 import { GameButton } from "@/components/game/GameButton";
@@ -104,24 +103,7 @@ export default function DashboardPage() {
           <HUDBar home={home} />
         </div>
 
-        <GameCard className="mt-5" icon="🧭" accentColor="#60A5FA">
-          <h2 className="font-display mb-4 text-base font-bold" style={{ color: "#E8EAED" }}>
-            Career Readiness
-          </h2>
-          <div className="flex flex-wrap justify-center gap-4">
-            {home.readiness.map((r, i) => (
-              <ReadinessRing
-                key={r.company}
-                company={r.company}
-                score={r.score}
-                color={companyColors[r.company]?.ring ?? "#7C6EF5"}
-                delay={i * 150}
-              />
-            ))}
-          </div>
-        </GameCard>
-
-        <GameCard className="mt-4" icon={league.icon} accentColor={league.border}>
+        <GameCard className="mt-5" icon={league.icon} accentColor={league.border}>
           {home.league.available ? (
             <>
               <div

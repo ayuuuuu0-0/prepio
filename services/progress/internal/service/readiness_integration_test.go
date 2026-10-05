@@ -10,7 +10,6 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
-	"github.com/prepio/prepio/config"
 	"github.com/prepio/prepio/services/progress/internal/handler"
 	"github.com/prepio/prepio/services/progress/internal/service"
 	"github.com/prepio/prepio/services/progress/internal/store"
@@ -35,10 +34,6 @@ func TestReadinessV2Endpoints(t *testing.T) {
 		INSERT INTO users (email, username, password_hash)
 		VALUES ('rv2@test.com', 'rv2user', 'hash') RETURNING id`).Scan(&userID))
 
-	_, err := pool.Exec(ctx, `
-		INSERT INTO user_targets (user_id, company) VALUES ($1, 'google'), ($1, 'amazon')`, userID)
-	require.NoError(t, err)
-
 	event := events.QuestionAnswered{
 		EventID:     uuid.NewString(),
 		UserID:      userID,
@@ -58,7 +53,6 @@ func TestReadinessV2Endpoints(t *testing.T) {
 	r.Route("/api/v1", func(r chi.Router) {
 		r.Use(middleware.Auth(signer, redisClient))
 		r.Get("/skills/readiness", readinessHandler.GetSkillReadiness)
-		r.Get("/companies/readiness", readinessHandler.GetCompanyReadiness)
 	})
 	server := httptest.NewServer(r)
 	t.Cleanup(server.Close)
@@ -71,12 +65,6 @@ func TestReadinessV2Endpoints(t *testing.T) {
 	skills := decodeReadinessEnvelope(t, skillResp)
 	require.Equal(t, "v2", skills["version"])
 	require.NotEmpty(t, skills["skills"])
-
-	companyResp := getReadinessAuth(t, server.URL+"/api/v1/companies/readiness", token)
-	require.Equal(t, http.StatusOK, companyResp.StatusCode)
-	companies := decodeReadinessEnvelope(t, companyResp)
-	require.Equal(t, "v2", companies["version"])
-	require.NotEmpty(t, companies["companies"])
 }
 
 func getReadinessAuth(t *testing.T, url, token string) *http.Response {
@@ -97,38 +85,4 @@ func decodeReadinessEnvelope(t *testing.T, resp *http.Response) map[string]any {
 	}
 	require.NoError(t, json.NewDecoder(resp.Body).Decode(&envelope))
 	return envelope.Data
-}
-
-func TestGetCompanyReadinessGoogleSample(t *testing.T) {
-	pool, _ := testdb.Start(t)
-	testdb.Migrate(t, pool)
-
-	ctx := context.Background()
-	readinessService := service.NewReadinessService(store.NewReadinessStore(pool))
-
-	var userID string
-	require.NoError(t, pool.QueryRow(ctx, `
-		INSERT INTO users (email, username, password_hash)
-		VALUES ('gs@test.com', 'gsuser', 'hash') RETURNING id`).Scan(&userID))
-
-	_, err := pool.Exec(ctx, `INSERT INTO user_targets (user_id, company) VALUES ($1, 'google')`, userID)
-	require.NoError(t, err)
-
-	readinessStore := store.NewReadinessStore(pool)
-	require.NoError(t, readinessStore.UpsertUserSkillScore(
-		ctx, userID, "b2000001-0000-4000-8000-000000000002", 85, 5, time.Now().UTC(), config.ReadinessSourceLive,
-	))
-	require.NoError(t, readinessStore.UpsertUserSkillScore(
-		ctx, userID, "b2000001-0000-4000-8000-000000000008", 63, 3, time.Now().UTC(), config.ReadinessSourceLive,
-	))
-	require.NoError(t, readinessStore.UpsertUserSkillScore(
-		ctx, userID, "b2000001-0000-4000-8000-000000000009", 41, 2, time.Now().UTC(), config.ReadinessSourceLive,
-	))
-
-	resp, err := readinessService.GetCompanyReadiness(ctx, userID)
-	require.NoError(t, err)
-	require.Len(t, resp.Companies, 1)
-	require.Equal(t, "google", resp.Companies[0].Company)
-	require.Greater(t, resp.Companies[0].Readiness, 0)
-	require.Len(t, resp.Companies[0].SkillContributions, 7)
 }

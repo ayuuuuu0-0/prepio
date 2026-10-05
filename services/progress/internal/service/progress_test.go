@@ -45,7 +45,6 @@ func TestQuestionAnsweredAwardsXPAndGems(t *testing.T) {
 	event := factories.QuestionAnsweredEvent(userID, time.Now())
 	event.Correct = true
 	event.Difficulty = "medium"
-	event.CompanyTags = nil
 	require.NoError(t, svc.ProcessQuestionAnswered(ctx, event))
 
 	resp, err := svc.GetMe(ctx, userID)
