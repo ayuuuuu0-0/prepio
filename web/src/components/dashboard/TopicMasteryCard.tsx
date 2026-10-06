@@ -29,7 +29,7 @@ export function TopicMasteryCard({ topic }: { topic: TopicCard }) {
             <span aria-hidden className="text-lg">
               {theme.icon}
             </span>
-            <h3 className="font-display truncate text-lg font-extrabold leading-tight" style={{ color: "#E8EAED" }}>
+            <h3 className="font-display text-lg font-extrabold leading-tight" style={{ color: "#E8EAED" }}>
               {topic.name}
             </h3>
           </div>
