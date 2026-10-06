@@ -62,22 +62,6 @@ func main() {
 	)
 
 	if !devSyncEnabled() {
-		kafkaConsumer, err := kafka.NewConsumer(kafka.ConsumerConfig{
-			Brokers: strings.Split(envOrDefault("KAFKA_BROKERS", "localhost:9092"), ","),
-			Topic:   events.TopicQuestionAnswered,
-			GroupID: "streak-service",
-		})
-		if err != nil {
-			log.Fatalf("kafka consumer: %v", err)
-		}
-		defer kafkaConsumer.Close()
-
-		go func() {
-			if err := consumer.Run(ctx, kafkaConsumer, consumer.NewQuestionAnsweredConsumer(streakService)); err != nil && ctx.Err() == nil {
-				log.Printf("consumer stopped: %v", err)
-			}
-		}()
-
 		lessonConsumer, err := kafka.NewConsumer(kafka.ConsumerConfig{
 			Brokers: strings.Split(envOrDefault("KAFKA_BROKERS", "localhost:9092"), ","),
 			Topic:   events.TopicLessonCompleted,
@@ -105,7 +89,6 @@ func main() {
 	streakHandler := handler.NewStreakHandler(streakService)
 	r := chi.NewRouter()
 	r.Use(chimw.Recoverer)
-	r.Post("/internal/events/question-answered", streakHandler.InternalQuestionAnswered)
 	r.Post("/internal/events/lesson-completed", streakHandler.InternalLessonCompleted)
 	r.Route("/api/v1", func(r chi.Router) {
 		r.Use(middleware.Auth(signer, redisClient))

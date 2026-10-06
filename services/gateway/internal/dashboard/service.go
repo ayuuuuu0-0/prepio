@@ -204,22 +204,23 @@ func companionMessage(name string, progress ProgressCard) string {
 	}
 	xpNeeded := progress.XPToNextLevel
 	level := progress.CurrentLevel
-	challenges := 0
+	lessons := 0
 	if xpNeeded > 0 {
-		challenges = (xpNeeded + config.XPByDifficulty["medium"] - 1) / config.XPByDifficulty["medium"]
+		perLesson := config.LessonXPByDifficulty["medium"]
+		lessons = (xpNeeded + perLesson - 1) / perLesson
 	}
 
 	switch {
 	case progress.TotalXP == 0:
 		return fmt.Sprintf("%s is ready. Let's see what you can do.", name)
-	case challenges <= 1:
-		return fmt.Sprintf("One challenge from Level %d. Don't stop now.", level+1)
-	case challenges <= 3:
-		return fmt.Sprintf("%d challenges from Level %d. Your companion is watching.", challenges, level+1)
+	case lessons <= 1:
+		return fmt.Sprintf("One lesson from Level %d. Don't stop now.", level+1)
+	case lessons <= 3:
+		return fmt.Sprintf("%d lessons from Level %d. Your companion is watching.", lessons, level+1)
 	case progress.CurrentLevel < 5:
 		return fmt.Sprintf("Level %d. The real prep starts around Level 10 — keep going.", level)
 	default:
-		return fmt.Sprintf("Level %d. %d challenges from Level %d. Consistency compounds.", level, challenges, level+1)
+		return fmt.Sprintf("Level %d. %d lessons from Level %d. Consistency compounds.", level, lessons, level+1)
 	}
 }
 

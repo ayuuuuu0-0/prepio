@@ -4,14 +4,12 @@ import (
 	"context"
 	"errors"
 	"testing"
-	"time"
 
 	"github.com/google/uuid"
 	"github.com/prepio/prepio/config"
 	"github.com/prepio/prepio/services/progress/internal/service"
 	"github.com/prepio/prepio/services/progress/internal/store"
 	"github.com/prepio/prepio/shared/events"
-	"github.com/prepio/prepio/test/factories"
 	"github.com/prepio/prepio/test/fakes"
 	"github.com/prepio/prepio/test/testdb"
 	"github.com/stretchr/testify/require"
@@ -36,22 +34,6 @@ func setupProgress(t *testing.T) (*service.ProgressService, *fakes.KafkaProducer
 	require.NoError(t, err)
 
 	return svc, publisher, userID
-}
-
-func TestQuestionAnsweredAwardsXPAndGems(t *testing.T) {
-	svc, publisher, userID := setupProgress(t)
-	ctx := context.Background()
-
-	event := factories.QuestionAnsweredEvent(userID, time.Now())
-	event.Correct = true
-	event.Difficulty = "medium"
-	require.NoError(t, svc.ProcessQuestionAnswered(ctx, event))
-
-	resp, err := svc.GetMe(ctx, userID)
-	require.NoError(t, err)
-	require.Equal(t, config.XPByDifficulty["medium"], resp.TotalXP)
-	require.Equal(t, 500+config.GemsByDifficulty["medium"], resp.GemBalance)
-	require.NotNil(t, publisher.Last())
 }
 
 func TestGemDeductionOnStreakFreezePurchase(t *testing.T) {

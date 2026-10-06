@@ -54,11 +54,6 @@ func (p *Publisher) Publish(ctx context.Context, topic, key string, payload any)
 	}
 
 	switch topic {
-	case events.TopicQuestionAnswered:
-		if err := p.post(ctx, p.streakURL+"/internal/events/question-answered", body); err != nil {
-			return err
-		}
-		return p.post(ctx, p.progressURL+"/internal/events/question-answered", body)
 	case events.TopicLessonCompleted:
 		if err := p.post(ctx, p.streakURL+"/internal/events/lesson-completed", body); err != nil {
 			return err

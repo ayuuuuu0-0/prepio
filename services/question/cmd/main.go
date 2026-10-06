@@ -54,8 +54,6 @@ func main() {
 	}
 
 	skillStore := store.NewSkillStore(pool)
-	contentStore := store.NewContentStore(pool)
-	journeyStore := store.NewJourneyStore(pool)
 	lessonStore := store.NewLessonStore(pool)
 
 	// Build the evaluation pipeline.
@@ -71,25 +69,11 @@ func main() {
 	}
 	evaluator := service.NewPipelineEvaluator(llm)
 
-	questionService := service.NewQuestionService(
-		store.NewQuestionStore(pool),
-		store.NewDailyPaperStore(pool),
-		store.NewHistoryStore(pool),
-		journeyStore,
-		contentStore,
-		store.NewUserStore(pool),
-		redisClient,
-		producer,
-		evaluator,
-	)
 	lessonService := service.NewLessonService(lessonStore, evaluator, producer)
 	skillService := service.NewSkillService(skillStore)
-	contentService := service.NewContentService(contentStore, journeyStore)
 
-	questionHandler := handler.NewQuestionHandler(questionService, contentService)
 	skillHandler := handler.NewSkillHandler(skillService)
 	lessonHandler := handler.NewLessonHandler(lessonService)
-	contentHandler := handler.NewContentHandler(contentService, questionService)
 
 	r := chi.NewRouter()
 	r.Use(chimw.RequestID)
@@ -103,14 +87,8 @@ func main() {
 		r.Post("/lessons/{id}/attempts", lessonHandler.StartAttempt)
 		r.Post("/attempts/{id}/steps/{stepId}/answer", lessonHandler.SubmitAnswer)
 		r.Post("/attempts/{id}/complete", lessonHandler.Complete)
-		r.Get("/journey", questionHandler.GetJourney)
-		r.Get("/journey/nodes/{id}/content", contentHandler.GetNodeContent)
 		r.Get("/skills", skillHandler.ListSkills)
 		r.Get("/skills/{slug}", skillHandler.GetSkill)
-		r.Get("/questions/daily", questionHandler.GetDaily)
-		r.Get("/questions/history", questionHandler.GetHistory)
-		r.Get("/questions/{id}/skills", skillHandler.GetQuestionSkills)
-		r.Post("/questions/{id}/submit", questionHandler.Submit)
 	})
 
 	port := envOrDefault("QUESTION_SERVICE_PORT", "8082")

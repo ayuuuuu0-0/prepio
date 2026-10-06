@@ -109,7 +109,7 @@ The `lesson.completed` payload carries performance facts only (user, lesson, att
 
 APIs expose capabilities, not tables:
 
-* `GET /path`: worlds and nodes with status (`locked`, `current`, `available`, `done`), preview fields (lesson title, takeaways, minutes, XP), and, for locked nodes, exactly what unlocks them. Status is derived from attempts and the configured node prerequisites. (The legacy `GET /journey` is removed in L3.)
+* `GET /path`: worlds and nodes with status (`locked`, `current`, `available`, `done`), preview fields (lesson title, takeaways, minutes, XP), and, for locked nodes, exactly what unlocks them. Status is derived from attempts and the configured node prerequisites.
 * `POST /lessons/{id}/attempts`: start or resume; returns steps **without answers**, plus per-step progress when resuming. A locked lesson returns 403.
 * `POST /attempts/{id}/steps/{stepId}/answer`: body `{ try, answer }`; `stepId` is the authored step key. Server-graded feedback; idempotent per (attempt, step, try); malformed answers are rejected and never recorded.
 * `POST /attempts/{id}/complete`: performance summary and newly unlocked nodes; the gateway adds `rewards` from Progress (`GET /progress/attempts/{id}/rewards`: XP, gems, and per-skill mastery changes with their topic).

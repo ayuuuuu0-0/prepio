@@ -23,10 +23,3 @@ type SubskillResponse struct {
 	Slug string `json:"slug"`
 	Name string `json:"name"`
 }
-
-// QuestionSkillResponse maps a question to a skill and subskill with weight.
-type QuestionSkillResponse struct {
-	SkillSlug    string  `json:"skill_slug"`
-	SubskillSlug string  `json:"subskill_slug"`
-	Weight       float64 `json:"weight"`
-}

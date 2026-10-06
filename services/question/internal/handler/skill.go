@@ -43,14 +43,3 @@ func (h *SkillHandler) GetSkill(w http.ResponseWriter, r *http.Request) {
 	}
 	response.Data(w, http.StatusOK, skill)
 }
-
-// GetQuestionSkills handles GET /api/v1/questions/{id}/skills.
-func (h *SkillHandler) GetQuestionSkills(w http.ResponseWriter, r *http.Request) {
-	questionID := r.PathValue("id")
-	mappings, err := h.skills.ListQuestionSkills(r.Context(), questionID)
-	if err != nil {
-		response.Error(w, http.StatusInternalServerError, constants.ErrInternal, "internal error")
-		return
-	}
-	response.Data(w, http.StatusOK, mappings)
-}

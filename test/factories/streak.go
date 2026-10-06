@@ -7,16 +7,19 @@ import (
 	"github.com/prepio/prepio/shared/events"
 )
 
-// QuestionAnsweredEvent builds a question.answered Kafka event for tests.
-func QuestionAnsweredEvent(userID string, submittedAt time.Time) events.QuestionAnswered {
-	return events.QuestionAnswered{
-		EventID:     uuid.NewString(),
-		UserID:      userID,
-		QuestionID:  "test-question",
-		RoundType:   "dsa",
-		Difficulty:  "easy",
-		Correct:     true,
-		SubmittedAt: submittedAt,
-		SessionID:   "test-session",
+// LessonCompletedEvent builds a lesson.completed event for tests.
+func LessonCompletedEvent(userID string, completedAt time.Time) events.LessonCompleted {
+	return events.LessonCompleted{
+		EventID:         uuid.NewString(),
+		UserID:          userID,
+		LessonID:        uuid.NewString(),
+		LessonSlug:      "test-lesson",
+		AttemptID:       uuid.NewString(),
+		Kind:            "lesson",
+		Difficulty:      "easy",
+		GradedSteps:     3,
+		FirstTryCorrect: 3,
+		TotalTries:      3,
+		CompletedAt:     completedAt,
 	}
 }
