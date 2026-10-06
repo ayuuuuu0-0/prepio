@@ -61,6 +61,37 @@ await step("register returns tokens", async () => {
   other = o.json.data.access_token;
 });
 
+await step("the topic catalog lists the four topics", async () => {
+  const r = await call("GET", "/topics", { token, expect: 200 });
+  assert.deepEqual(r.json.data.map((t) => t.slug), ["system-design", "backend-production", "low-level-design", "dsa-refresher"]);
+});
+
+await step("onboarding stores 1-3 focus topics and rejects bad input", async () => {
+  const companions = (await call("GET", "/companions", { expect: 200 })).json.data;
+  const body = (topics) => ({ experience_level: "mid", companion_id: companions[0].id, focus_topics: topics });
+  await call("POST", "/users/onboarding", { token, body: body([]), expect: 400 });
+  await call("POST", "/users/onboarding", { token, body: body(["system-design", "backend-production", "low-level-design", "dsa-refresher"]), expect: 400 });
+  await call("POST", "/users/onboarding", { token, body: body(["astrology"]), expect: 400 });
+  const ok = await call("POST", "/users/onboarding", { token, body: body(["dsa-refresher", "backend-production"]), expect: 200 });
+  assert.deepEqual(ok.json.data.focus_topics, ["dsa-refresher", "backend-production"]);
+});
+
+await step("the dashboard shows focus topics first, not started, and a Continue target", async () => {
+  const home = (await call("GET", "/dashboard/home", { token, expect: 200 })).json.data;
+  assert.equal(home.onboarding_needed, false);
+  assert.deepEqual(home.topics.map((t) => t.slug), ["dsa-refresher", "backend-production", "system-design", "low-level-design"]);
+  assert.equal(home.topics[0].focused, true);
+  assert.equal(home.topics[2].focused, false);
+  for (const t of home.topics) {
+    assert.equal(t.mastery, null, t.slug + " has no mastery before any lesson");
+    assert.equal(t.skills_started, 0);
+    assert.ok(t.skills_total > 0);
+  }
+  assert.ok(home.next_lesson && home.next_lesson.lesson_id && home.next_lesson.title);
+  assert.equal("league" in home, false);
+  assert.equal("daily_quests" in home, false);
+});
+
 await step("lesson endpoints require authentication", async () => {
   await call("GET", "/path", { expect: 401 });
   await call("POST", "/lessons/00000000-0000-4000-8000-000000000000/attempts", { expect: 401 });
@@ -167,6 +198,20 @@ await step("completing again is idempotent and does not double-award", async () 
   assert.equal(again.json.data.rewards.xp_awarded, completion.rewards.xp_awarded);
   const home = await call("GET", "/dashboard/home", { token, expect: 200 });
   assert.equal(home.json.data.progress.total_xp, completion.rewards.xp_awarded, "XP granted exactly once");
+});
+
+await step("mastery moved is explained by topic and skill, and topic readiness reflects it", async () => {
+  const changes = completion.rewards.mastery_changes;
+  assert.ok(changes.length >= 1);
+  assert.ok(changes.every((c) => c.topic_name && c.skill_name && c.delta > 0));
+  const topics = (await call("GET", "/progress/topics", { token, expect: 200 })).json.data;
+  const sd = topics.find((t) => t.slug === changes[0].topic_slug);
+  assert.ok(sd.mastery !== null && sd.skills_started >= 1, "the topic is started");
+  assert.equal(sd.mastery, Math.round(sd.skills.filter((k) => k.mastery !== null).reduce((a, k) => a + k.mastery, 0) / sd.skills_started));
+  const untouched = topics.filter((t) => t.slug !== sd.slug);
+  assert.ok(untouched.every((t) => t.mastery === null), "other topics stay not started");
+  const home = (await call("GET", "/dashboard/home", { token, expect: 200 })).json.data;
+  assert.equal(home.next_lesson, null, "with the only lesson done there is nothing to continue");
 });
 
 await step("streak counts the completed lesson", async () => {
