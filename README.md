@@ -78,6 +78,19 @@ Supporting infrastructure is Postgres, Redis, and Kafka.
 
 Production runs on a single host with Docker Compose (`docker-compose.prod.yml`, `Dockerfile`, `Caddyfile`, `scripts/aws-setup.sh`). Copy `.env.example` to `.env` and set strong secrets.
 
+## Future: landing page
+
+Not part of the current phase: a marketing or landing page is out of scope until the lesson path is validated (see `OUT OF SCOPE` in `.ai/EXECUTION.MD`). When it is time, it should feel like Duolingo's: one clear promise, a friendly mascot (our companions), and a single obvious call to action. And it needs to look really cool, so take its visual lead from [zeptap.com](https://zeptap.com/). The components worth borrowing:
+
+- **A window with several phone screens playing at once.** A macOS-style app window holding multiple phones, each showing live motion (moving bars, progress, a lesson being answered). For Prepio, show real lesson screens: the journey, a question with the feedback tray, the celebration with mastery moving.
+- **Soft, tinted cards with a live illustration inside.** Each feature card has its own pastel gradient and a small product-style visual (a phone, a lock, a receipt). Use one card per topic (System Design, Backend & Production, Low-Level Design, DSA Refresher), each with its own tint and a mastery ring as the illustration.
+- **Big, tight headlines with the second half muted.** For example "If you can do it on your iPhone, *your agents can too.*" Prepio's version is a bold claim in white followed by the supporting half in grey.
+- **Floating sticker icons around the hero.** Chunky 3D-style icons drifting at the edges. Ours would be the companions, gems, streak flame, and badges.
+- **A scrolling strip of example chips.** Small pills of example tasks that slide past, here the skills and lessons learners practice.
+- **A floating pill navigation and an announcement pill above the headline.**
+
+Keep Prepio's identity while borrowing the patterns: the dark theme with purple accents from `.ai/PRODUCT.MD` stays (Zeptap is light sky-blue; copy the structure, not the palette). Respect `prefers-reduced-motion`, and build it from real components and real screens, never mock data.
+
 ## Engineering context
 
 Product, architecture, content, and execution rules live in [`.ai/`](.ai/). Start with [`agent/README.md`](agent/README.md) for the read order.
