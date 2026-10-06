@@ -151,8 +151,8 @@ export default function DashboardPage() {
           ))}
         </div>
 
-        <Link href="/challenge" className="mt-6 block">
-          <GameButton type="button">Continue Prep →</GameButton>
+        <Link href="/journey" className="mt-6 block">
+          <GameButton type="button">Continue →</GameButton>
         </Link>
 
         <button
