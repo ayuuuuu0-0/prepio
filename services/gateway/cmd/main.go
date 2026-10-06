@@ -90,6 +90,7 @@ func main() {
 			r.Use(middleware.RateLimit(redisClient, constants.AuthenticatedRateLimitPerMinute, middleware.RateLimitKeyByUser))
 			r.Get("/dashboard/home", dashboardHandler.GetHome)
 			r.Get("/path", questionProxy.ServeHTTP)
+			r.Get("/topics", questionProxy.ServeHTTP)
 			r.Post("/lessons/{id}/attempts", questionProxy.ServeHTTP)
 			r.Post("/attempts/{id}/steps/{stepId}/answer", questionProxy.ServeHTTP)
 			r.Post("/attempts/{id}/complete", lessonsHandler.Complete)

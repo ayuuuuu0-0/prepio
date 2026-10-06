@@ -73,3 +73,8 @@ const (
 
 	StatusPublished = lesson.StatusPublished
 )
+
+// NewSkillService wires the skill and topic catalog service for integration tests.
+func NewSkillService(pool *pgxpool.Pool) *service.SkillService {
+	return service.NewSkillService(store.NewSkillStore(pool))
+}

@@ -87,6 +87,7 @@ func main() {
 		r.Post("/lessons/{id}/attempts", lessonHandler.StartAttempt)
 		r.Post("/attempts/{id}/steps/{stepId}/answer", lessonHandler.SubmitAnswer)
 		r.Post("/attempts/{id}/complete", lessonHandler.Complete)
+		r.Get("/topics", skillHandler.ListTopics)
 		r.Get("/skills", skillHandler.ListSkills)
 		r.Get("/skills/{slug}", skillHandler.GetSkill)
 	})
