@@ -107,6 +107,7 @@ func main() {
 		r.Use(middleware.Auth(signer, redisClient))
 		r.Get("/progress/me", progressHandler.GetMe)
 		r.Get("/skills/readiness", readinessHandler.GetSkillReadiness)
+		r.Get("/progress/topics", readinessHandler.GetTopicMastery)
 		r.Get("/progress/attempts/{attemptID}/rewards", lessonHandler.GetAttemptRewards)
 	})
 
