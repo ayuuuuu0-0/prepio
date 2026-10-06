@@ -5,6 +5,7 @@ import type { CompletionData } from "@/lib/lesson/types";
 import { CompanionHero } from "@/components/game/CompanionHero";
 import { SpeechBubble } from "@/components/game/SpeechBubble";
 import { GameButton } from "@/components/game/GameButton";
+import { formatDelta, groupMasteryChanges, topicTheme } from "@/lib/topics";
 
 function message(accuracy: number, firstCompletion: boolean | undefined): string {
   if (firstCompletion === false) return "Nice practice run. Repetition is how it sticks.";
@@ -50,6 +51,7 @@ export function Celebration({
   const [showSummary, setShowSummary] = useState(false);
   const rewards = completion.rewards;
   const pct = Math.round(completion.accuracy * 100);
+  const moved = rewards?.first_completion ? groupMasteryChanges(rewards.mastery_changes) : [];
 
   if (showSummary) {
     return (
@@ -126,6 +128,49 @@ export function Celebration({
           <Chip label="Gems" value={`+${rewards.gems_awarded}`} tone="#34D399" delay="0.5s" />
         )}
       </div>
+
+      {moved.length > 0 && (
+        <section className="mt-6 w-full text-left" aria-labelledby="mastery-heading">
+          <h2 id="mastery-heading" className="font-mono text-[11px] font-bold uppercase tracking-[0.2em]" style={{ color: "#8B92A8" }}>
+            Mastery moved
+          </h2>
+          <ul className="mt-3 flex flex-col gap-3">
+            {moved.map((group) => {
+              const theme = topicTheme(group.topicSlug);
+              return (
+                <li
+                  key={group.topicSlug}
+                  className="animate-xp rounded-2xl p-4"
+                  style={{
+                    background: `linear-gradient(150deg, ${theme.tint}26 0%, #1A1D27 60%)`,
+                    border: `1px solid ${theme.tint}40`,
+                    animationDelay: "0.55s",
+                  }}
+                >
+                  <p className="font-display flex items-center justify-between text-base font-extrabold" style={{ color: "#E8EAED" }}>
+                    <span>
+                      <span aria-hidden className="mr-2">{theme.icon}</span>
+                      {group.topicName}
+                    </span>
+                    <span style={{ color: theme.tint }}>{formatDelta(group.total)}</span>
+                  </p>
+                  <ul className="mt-2 flex flex-wrap gap-2">
+                    {group.skills.map((skill) => (
+                      <li
+                        key={skill.slug}
+                        className="font-mono rounded-full px-3 py-1 text-xs font-bold"
+                        style={{ background: "#242836", border: "1px solid #2E3347", color: "#C8CCDA" }}
+                      >
+                        {skill.name} <span style={{ color: theme.tint }}>{formatDelta(skill.delta)}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </li>
+              );
+            })}
+          </ul>
+        </section>
+      )}
 
       {completion.rewards_pending && (
         <p className="mt-4 text-xs font-semibold" style={{ color: "#8B92A8" }} role="status">
