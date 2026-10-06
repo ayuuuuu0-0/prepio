@@ -76,6 +76,7 @@ Topic picker (1–3) → experience → companion; `focus_topics` stored by the 
 *Done when:* new users pick topics and land on a dashboard that shows real topic mastery and the next lesson; no placeholders remain; gates pass.
 
 **L5, Intro motion stage:** beat-based motion renderer, tap to advance, skip, replay, optional `mediaUrl`.
+**Status: implemented** on branch `feat/l5-intro-motion`, pending review. Words reveal per beat with the emphasis phrase glowing, named visuals (`bars`, `flow`, `pulse`) sit above the text, beats auto-advance with a pause control, the intro can be replayed from its end and from the player header, and `mediaUrl` renders images or video only from https or site-relative URLs. Reduced motion shows full text with manual advance. The validator now checks beat timing, visual names, and media URLs.
 
 **L6, Exercise types:** `true_false`, `fill_blank` (tap-to-place), `arrange` (tap-to-order); validator rules and player support.
 
