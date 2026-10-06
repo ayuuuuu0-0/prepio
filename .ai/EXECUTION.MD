@@ -71,6 +71,7 @@ Player shell (focus mode, top bar, progress, combo), feedback tray, MCQ step, mi
 *Done when:* a user completes a real lesson end to end from the journey; legacy grep is clean; screenshots reviewed; gates pass.
 
 **L4, Onboarding and dashboard**
+**Status: implemented** on branch `feat/l4-onboarding-dashboard`, pending review. Onboarding is topics (1-3, ordered) then experience then companion; `focus_topics` live in `user_focus_topics` (User domain) and come back on the profile. The dashboard shows a Continue card for the path's current node and one readiness card per topic (focus topics first, never hidden), and the league/quests placeholders, their routes and nav tabs are gone. The celebration screen explains each mastery change by topic and skill. Focus topics currently reorder and highlight the dashboard; reordering the journey itself waits until there is more than one world.
 Topic picker (1–3) → experience → companion; `focus_topics` stored by the User domain. Dashboard: per-topic mastery rings, Continue → next lesson, explained mastery changes on the celebration screen. Remove "coming soon" quest/league cards and dead nav tabs until their phases.
 *Done when:* new users pick topics and land on a dashboard that shows real topic mastery and the next lesson; no placeholders remain; gates pass.
 

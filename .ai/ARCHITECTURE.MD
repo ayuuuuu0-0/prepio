@@ -113,7 +113,10 @@ APIs expose capabilities, not tables:
 * `POST /lessons/{id}/attempts`: start or resume; returns steps **without answers**, plus per-step progress when resuming. A locked lesson returns 403.
 * `POST /attempts/{id}/steps/{stepId}/answer`: body `{ try, answer }`; `stepId` is the authored step key. Server-graded feedback; idempotent per (attempt, step, try); malformed answers are rejected and never recorded.
 * `POST /attempts/{id}/complete`: performance summary and newly unlocked nodes; the gateway adds `rewards` from Progress (`GET /progress/attempts/{id}/rewards`: XP, gems, and per-skill mastery changes with their topic).
-* `GET /progress/...`: topic mastery, explained mastery changes (topic readiness arrives with the dashboard in L4)
+* `GET /topics`: the topic catalog (Content domain), used by the onboarding picker
+* `GET /progress/topics`: per-topic readiness with each skill's mastery (not started = null)
+* `GET /dashboard/home`: gateway aggregation of profile (focus topics, companion), XP/level, streak, topic readiness, and the path's current node as the Continue target. If any upstream fails the dashboard fails; it never shows partial or invented data
+* `POST /users/onboarding`: `{ focus_topics (1-3 distinct slugs, ordered), experience_level, companion_id }`; stored by the User domain, validated against the topic catalog
 
 ---
 

@@ -51,6 +51,7 @@ Never bypass this structure. Lesson completion does not unlock worlds directly: 
 
 * **Topic readiness = weighted mean of skill mastery over the skills in that topic.** Skills not yet attempted show as "not started", not as failures.
 * Readiness answers: *how strong is this user in this topic, and why did it change?*
+* The formula, exactly: a topic's readiness is the mean mastery of the skills the learner has **started** (attempted at least once), every started skill weighted equally, rounded to a whole number. A topic with nothing started has no number ("Not started"), never zero, and the dashboard also says how many of its skills are started. Computed by Progress (`GET /progress/topics`) from `user_skill_scores`; the client only displays it.
 * Transparency is required. Bad: "System Design +2". Good: "System Design +2 · Caching +1 · Load Balancing +1".
 * Never derived from XP, levels, or streaks. Never company-specific.
 
