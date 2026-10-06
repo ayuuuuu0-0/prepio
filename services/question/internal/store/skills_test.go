@@ -18,7 +18,7 @@ func TestSkillStoreListCategories(t *testing.T) {
 
 	categories, err := skillStore.ListCategories(ctx)
 	require.NoError(t, err)
-	require.Len(t, categories, 8)
+	require.Len(t, categories, 9)
 	require.Equal(t, "programming-fundamentals", categories[0].Slug)
 }
 

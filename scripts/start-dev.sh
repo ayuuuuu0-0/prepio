@@ -41,6 +41,9 @@ else
   fi
 fi
 
+echo "Syncing lesson content..."
+go run ./services/question/cmd/content-sync
+
 mkdir -p "$ROOT/.run"
 PIDS_FILE="$ROOT/.run/pids"
 

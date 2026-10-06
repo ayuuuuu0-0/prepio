@@ -36,14 +36,15 @@ Never bypass this structure. Lesson completion does not unlock worlds directly: 
 
 ## Topics, Skills, Subskills
 
-* **Topic** = a user-facing skill category. Initial topics: **System Design, Backend & Production, Low-Level Design, DSA Refresher.** (Catalog changes needed to express these, such as a Backend & Production category and grouping data structures + algorithms under DSA Refresher, are made by migration in Phase L2.)
+* **Topic** = a user-facing skill category. Initial topics: **System Design, Backend & Production, Low-Level Design, DSA Refresher.** Topics are rows in `topics`; each skill category belongs to at most one topic (`skill_categories.topic_id`). System Design, Low-Level Design, and Backend & Production map one category each; DSA Refresher groups Data Structures and Algorithms. Categories with no topic (e.g. Behavioral) do not contribute to readiness. Backend & Production starts with four skills: API Design, Databases & Transactions, Concurrency & Async, Observability & Operations.
 * **Skill** = the unit of mastery, 0–100. **Subskills** refine skills (e.g. Caching under Scaling & Performance).
 * Every lesson maps to ≥ 1 skill with weights summing to 1.0.
 
 ## Mastery
 
 * Each user has a mastery value (0–100) per skill.
-* A completed lesson moves mastery by a **gradual, capped, smoothed** amount derived from first-attempt accuracy, difficulty, and the lesson's skill weights. Mastery never jumps dramatically. Parameters live in config, not code.
+* A completed lesson moves mastery by a **gradual, capped, smoothed** amount derived from first-attempt accuracy, difficulty, and the lesson's skill weights. Mastery never jumps dramatically. Parameters live in config (`config/lessons.go`), not code.
+* Per skill: `delta = round(gain × first-attempt accuracy × skill weight × difficulty multiplier × headroom)`, where `headroom = (100 − current) / 100` (so gains shrink near 100), boss lessons scale gain up, and a hard cap limits any one lesson's change to a skill. Mastery and XP are granted only on a user's **first completion** of a lesson; replays grant none.
 * **Every mastery change is written to a ledger** (user, skill, delta, lesson attempt, time). This is what makes readiness explainable.
 
 ## Readiness (per topic)
@@ -76,9 +77,9 @@ Never bypass this structure. Lesson completion does not unlock worlds directly: 
 | `intro` | `beats[]` (`text`, `emphasis?`, `visual?`, `durationMs`), optional `mediaUrl` | not graded (marked viewed) |
 | `mcq` | `prompt`, `options[]` (3–4), `answer` (index), `explanations.correct`, `explanations.wrong[index]` | deterministic |
 | `true_false` | `statement`, `answer` (bool), `explanation` | deterministic |
-| `fill_blank` | `code` with numbered blanks, `bank[]` (includes distractors), `answers[]` (per blank), `explanation` | deterministic |
-| `arrange` | `prompt`, `items[]`, `order[]` (correct sequence as indices), `explanation` | deterministic |
-| `prose` | `prompt`, `rubric` (concept list with aliases and required flags), `minChars` | rubric evaluator (LLM stage later) |
+| `fill_blank` | `code` with blanks written `___1___`, `___2___`, … (each exactly once), `bank[]` (includes distractors), `answers[]` (per blank), `explanation` | deterministic |
+| `arrange` | `prompt`, `items[]` (authored scrambled; the client receives them as written), `order[]` (correct sequence as indices, never the identity), `explanation` | deterministic |
+| `prose` | `prompt`, `rubric` (concept list with aliases and required flags), `minChars` (≥ 100), `explanation` (the worked answer shown after grading) | rubric evaluator (LLM stage later) |
 
 Later (not before its phase): `type_line`, a short free-text answer matched against accepted variants after whitespace/quote normalisation. No code-execution sandbox.
 
@@ -116,8 +117,9 @@ steps:
 ## Content-as-Code
 
 * `content/worlds/*.yaml` define worlds and their nodes. `content/lessons/**/*.yaml` define lessons.
-* `content-sync --validate` runs in CI. `content-sync` upserts by stable slug after migrations on every deploy, is idempotent, and never deletes user data (it deprecates).
-* Changing a published lesson increments its `version`; attempts record the version they ran against.
+* `content-sync --validate` validates without writing (structure always; skill references too when `DATABASE_URL` is set). The same checks run in `go test ./...` so CI blocks invalid content. `content-sync` upserts by stable slug after migrations on every deploy, is idempotent, and never deletes user data (it deprecates).
+* Changing a lesson's content (anything but `status`) increments its `version`; its steps and skill weights are stored per version, attempts record the version they ran against, and old versions are kept so in-flight attempts finish on the content they started with.
+* A world file is `slug`, `name`, `description`, `theme`, `order`, and `nodes[]`. A node is `slug` (unique across worlds), `label`, `type` (`lesson` or `boss`), and optional `requires[]` (node slugs that must be completed first; this is the configurable unlock rule). Nodes with no `requires` are open from the start.
 
 ### Validation rules (CI blocks on failure)
 
@@ -128,8 +130,12 @@ steps:
 * `true_false`: explanation present.
 * `fill_blank`: blank count = `answers` count; `bank` contains every answer.
 * `arrange`: ≥ 3 items; `order` is a permutation of the item indices.
-* `prose`: rubric has ≥ 1 required concept.
+* `prose`: rubric has ≥ 1 required concept; `minChars` ≥ 100.
 * `est_minutes` within limits for the lesson `kind`.
+* `summary` has 2–4 bullets; an `intro` is the first step and there is at most one; graded step count is 3–5 (boss 3–8).
+* A lesson's `kind` matches its node's `type`; every node binds exactly one lesson; node `requires` resolve and never form a cycle; node and lesson slugs are lowercase kebab-case.
+* `arrange`: `order` is not the identity permutation.
+* `fill_blank`: blanks are numbered `1..n`, each appears once.
 
 Lessons failing validation cannot be published.
 

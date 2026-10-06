@@ -19,7 +19,7 @@ func TestSkillServiceListSkillTree(t *testing.T) {
 
 	tree, err := skillService.ListSkillTree(ctx)
 	require.NoError(t, err)
-	require.Len(t, tree, 8)
+	require.Len(t, tree, 9)
 
 	var foundArrays bool
 	for _, category := range tree {

@@ -1,5 +1,5 @@
 # === Stage 1: Build static Go binaries ===
-FROM golang:1.24-alpine AS builder
+FROM golang:1.25-alpine AS builder
 WORKDIR /build
 
 COPY go.mod go.sum ./
@@ -10,6 +10,7 @@ COPY . .
 # Compile each microservice as a static, lightweight binary
 RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-s -w" -o user ./services/user/cmd
 RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-s -w" -o question ./services/question/cmd
+RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-s -w" -o content-sync ./services/question/cmd/content-sync
 RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-s -w" -o streak ./services/streak/cmd
 RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-s -w" -o progress ./services/progress/cmd
 RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-s -w" -o notification ./services/notification/cmd
@@ -21,8 +22,8 @@ FROM migrate/migrate:v4.18.1 AS migrate-bin
 # === Stage 3: Minimal production runner ===
 FROM alpine:3.20
 
-# Install runtime utilities: postgresql-client (for pg_isready), bash, curl, ca-certificates
-RUN apk add --no-cache bash curl ca-certificates postgresql-client
+# Install runtime utilities: postgresql-client (for pg_isready), bash, curl, ca-certificates, tzdata (time zones for streaks)
+RUN apk add --no-cache bash curl ca-certificates postgresql-client tzdata
 
 WORKDIR /app
 
@@ -32,6 +33,7 @@ COPY --from=migrate-bin /migrate /usr/local/bin/migrate
 # Copy compiled binaries
 COPY --from=builder /build/user /app/user
 COPY --from=builder /build/question /app/question
+COPY --from=builder /build/content-sync /app/content-sync
 COPY --from=builder /build/streak /app/streak
 COPY --from=builder /build/progress /app/progress
 COPY --from=builder /build/notification /app/notification
@@ -40,9 +42,13 @@ COPY --from=builder /build/gateway /app/gateway
 # Copy database migrations
 COPY migrations /app/migrations
 
+# Copy authored lesson content (loaded into the database by content-sync on every deploy)
+COPY content /app/content
+
 # Copy entrypoint script
 COPY scripts/prod-entrypoint.sh /app/prod-entrypoint.sh
-RUN chmod +x /app/prod-entrypoint.sh
+# Normalise line endings so images built from a Windows checkout (CRLF) still run.
+RUN tr -d '\015' < /app/prod-entrypoint.sh > /tmp/entrypoint.sh && mv /tmp/entrypoint.sh /app/prod-entrypoint.sh && chmod +x /app/prod-entrypoint.sh
 
 EXPOSE 8080
 

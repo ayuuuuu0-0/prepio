@@ -54,3 +54,14 @@ func RunQuestionAnswered(ctx context.Context, consumer *kafka.Consumer, handler 
 func RunStreakUpdated(ctx context.Context, consumer *kafka.Consumer, handler *Handler) error {
 	return consumer.Run(ctx, handler.HandleStreakUpdated)
 }
+
+// HandleLessonCompleted processes lesson.completed events.
+func HandleLessonCompleted(lessons *service.LessonService) kafka.MessageHandler {
+	return func(ctx context.Context, _, value []byte) error {
+		var event events.LessonCompleted
+		if err := json.Unmarshal(value, &event); err != nil {
+			return fmt.Errorf("decode lesson completed: %w", err)
+		}
+		return lessons.ProcessLessonCompleted(ctx, event)
+	}
+}

@@ -1,0 +1,73 @@
+slug: why-caches-exist
+title: "Why Caches Exist"
+node: why-caches-exist
+kind: lesson
+status: published
+difficulty: easy
+est_minutes: 4
+skills:
+  - { skill: system-design-scaling, weight: 1.0 }
+summary:
+  - "A cache keeps a fast copy of frequently read data, so most requests never reach the database."
+  - "Caching trades freshness for speed: cached data can be stale until it expires or is invalidated."
+  - "Cache-aside: check the cache first; on a miss, load from the database and store the result."
+  - "Cache data that is read often and changes rarely; read must-be-current data from the source of truth."
+steps:
+  - id: intro
+    type: intro
+    beats:
+      - { text: "Reading from a database is slow. Reading from memory is fast.", emphasis: "memory", durationMs: 4000 }
+      - { text: "A cache keeps a copy of hot data close by, so most requests never reach the database.", emphasis: "hot data", durationMs: 5000 }
+      - { text: "The trade-off: the copy can go stale. Every cache design is a bet on that.", emphasis: "stale", durationMs: 4500 }
+  - id: read-heavy
+    type: mcq
+    prompt: "A product page is read 10,000 times for every time it is edited. Which change reduces database load the most?"
+    options:
+      - "Add a cache in front of the database for product reads"
+      - "Add an index on the product price column"
+      - "Move the product table to a bigger disk"
+    answer: 0
+    explanations:
+      correct: "Read-heavy, rarely changing data is the ideal cache candidate: most reads are served from memory and never touch the database."
+      wrong:
+        1: "An index speeds up lookups by price, but every read still reaches the database, so the load barely changes."
+        2: "A bigger disk adds capacity, not speed. Each read still goes to the database."
+  - id: stale-reads
+    type: mcq
+    prompt: "A cache holds a product's price. An admin then changes the price in the database. What can a user see until the cached entry expires?"
+    options:
+      - "The old price"
+      - "An error page"
+      - "The new price immediately"
+    answer: 0
+    explanations:
+      correct: "The cache keeps returning its stored copy until it expires or is invalidated, so users can see stale data. Choosing a TTL is choosing how stale is acceptable."
+      wrong:
+        1: "A cache hit is not an error. It simply returns the stored value, even when that value is outdated."
+        2: "The cache does not know the database changed unless you invalidate or update the entry when you write."
+  - id: cache-aside
+    type: mcq
+    prompt: "In the cache-aside pattern, what does the application do on a cache miss?"
+    options:
+      - "Read from the database, then store the result in the cache"
+      - "Return an empty response and let the cache fill itself"
+      - "Write to the cache and the database at the same time"
+    answer: 0
+    explanations:
+      correct: "In cache-aside the application checks the cache first. On a miss it loads from the source of truth and populates the cache for the next request."
+      wrong:
+        1: "A cache does not fill itself. If the application returned empty on every miss, cold or evicted keys would look like missing data."
+        2: "That describes write-through, which happens on writes. A read miss is handled by loading from the database."
+  - id: poor-fit
+    type: mcq
+    prompt: "Which data is a poor fit for caching?"
+    options:
+      - "An account balance that must always be exactly current"
+      - "A blog post that changes once a month"
+      - "A product image requested on every page view"
+    answer: 0
+    explanations:
+      correct: "Data that must always be exactly current cannot tolerate stale reads. Read it from the source of truth."
+      wrong:
+        1: "Content that is read often and changes rarely is exactly what caches handle best."
+        2: "Static assets that are requested constantly are classic cache candidates, often served from a CDN."

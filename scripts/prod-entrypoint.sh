@@ -21,6 +21,10 @@ migrate -path /app/migrations -database "$DATABASE_URL" up || {
   echo "Migration failed or already up to date."
 }
 
+# Load authored worlds and lessons (idempotent). Invalid content must stop the deploy.
+echo "Syncing lesson content..."
+CONTENT_DIR=/app/content /app/content-sync
+
 # Internal service communication configuration
 export USER_SERVICE_URL="${USER_SERVICE_URL:-http://localhost:8081}"
 export QUESTION_SERVICE_URL="${QUESTION_SERVICE_URL:-http://localhost:8082}"
