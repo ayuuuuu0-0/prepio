@@ -17,7 +17,12 @@ func TestLessonMigrationsRollBack(t *testing.T) {
 	testdb.Migrate(t, pool)
 	ctx := context.Background()
 
-	l2 := []string{"000035_create_topics", "000036_create_lessons", "000037_create_mastery_ledger"}
+	// Rolled back newest first, then re-applied oldest first. 000038 and 000039 sit on top of
+	// these (000039 references topics), so they are part of the cycle.
+	l2 := []string{
+		"000035_create_topics", "000036_create_lessons", "000037_create_mastery_ledger",
+		"000038_drop_legacy_question_loop", "000039_create_user_focus_topics",
+	}
 	exec := func(suffix string, names []string) {
 		t.Helper()
 		for _, name := range names {
@@ -34,13 +39,13 @@ func TestLessonMigrationsRollBack(t *testing.T) {
 	}
 
 	for _, table := range []string{"topics", "lessons", "lesson_steps", "lesson_skills", "lesson_attempts",
-		"lesson_step_results", "node_prerequisites", "mastery_ledger", "lesson_rewards"} {
+		"lesson_step_results", "node_prerequisites", "mastery_ledger", "lesson_rewards", "user_focus_topics"} {
 		require.True(t, tableExists(table), table)
 	}
 
-	exec("down", []string{l2[2], l2[1], l2[0]})
+	exec("down", []string{l2[4], l2[3], l2[2], l2[1], l2[0]})
 	for _, table := range []string{"topics", "lessons", "lesson_steps", "lesson_skills", "lesson_attempts",
-		"lesson_step_results", "node_prerequisites", "mastery_ledger", "lesson_rewards"} {
+		"lesson_step_results", "node_prerequisites", "mastery_ledger", "lesson_rewards", "user_focus_topics"} {
 		require.False(t, tableExists(table), table)
 	}
 	var backend int
