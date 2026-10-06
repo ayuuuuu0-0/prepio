@@ -30,6 +30,7 @@ export type Session = {
 
 export type Action =
   | { type: "finishIntro" }
+  | { type: "replayIntro" }
   | { type: "graded"; stepId: string; correct: boolean }
   | { type: "continue" };
 
@@ -78,6 +79,10 @@ export function reduce(s: Session, a: Action): Session {
   switch (a.type) {
     case "finishIntro":
       return s.phase === "intro" ? { ...s, phase: "answering" } : s;
+
+    case "replayIntro":
+      // Only between exercises: never while a result is showing, and only if there is an intro.
+      return s.phase === "answering" && s.hasIntro ? { ...s, phase: "intro" } : s;
 
     case "graded": {
       if (s.phase !== "answering" || s.queue[0] !== a.stepId) return s;

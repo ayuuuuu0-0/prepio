@@ -105,6 +105,32 @@ describe("answering", () => {
   });
 });
 
+describe("replaying the intro", () => {
+  it("returns to the intro from an exercise without losing any progress, then back", () => {
+    let s = run(start(steps), "intro", "right"); // a solved, now on b
+    const before = { queue: s.queue, solved: s.solved, tries: s.tries };
+    s = reduce(s, { type: "replayIntro" });
+    expect(s.phase).toBe("intro");
+    expect({ queue: s.queue, solved: s.solved, tries: s.tries }).toEqual(before);
+    s = reduce(s, { type: "finishIntro" });
+    expect(s.phase).toBe("answering");
+    expect(currentStepId(s)).toBe("b");
+  });
+
+  it("is ignored when the lesson has no intro, during feedback, and once finished", () => {
+    const noIntro = start([step("a"), step("b")]);
+    expect(reduce(noIntro, { type: "replayIntro" })).toBe(noIntro);
+
+    const feedback = reduce(start(steps), { type: "finishIntro" });
+    const graded = reduce(feedback, { type: "graded", stepId: "a", correct: true });
+    expect(graded.phase).toBe("feedback");
+    expect(reduce(graded, { type: "replayIntro" })).toBe(graded);
+
+    const done = run(start(steps), "intro", "right", "right", "right");
+    expect(reduce(done, { type: "replayIntro" })).toBe(done);
+  });
+});
+
 describe("guards", () => {
   it("ignores answers for a step that is not current", () => {
     const s = reduce(start([step("a"), step("b")]), { type: "graded", stepId: "b", correct: true });

@@ -286,10 +286,11 @@ function Player({
       onCancelExit={() => setConfirmingExit(false)}
       onConfirmExit={() => router.push("/journey")}
       tray={tray}
+      onReplayIntro={session.hasIntro && session.phase === "answering" ? () => dispatch({ type: "replayIntro" }) : undefined}
       companion={<CompanionHero name={companionName} species={companionSpecies} size="sm" reaction={reaction} />}
     >
       {session.phase === "intro" && intro?.intro ? (
-        <IntroStep beats={intro.intro.beats} onDone={() => dispatch({ type: "finishIntro" })} />
+        <IntroStep beats={intro.intro.beats} mediaUrl={intro.intro.media_url} onDone={() => dispatch({ type: "finishIntro" })} />
       ) : step?.type === "mcq" && step.mcq ? (
         <>
           <McqStep
