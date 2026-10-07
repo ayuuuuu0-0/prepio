@@ -53,14 +53,6 @@ func main() {
 
 	if !devSyncEnabled() {
 		brokers := strings.Split(envOrDefault("KAFKA_BROKERS", "localhost:9092"), ",")
-		questionConsumer, err := kafka.NewConsumer(kafka.ConsumerConfig{
-			Brokers: brokers, Topic: events.TopicQuestionAnswered, GroupID: "progress-service",
-		})
-		if err != nil {
-			log.Fatalf("question consumer: %v", err)
-		}
-		defer questionConsumer.Close()
-
 		streakConsumer, err := kafka.NewConsumer(kafka.ConsumerConfig{
 			Brokers: brokers, Topic: events.TopicStreakUpdated, GroupID: "progress-service",
 		})
@@ -77,19 +69,13 @@ func main() {
 		}
 		defer lessonConsumer.Close()
 
-		eventHandler := consumer.NewHandler(progressService, readinessService)
 		go func() {
 			if err := lessonConsumer.Run(ctx, consumer.HandleLessonCompleted(lessonService)); err != nil && ctx.Err() == nil {
 				log.Printf("lesson consumer: %v", err)
 			}
 		}()
 		go func() {
-			if err := consumer.RunQuestionAnswered(ctx, questionConsumer, eventHandler); err != nil && ctx.Err() == nil {
-				log.Printf("question consumer: %v", err)
-			}
-		}()
-		go func() {
-			if err := consumer.RunStreakUpdated(ctx, streakConsumer, eventHandler); err != nil && ctx.Err() == nil {
+			if err := streakConsumer.Run(ctx, consumer.HandleStreakUpdated(progressService)); err != nil && ctx.Err() == nil {
 				log.Printf("streak consumer: %v", err)
 			}
 		}()
@@ -115,7 +101,6 @@ func main() {
 	r.Use(chimw.Recoverer)
 	r.Get("/internal/progress/{userID}/gems", progressHandler.InternalGetGems)
 	r.Post("/internal/progress/{userID}/gems/deduct", progressHandler.InternalDeductGems)
-	r.Post("/internal/events/question-answered", progressHandler.InternalQuestionAnswered)
 	r.Post("/internal/events/streak-updated", progressHandler.InternalStreakUpdated)
 	r.Post("/internal/events/lesson-completed", lessonHandler.InternalLessonCompleted)
 	r.Route("/api/v1", func(r chi.Router) {

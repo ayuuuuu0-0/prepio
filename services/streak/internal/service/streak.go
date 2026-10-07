@@ -49,11 +49,6 @@ func NewStreakService(
 	}
 }
 
-// ProcessQuestionAnswered applies streak rules for a submitted answer.
-func (s *StreakService) ProcessQuestionAnswered(ctx context.Context, event events.QuestionAnswered) error {
-	return s.processActivity(ctx, event.UserID, event.SubmittedAt)
-}
-
 // ProcessLessonCompleted applies streak rules for a completed lesson.
 // Completing one lesson keeps the streak.
 func (s *StreakService) ProcessLessonCompleted(ctx context.Context, event events.LessonCompleted) error {

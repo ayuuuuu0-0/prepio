@@ -27,17 +27,6 @@ func CurrentLevel(totalXP int) int {
 	return level
 }
 
-// DifficultyForLevel maps a user level to a question difficulty band.
-func DifficultyForLevel(level int) string {
-	if level <= 2 {
-		return "easy"
-	}
-	if level <= 5 {
-		return "medium"
-	}
-	return "hard"
-}
-
 // XPToNextLevel returns XP remaining until the next level, or 0 at max level.
 func XPToNextLevel(totalXP int) int {
 	level := CurrentLevel(totalXP)

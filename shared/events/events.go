@@ -4,7 +4,6 @@ import "time"
 
 // Topic names for the Kafka event bus.
 const (
-	TopicQuestionAnswered       = "question.answered"
 	TopicStreakUpdated          = "streak.updated"
 	TopicProgressUpdated        = "progress.updated"
 	TopicNotificationsDispatch  = "notifications.dispatch"
@@ -33,21 +32,6 @@ type LessonCompleted struct {
 	FirstTryCorrect int                 `json:"first_try_correct"`
 	TotalTries      int                 `json:"total_tries"`
 	CompletedAt     time.Time           `json:"completed_at"`
-}
-
-// QuestionAnswered is emitted when a user submits an answer.
-type QuestionAnswered struct {
-	EventID     string    `json:"event_id"`
-	UserID      string    `json:"user_id"`
-	QuestionID  string    `json:"question_id"`
-	RoundType   string    `json:"round_type"`
-	Difficulty  string    `json:"difficulty"`
-	Correct     bool      `json:"correct"`
-	Score       int       `json:"score"`
-	XPAwarded   int       `json:"xp_awarded"`
-	GemsAwarded int       `json:"gems_awarded"`
-	SubmittedAt time.Time `json:"submitted_at"`
-	SessionID   string    `json:"session_id"`
 }
 
 // StreakUpdated is emitted when a user's streak state changes.

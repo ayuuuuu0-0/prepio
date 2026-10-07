@@ -18,6 +18,11 @@ import (
 	"github.com/prepio/prepio/shared/events"
 )
 
+// EventPublisher publishes domain events.
+type EventPublisher interface {
+	Publish(ctx context.Context, topic, key string, payload any) error
+}
+
 // LessonService owns the Journey domain's lesson runtime: the path, attempts,
 // server-side grading, and completion. It is the only grader.
 type LessonService struct {

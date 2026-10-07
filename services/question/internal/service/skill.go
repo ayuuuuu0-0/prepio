@@ -103,25 +103,3 @@ func (s *SkillService) GetSkillBySlug(ctx context.Context, slug string) (*dto.Sk
 		Subskills:   subskillResponses,
 	}, nil
 }
-
-// ListQuestionSkills returns skill mappings for a question.
-func (s *SkillService) ListQuestionSkills(ctx context.Context, questionID string) ([]dto.QuestionSkillResponse, error) {
-	if len(questionID) == 0 {
-		return nil, fmt.Errorf("question id is required")
-	}
-
-	mappings, err := s.skills.ListQuestionSkills(ctx, questionID)
-	if err != nil {
-		return nil, err
-	}
-
-	result := make([]dto.QuestionSkillResponse, 0, len(mappings))
-	for _, mapping := range mappings {
-		result = append(result, dto.QuestionSkillResponse{
-			SkillSlug:    mapping.SkillSlug,
-			SubskillSlug: mapping.SubskillSlug,
-			Weight:       mapping.Weight,
-		})
-	}
-	return result, nil
-}

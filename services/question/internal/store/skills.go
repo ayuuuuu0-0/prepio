@@ -2,7 +2,6 @@ package store
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 
@@ -35,16 +34,6 @@ type Subskill struct {
 	Slug      string
 	Name      string
 	SortOrder int
-}
-
-// QuestionSkillMapping links a question to a skill and subskill with weight.
-type QuestionSkillMapping struct {
-	QuestionID   string
-	SkillID      string
-	SkillSlug    string
-	SubskillID   string
-	SubskillSlug string
-	Weight       float64
 }
 
 // SkillStore handles skill graph queries.
@@ -160,87 +149,4 @@ func (s *SkillStore) ListSubskillsBySkillID(ctx context.Context, skillID string)
 		subskills = append(subskills, subskill)
 	}
 	return subskills, rows.Err()
-}
-
-// ListQuestionSkills returns skill mappings for a question.
-func (s *SkillStore) ListQuestionSkills(ctx context.Context, questionID string) ([]QuestionSkillMapping, error) {
-	if len(questionID) == 0 {
-		return nil, fmt.Errorf("question id is required")
-	}
-
-	const q = `
-		SELECT qs.question_id, qs.skill_id, sk.slug, qs.subskill_id, ss.slug, qs.weight
-		FROM question_skills qs
-		JOIN skills sk ON sk.id = qs.skill_id
-		JOIN subskills ss ON ss.id = qs.subskill_id
-		WHERE qs.question_id = $1
-		ORDER BY qs.weight DESC`
-
-	rows, err := s.pool.Query(ctx, q, questionID)
-	if err != nil {
-		return nil, fmt.Errorf("list question skills: %w", err)
-	}
-	defer rows.Close()
-
-	var mappings []QuestionSkillMapping
-	for rows.Next() {
-		var mapping QuestionSkillMapping
-		if err := rows.Scan(
-			&mapping.QuestionID, &mapping.SkillID, &mapping.SkillSlug,
-			&mapping.SubskillID, &mapping.SubskillSlug, &mapping.Weight,
-		); err != nil {
-			return nil, fmt.Errorf("scan question skill: %w", err)
-		}
-		mappings = append(mappings, mapping)
-	}
-	return mappings, rows.Err()
-}
-
-// QuestionHint is a structured hint on a question.
-type QuestionHint struct {
-	Order int    `json:"order"`
-	Text  string `json:"text"`
-}
-
-// QuestionContentMetadata holds extended question fields from the A3 schema upgrade.
-type QuestionContentMetadata struct {
-	EvaluationType  string
-	Explanation     string
-	Hints           []QuestionHint
-	Solution        string
-	ReadinessWeight float64
-	EstimatedTime   int
-}
-
-// GetQuestionContentMetadata returns extended content fields for a question.
-func (s *SkillStore) GetQuestionContentMetadata(ctx context.Context, questionID string) (*QuestionContentMetadata, error) {
-	if len(questionID) == 0 {
-		return nil, fmt.Errorf("question id is required")
-	}
-
-	const q = `
-		SELECT COALESCE(evaluation_type, ''), COALESCE(explanation, ''),
-		       hints, COALESCE(solution, ''), readiness_weight, estimated_time
-		FROM questions
-		WHERE id = $1`
-
-	var meta QuestionContentMetadata
-	var hintsJSON []byte
-	err := s.pool.QueryRow(ctx, q, questionID).Scan(
-		&meta.EvaluationType, &meta.Explanation, &hintsJSON,
-		&meta.Solution, &meta.ReadinessWeight, &meta.EstimatedTime,
-	)
-	if errors.Is(err, pgx.ErrNoRows) {
-		return nil, nil
-	}
-	if err != nil {
-		return nil, fmt.Errorf("get question content metadata: %w", err)
-	}
-
-	if len(hintsJSON) > 0 {
-		if err := json.Unmarshal(hintsJSON, &meta.Hints); err != nil {
-			return nil, fmt.Errorf("unmarshal hints: %w", err)
-		}
-	}
-	return &meta, nil
 }

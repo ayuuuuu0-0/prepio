@@ -66,6 +66,7 @@ Schema (`lessons`, `lesson_steps`, `lesson_skills`, `lesson_attempts`, `lesson_s
 *Done when:* integration tests cover the attempt lifecycle, idempotency, invalid answers, and completion rules; a test proves client payloads contain no answers; `content-sync` is idempotent; gates pass.
 
 **L3, Lesson player (web) and legacy removal**
+**Status: implemented** on branch `feat/l3-lesson-player` (player, journey, legacy removal), pending review. Dropped with the legacy loop, beyond the list below: `question_skills`, `node_pools`, `node_skills`, and `user_journey_progress` (all reference `questions` or the removed pool/index builders, and nothing reads them). The skill catalog, `user_skill_scores`, XP, gems, and streaks are kept. The web exercise types beyond `mcq` arrive in L6; a lesson step the player cannot render shows a leave-lesson message rather than a placeholder.
 Player shell (focus mode, top bar, progress, combo), feedback tray, MCQ step, miss re-queue, celebration, summary card, journey preview sheet, node-completion animation, unlock messaging; companion in the player. Then **remove the legacy loop**: `/challenge`, daily papers, the legacy question/answer flow and `question.answered` event, journey index/pool builders and the `JourneyPoolSelection` flag, `question_pools*`, `questions`, `daily_papers*`, `user_question_history` (new migration). Keep the rubric evaluator for `prose`.
 *Done when:* a user completes a real lesson end to end from the journey; legacy grep is clean; screenshots reviewed; gates pass.
 

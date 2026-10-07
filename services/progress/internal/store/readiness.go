@@ -2,13 +2,10 @@ package store
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"time"
 
-	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/prepio/prepio/config"
 )
 
 // UserSkillScore is a row from user_skill_scores joined with skill metadata.
@@ -21,14 +18,6 @@ type UserSkillScore struct {
 	Attempts        int
 	LastPracticedAt *time.Time
 	Source          string
-}
-
-// QuestionSkillContribution holds data needed to update mastery from an answer.
-type QuestionSkillContribution struct {
-	SkillID         string
-	SkillWeight     float64
-	ReadinessWeight float64
-	Difficulty      string
 }
 
 // ReadinessStore handles skill mastery queries.
@@ -73,88 +62,4 @@ func (s *ReadinessStore) ListUserSkillScores(ctx context.Context, userID string)
 		scores = append(scores, row)
 	}
 	return scores, rows.Err()
-}
-
-// GetUserSkillScore returns mastery for one user/skill pair.
-func (s *ReadinessStore) GetUserSkillScore(ctx context.Context, userID, skillID string) (*UserSkillScore, error) {
-	const q = `
-		SELECT uss.user_id, uss.skill_id, sk.slug, sk.name,
-		       uss.mastery, uss.attempts, uss.last_practiced_at, uss.source
-		FROM user_skill_scores uss
-		JOIN skills sk ON sk.id = uss.skill_id
-		WHERE uss.user_id = $1 AND uss.skill_id = $2`
-
-	var row UserSkillScore
-	err := s.pool.QueryRow(ctx, q, userID, skillID).Scan(
-		&row.UserID, &row.SkillID, &row.SkillSlug, &row.SkillName,
-		&row.Mastery, &row.Attempts, &row.LastPracticedAt, &row.Source,
-	)
-	if errors.Is(err, pgx.ErrNoRows) {
-		return nil, nil
-	}
-	if err != nil {
-		return nil, fmt.Errorf("get user skill score: %w", err)
-	}
-	return &row, nil
-}
-
-// UpsertUserSkillScore inserts or updates a user's skill mastery.
-func (s *ReadinessStore) UpsertUserSkillScore(
-	ctx context.Context,
-	userID, skillID string,
-	mastery, attempts int,
-	practicedAt time.Time,
-	source string,
-) error {
-	if len(userID) == 0 || len(skillID) == 0 {
-		return fmt.Errorf("user id and skill id are required")
-	}
-	if len(source) == 0 {
-		source = config.ReadinessSourceLive
-	}
-
-	const q = `
-		INSERT INTO user_skill_scores (user_id, skill_id, mastery, attempts, last_practiced_at, source)
-		VALUES ($1, $2, $3, $4, $5, $6)
-		ON CONFLICT (user_id, skill_id) DO UPDATE SET
-			mastery = EXCLUDED.mastery,
-			attempts = EXCLUDED.attempts,
-			last_practiced_at = EXCLUDED.last_practiced_at,
-			source = EXCLUDED.source,
-			updated_at = now()`
-
-	_, err := s.pool.Exec(ctx, q, userID, skillID, mastery, attempts, practicedAt, source)
-	if err != nil {
-		return fmt.Errorf("upsert user skill score: %w", err)
-	}
-	return nil
-}
-
-// ListQuestionSkillContributions returns skill mappings and weights for a question.
-func (s *ReadinessStore) ListQuestionSkillContributions(ctx context.Context, questionID string) ([]QuestionSkillContribution, error) {
-	if len(questionID) == 0 {
-		return nil, fmt.Errorf("question id is required")
-	}
-
-	const q = `
-		SELECT qs.skill_id, qs.weight::float8, q.readiness_weight::float8, q.difficulty
-		FROM question_skills qs
-		JOIN questions q ON q.id = qs.question_id
-		WHERE qs.question_id = $1`
-
-	rows, err := s.pool.Query(ctx, q, questionID)
-	if err != nil {
-		return nil, fmt.Errorf("list question skill contributions: %w", err)
-	}
-	defer rows.Close()
-
-	contributions := make([]QuestionSkillContribution, 0)
-	for rows.Next() {
-		var row QuestionSkillContribution
-		if err := rows.Scan(&row.SkillID, &row.SkillWeight, &row.ReadinessWeight, &row.Difficulty); err != nil {
-			return nil, fmt.Errorf("scan question skill contribution: %w", err)
-		}
-		contributions = append(contributions, row)
-	}
-	return contributions, rows.Err()
 }

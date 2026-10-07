@@ -58,3 +58,47 @@ func TestLessonMigrationsRollBack(t *testing.T) {
 	require.Equal(t, 4, topics)
 	require.Equal(t, 4, mapped, "every topic has at least one skill category")
 }
+
+// TestLegacyQuestionLoopMigrationRollsBack proves the Phase L3 drop applies, that every
+// legacy table is gone afterwards, and that its rollback restores the structure.
+func TestLegacyQuestionLoopMigrationRollsBack(t *testing.T) {
+	pool, _ := testdb.Start(t)
+	testdb.Migrate(t, pool)
+	ctx := context.Background()
+
+	legacy := []string{
+		"questions", "question_skills", "question_pools", "pool_questions", "node_pools",
+		"node_skills", "user_question_history", "daily_papers", "daily_paper_questions", "user_journey_progress",
+	}
+	kept := []string{"skills", "subskills", "user_skill_scores", "worlds", "journey_nodes", "lessons", "mastery_ledger"}
+
+	exists := func(name string) bool {
+		var ok bool
+		require.NoError(t, pool.QueryRow(ctx, `SELECT to_regclass('public.'||$1) IS NOT NULL`, name).Scan(&ok))
+		return ok
+	}
+	run := func(suffix string) {
+		t.Helper()
+		raw, err := os.ReadFile(filepath.Join("..", "..", "migrations", "000038_drop_legacy_question_loop."+suffix+".sql"))
+		require.NoError(t, err)
+		_, err = pool.Exec(ctx, string(raw))
+		require.NoError(t, err, suffix)
+	}
+
+	for _, table := range legacy {
+		require.False(t, exists(table), "%s must be dropped by the migration", table)
+	}
+	for _, table := range kept {
+		require.True(t, exists(table), "%s must survive", table)
+	}
+
+	run("down")
+	for _, table := range legacy {
+		require.True(t, exists(table), "%s must be restored by the rollback", table)
+	}
+
+	run("up")
+	for _, table := range legacy {
+		require.False(t, exists(table), "%s must be dropped again", table)
+	}
+}

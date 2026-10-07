@@ -67,7 +67,7 @@ func TestFirstQuestionOfDayIncrementsStreak(t *testing.T) {
 	loc, _ := time.LoadLocation(constants.DefaultTimezone)
 	submittedAt := time.Date(2026, 6, 9, 10, 0, 0, 0, loc)
 
-	require.NoError(t, env.svc.ProcessQuestionAnswered(ctx, factories.QuestionAnsweredEvent(env.userID, submittedAt)))
+	require.NoError(t, env.svc.ProcessLessonCompleted(ctx, factories.LessonCompletedEvent(env.userID, submittedAt)))
 
 	resp, err := env.svc.GetMe(ctx, env.userID, constants.DefaultTimezone)
 	require.NoError(t, err)
@@ -81,8 +81,8 @@ func TestSecondQuestionSameDayDoesNotDoubleIncrement(t *testing.T) {
 	loc, _ := time.LoadLocation(constants.DefaultTimezone)
 	day := time.Date(2026, 6, 9, 10, 0, 0, 0, loc)
 
-	require.NoError(t, env.svc.ProcessQuestionAnswered(ctx, factories.QuestionAnsweredEvent(env.userID, day)))
-	require.NoError(t, env.svc.ProcessQuestionAnswered(ctx, factories.QuestionAnsweredEvent(env.userID, day.Add(2*time.Hour))))
+	require.NoError(t, env.svc.ProcessLessonCompleted(ctx, factories.LessonCompletedEvent(env.userID, day)))
+	require.NoError(t, env.svc.ProcessLessonCompleted(ctx, factories.LessonCompletedEvent(env.userID, day.Add(2*time.Hour))))
 
 	resp, err := env.svc.GetMe(ctx, env.userID, constants.DefaultTimezone)
 	require.NoError(t, err)
@@ -97,8 +97,8 @@ func TestMissedDayWithoutFreezeBreaksStreak(t *testing.T) {
 	day1 := time.Date(2026, 6, 9, 10, 0, 0, 0, loc)
 	day3 := time.Date(2026, 6, 11, 10, 0, 0, 0, loc)
 
-	require.NoError(t, env.svc.ProcessQuestionAnswered(ctx, factories.QuestionAnsweredEvent(env.userID, day1)))
-	require.NoError(t, env.svc.ProcessQuestionAnswered(ctx, factories.QuestionAnsweredEvent(env.userID, day3)))
+	require.NoError(t, env.svc.ProcessLessonCompleted(ctx, factories.LessonCompletedEvent(env.userID, day1)))
+	require.NoError(t, env.svc.ProcessLessonCompleted(ctx, factories.LessonCompletedEvent(env.userID, day3)))
 
 	resp, err := env.svc.GetMe(ctx, env.userID, constants.DefaultTimezone)
 	require.NoError(t, err)
@@ -117,8 +117,8 @@ func TestMissedDayWithFreezeConsumesFreezeAndHoldsStreak(t *testing.T) {
 	day1 := time.Date(2026, 6, 9, 10, 0, 0, 0, loc)
 	day3 := time.Date(2026, 6, 11, 10, 0, 0, 0, loc)
 
-	require.NoError(t, env.svc.ProcessQuestionAnswered(ctx, factories.QuestionAnsweredEvent(env.userID, day1)))
-	require.NoError(t, env.svc.ProcessQuestionAnswered(ctx, factories.QuestionAnsweredEvent(env.userID, day3)))
+	require.NoError(t, env.svc.ProcessLessonCompleted(ctx, factories.LessonCompletedEvent(env.userID, day1)))
+	require.NoError(t, env.svc.ProcessLessonCompleted(ctx, factories.LessonCompletedEvent(env.userID, day3)))
 
 	resp, err := env.svc.GetMe(ctx, env.userID, constants.DefaultTimezone)
 	require.NoError(t, err)

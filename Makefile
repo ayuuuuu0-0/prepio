@@ -54,4 +54,4 @@ dev-all:
 	./scripts/start-all.sh
 
 e2e:
-	./scripts/e2e-test.sh
+	node scripts/lesson-smoke.mjs

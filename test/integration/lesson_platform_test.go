@@ -552,3 +552,13 @@ func TestLessonPlatform(t *testing.T) {
 		require.Equal(t, 2, versions, "old versions are kept, never deleted")
 	})
 }
+
+type fakeGems struct{ balance int }
+
+func (f *fakeGems) DeductGems(_ context.Context, _ string, amount int, _ string) error {
+	if f.balance < amount {
+		return errors.New("insufficient gems")
+	}
+	f.balance -= amount
+	return nil
+}

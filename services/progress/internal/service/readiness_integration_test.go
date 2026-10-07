@@ -6,14 +6,11 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
-	"time"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/google/uuid"
 	"github.com/prepio/prepio/services/progress/internal/handler"
 	"github.com/prepio/prepio/services/progress/internal/service"
 	"github.com/prepio/prepio/services/progress/internal/store"
-	"github.com/prepio/prepio/shared/events"
 	"github.com/prepio/prepio/shared/jwt"
 	"github.com/prepio/prepio/shared/middleware"
 	"github.com/prepio/prepio/test/testdb"
@@ -34,15 +31,10 @@ func TestReadinessV2Endpoints(t *testing.T) {
 		INSERT INTO users (email, username, password_hash)
 		VALUES ('rv2@test.com', 'rv2user', 'hash') RETURNING id`).Scan(&userID))
 
-	event := events.QuestionAnswered{
-		EventID:     uuid.NewString(),
-		UserID:      userID,
-		QuestionID:  "b0000000-0000-4000-8000-000000000001",
-		Score:       90,
-		Correct:     true,
-		SubmittedAt: time.Now().UTC(),
-	}
-	require.NoError(t, readinessService.ProcessQuestionAnswered(ctx, event))
+	_, err := pool.Exec(ctx, `
+		INSERT INTO user_skill_scores (user_id, skill_id, mastery, attempts, last_practiced_at)
+		VALUES ($1, 'b2000001-0000-4000-8000-000000000017', 42, 2, now())`, userID)
+	require.NoError(t, err)
 
 	redisClient, _ := testredis.New(t)
 	signer, err := jwt.NewSigner("readiness-v2-smoke")

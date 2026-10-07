@@ -1,13 +1,6 @@
 package config
 
-// XP awarded per question by difficulty.
-var XPByDifficulty = map[string]int{
-	"easy":   20,
-	"medium": 50,
-	"hard":   80,
-}
-
-// Gems awarded per correct answer by difficulty.
+// Gems awarded for a first lesson completion, by difficulty (halved below the accuracy threshold).
 var GemsByDifficulty = map[string]int{
 	"easy":   5,
 	"medium": 10,
@@ -22,15 +15,3 @@ const StreakFreezeGemCost = 100
 
 // MaxStreakFreezes is the maximum freezes a user can hold at once.
 const MaxStreakFreezes = 2
-
-// DailyPaperMaxQuestions is the maximum questions in a daily paper.
-const DailyPaperMaxQuestions = 5
-
-// MinimumAnswersForStreak is the minimum submitted answers to qualify for a streak.
-const MinimumAnswersForStreak = 1
-
-// WeekendChallengeGemBonus is the gem bonus for completing a weekend challenge.
-const WeekendChallengeGemBonus = 50
-
-// DefaultGemBalance is the starting gem balance for new users.
-const DefaultGemBalance = 0

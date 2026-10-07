@@ -43,16 +43,3 @@ func TestSkillServiceGetSkillBySlugNotFound(t *testing.T) {
 	_, err := skillService.GetSkillBySlug(ctx, "nonexistent-skill")
 	require.ErrorIs(t, err, service.ErrSkillNotFound)
 }
-
-func TestSkillServiceListQuestionSkills(t *testing.T) {
-	pool, _ := testdb.Start(t)
-	testdb.Migrate(t, pool)
-
-	skillService := service.NewSkillService(store.NewSkillStore(pool))
-	ctx := context.Background()
-
-	mappings, err := skillService.ListQuestionSkills(ctx, "b0000000-0000-4000-8000-000000000009")
-	require.NoError(t, err)
-	require.Len(t, mappings, 1)
-	require.Equal(t, "behavioral-star", mappings[0].SkillSlug)
-}

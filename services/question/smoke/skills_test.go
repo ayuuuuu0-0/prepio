@@ -1,12 +1,14 @@
 package smoke_test
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/prepio/prepio/services/question/internal/handler"
 	"github.com/prepio/prepio/services/question/internal/service"
 	"github.com/prepio/prepio/services/question/internal/store"
@@ -35,7 +37,6 @@ func TestListSkillsEndpoint(t *testing.T) {
 		r.Use(middleware.Auth(signer, redisClient))
 		r.Get("/skills", skillHandler.ListSkills)
 		r.Get("/skills/{slug}", skillHandler.GetSkill)
-		r.Get("/questions/{id}/skills", skillHandler.GetQuestionSkills)
 	})
 	server := httptest.NewServer(r)
 	t.Cleanup(server.Close)
@@ -52,11 +53,6 @@ func TestListSkillsEndpoint(t *testing.T) {
 	require.Equal(t, http.StatusOK, skillResp.StatusCode)
 	skill := decodeDataMap(t, skillResp)
 	require.Equal(t, "arrays", skill["slug"])
-
-	qSkillsResp := getAuth(t, server.URL+"/api/v1/questions/b0000000-0000-4000-8000-000000000001/skills", token)
-	require.Equal(t, http.StatusOK, qSkillsResp.StatusCode)
-	qSkills := decodeDataArray(t, qSkillsResp)
-	require.NotEmpty(t, qSkills)
 }
 
 func decodeDataArray(t *testing.T, resp *http.Response) []any {
@@ -77,4 +73,25 @@ func decodeDataMap(t *testing.T, resp *http.Response) map[string]any {
 	}
 	require.NoError(t, json.NewDecoder(resp.Body).Decode(&envelope))
 	return envelope.Data
+}
+
+func seedUser(t *testing.T, pool *pgxpool.Pool) string {
+	t.Helper()
+	var userID string
+	err := pool.QueryRow(context.Background(), `
+		INSERT INTO users (email, username, password_hash)
+		VALUES ('skills@test.com', 'skillsuser', 'hash')
+		RETURNING id`).Scan(&userID)
+	require.NoError(t, err)
+	return userID
+}
+
+func getAuth(t *testing.T, url, token string) *http.Response {
+	t.Helper()
+	req, err := http.NewRequest(http.MethodGet, url, nil)
+	require.NoError(t, err)
+	req.Header.Set("Authorization", "Bearer "+token)
+	resp, err := http.DefaultClient.Do(req)
+	require.NoError(t, err)
+	return resp
 }

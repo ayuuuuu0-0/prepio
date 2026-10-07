@@ -21,8 +21,3 @@ func GemsKey(userID string) string {
 func NotifCapKey(userID, dateYYYYMMDD string) string {
 	return fmt.Sprintf("notif_cap:%s:%s", userID, dateYYYYMMDD)
 }
-
-// SessionKey returns the Redis key for a question session.
-func SessionKey(sessionID string) string {
-	return fmt.Sprintf("session:%s", sessionID)
-}

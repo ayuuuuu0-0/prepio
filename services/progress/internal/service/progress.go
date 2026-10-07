@@ -28,52 +28,6 @@ func NewProgressService(progress *store.ProgressStore, ledger *store.LedgerStore
 	return &ProgressService{progress: progress, ledger: ledger, publisher: publisher}
 }
 
-// ProcessQuestionAnswered awards XP and gems for a correct answer.
-func (s *ProgressService) ProcessQuestionAnswered(ctx context.Context, event events.QuestionAnswered) error {
-	if !event.Correct {
-		return nil
-	}
-
-	xp := event.XPAwarded
-	gems := event.GemsAwarded
-	if xp == 0 {
-		xp = config.XPByDifficulty[event.Difficulty]
-		if event.Score > 0 {
-			xp = xp * event.Score / 100
-		}
-	}
-	if gems == 0 {
-		gems = config.GemsByDifficulty[event.Difficulty]
-		if event.Score > 0 && event.Score < 80 {
-			gems = gems / 2
-		}
-	}
-
-	state, err := s.progress.Get(ctx, event.UserID)
-	if err != nil {
-		return err
-	}
-
-	levelBefore := config.CurrentLevel(state.TotalXP)
-	state.TotalXP += xp
-	state.GemBalance += gems
-	state.CurrentLevel = config.CurrentLevel(state.TotalXP)
-
-	if err := s.progress.Upsert(ctx, *state); err != nil {
-		return err
-	}
-	if err := s.ledger.InsertXP(ctx, event.UserID, xp, "question_answered", event.EventID); err != nil {
-		return err
-	}
-	if gems > 0 {
-		if err := s.ledger.InsertGem(ctx, event.UserID, gems, "question_answered", event.EventID); err != nil {
-			return err
-		}
-	}
-
-	return s.emitUpdated(ctx, event.UserID, xp, gems, state, levelBefore)
-}
-
 // ProcessStreakUpdated awards streak bonus gems when a streak increments.
 func (s *ProgressService) ProcessStreakUpdated(ctx context.Context, event events.StreakUpdated) error {
 	if event.StreakBroken || event.CurrentStreak <= event.PreviousStreak {

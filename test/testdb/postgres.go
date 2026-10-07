@@ -3,6 +3,7 @@ package testdb
 import (
 	"context"
 	"fmt"
+	"net"
 	"os"
 	"path/filepath"
 	"testing"
@@ -16,17 +17,33 @@ import (
 func Start(t *testing.T) (*pgxpool.Pool, string) {
 	t.Helper()
 
-	port := uint32(15432 + (time.Now().UnixNano() % 1000))
+	// Every test gets its own runtime directory and a free port, so test packages running in
+	// parallel never share a data directory. (Only the downloaded archive cache is shared.)
+	port := freePort(t)
+	runtimeDir, err := os.MkdirTemp("", "prepio-pg-")
+	if err != nil {
+		t.Fatalf("create postgres runtime dir: %v", err)
+	}
 	db := embeddedpostgres.NewDatabase(embeddedpostgres.DefaultConfig().
+		RuntimePath(runtimeDir).
 		Port(port).
 		Database("prepio").
 		Username("prepio").
 		Password("prepio"))
 
 	if err := db.Start(); err != nil {
-		t.Skipf("embedded postgres unavailable: %v", err)
+		_ = os.RemoveAll(runtimeDir)
+		// A database that cannot start must fail the test, never silently skip it. Set
+		// PREPIO_SKIP_DB_TESTS=1 to opt out on machines that cannot run an embedded Postgres.
+		if os.Getenv("PREPIO_SKIP_DB_TESTS") == "1" {
+			t.Skipf("embedded postgres unavailable: %v", err)
+		}
+		t.Fatalf("embedded postgres failed to start: %v", err)
 	}
-	t.Cleanup(func() { _ = db.Stop() })
+	t.Cleanup(func() {
+		_ = db.Stop()
+		_ = os.RemoveAll(runtimeDir)
+	})
 
 	dsn := fmt.Sprintf("postgres://prepio:prepio@localhost:%d/prepio?sslmode=disable", port)
 	pool := connect(t, dsn)
@@ -101,4 +118,15 @@ func findRepoRoot() (string, error) {
 		}
 		dir = parent
 	}
+}
+
+// freePort asks the OS for an unused TCP port.
+func freePort(t *testing.T) uint32 {
+	t.Helper()
+	l, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatalf("find free port: %v", err)
+	}
+	defer l.Close()
+	return uint32(l.Addr().(*net.TCPAddr).Port)
 }

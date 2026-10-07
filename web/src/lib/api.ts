@@ -1,3 +1,11 @@
+import type {
+  Answer,
+  AnswerResult,
+  AttemptData,
+  CompletionData,
+  PathData,
+} from "@/lib/lesson/types";
+
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080";
 const REFRESH_KEY = "prepio_refresh_token"; // mobile fallback only
 
@@ -6,12 +14,25 @@ export type ApiError = { code: string; message: string };
 type Envelope<T> = { data: T };
 type ErrorEnvelope = { error: ApiError };
 
+/** ApiRequestError carries the HTTP status and the server's machine-readable code. */
+export class ApiRequestError extends Error {
+  constructor(
+    message: string,
+    readonly status: number,
+    readonly code: string,
+  ) {
+    super(message);
+    this.name = "ApiRequestError";
+  }
+}
+
 export class ApiClient {
   private accessToken: string | null = null;
   private refreshPromise: Promise<boolean> | null = null;
 
   /** setAuthTokens stores access token in memory; refresh token lives in httpOnly cookie (set by server). */
-  setAuthTokens(accessToken: string | null, _refreshToken: string | null = null) {
+  setAuthTokens(accessToken: string | null, refreshToken: string | null = null) {
+    void refreshToken;
     this.accessToken = accessToken;
     if (typeof window !== "undefined") {
       sessionStorage.removeItem(REFRESH_KEY);
@@ -90,12 +111,12 @@ export class ApiClient {
       const refreshed = await this.refreshAccessToken();
       if (refreshed) return this.request<T>(path, init, false);
       this.setAuthTokens(null, null);
-      throw new Error("session expired — please log in again");
+      throw new ApiRequestError("session expired — please log in again", 401, "unauthorized");
     }
 
     if (!res.ok) {
       const err = (body as ErrorEnvelope).error;
-      throw new Error(err?.message ?? "request failed");
+      throw new ApiRequestError(err?.message ?? "request failed", res.status, err?.code ?? "unknown");
     }
     return (body as Envelope<T>).data;
   }
@@ -136,26 +157,30 @@ export class ApiClient {
     return this.request<DashboardHome>("/api/v1/dashboard/home");
   }
 
-  getDailyPaper() {
-    return this.request<DailyPaper>("/api/v1/questions/daily");
+  /** getPath returns worlds and nodes with status, previews, and unlock hints. */
+  getPath() {
+    return this.request<PathData>("/api/v1/path");
   }
 
-  getQuestionHistory(sessionId: string) {
-    return this.request<HistoryEntry[]>(`/api/v1/questions/history?session_id=${sessionId}`);
-  }
-
-  getJourney() {
-    return this.request<JourneyData>("/api/v1/journey");
-  }
-
-  submitAnswer(questionId: string, sessionId: string, answer: string) {
-    return this.request<SubmitResponse>(`/api/v1/questions/${questionId}/submit`, {
+  /** startAttempt starts a lesson attempt, or resumes the one in progress. */
+  startAttempt(lessonId: string) {
+    return this.request<AttemptData>(`/api/v1/lessons/${encodeURIComponent(lessonId)}/attempts`, {
       method: "POST",
-      body: JSON.stringify({
-        session_id: sessionId,
-        answer,
-        time_spent_seconds: 60,
-      }),
+    });
+  }
+
+  /** answerStep sends one try; the server grades it. A repeated try returns the stored result. */
+  answerStep(attemptId: string, stepId: string, tryNo: number, answer: Answer) {
+    return this.request<AnswerResult>(
+      `/api/v1/attempts/${encodeURIComponent(attemptId)}/steps/${encodeURIComponent(stepId)}/answer`,
+      { method: "POST", body: JSON.stringify({ try: tryNo, answer }) },
+    );
+  }
+
+  /** completeAttempt finishes the attempt; the response includes Progress rewards. */
+  completeAttempt(attemptId: string) {
+    return this.request<CompletionData>(`/api/v1/attempts/${encodeURIComponent(attemptId)}/complete`, {
+      method: "POST",
     });
   }
 }
@@ -208,53 +233,6 @@ export type DashboardHome = {
   }[];
   companion_message: string;
   onboarding_needed: boolean;
-};
-
-export type DailyPaper = {
-  session_id: string;
-  date: string;
-  questions: Question[];
-  minimum_to_streak: number;
-};
-
-export type Question = {
-  id: string;
-  body: string;
-  round_type: string;
-  difficulty: string;
-  is_weekend: boolean;
-};
-
-export type HistoryEntry = {
-  question_id: string;
-  session_id: string;
-  correct: boolean;
-  score: number;
-  submitted_at: string;
-};
-
-export type SubmitResponse = {
-  correct: boolean;
-  score: number;
-  feedback: string;
-  xp_awarded: number;
-  gems_awarded: number;
-  streak_updated: boolean;
-  strengths: string[];
-  gaps: string[];
-};
-
-export type JourneyData = {
-  world: { id: string; slug: string; name: string; description: string; theme: string };
-  nodes: {
-    id: string;
-    label: string;
-    node_type: string;
-    status: string;
-    question_id?: string;
-    sort_order: number;
-  }[];
-  session_id: string;
 };
 
 export const api = new ApiClient();

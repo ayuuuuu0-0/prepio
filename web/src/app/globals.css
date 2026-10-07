@@ -199,3 +199,55 @@ body {
 .stagger-2 { animation-delay: 0.10s; }
 .stagger-3 { animation-delay: 0.15s; }
 .stagger-4 { animation-delay: 0.20s; }
+
+/* ─── Lesson player ──────────────────────────────────────────────── */
+@keyframes tray-up {
+  from { transform: translateY(100%); opacity: 0.6; }
+  to   { transform: translateY(0); opacity: 1; }
+}
+
+.animate-tray {
+  animation: tray-up 0.28s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes sheet-up {
+  from { transform: translateY(24px); opacity: 0; }
+  to   { transform: translateY(0); opacity: 1; }
+}
+
+.animate-sheet {
+  animation: sheet-up 0.26s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes node-complete {
+  0%   { transform: scale(1); box-shadow: 0 0 0 0 rgba(52, 211, 153, 0.7); }
+  40%  { transform: scale(1.25); box-shadow: 0 0 0 18px rgba(52, 211, 153, 0); }
+  100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(52, 211, 153, 0); }
+}
+
+.animate-node-complete {
+  animation: node-complete 0.9s cubic-bezier(0.34, 1.56, 0.64, 1) 0.2s both;
+}
+
+@keyframes node-unlock {
+  0%   { transform: scale(0.85); opacity: 0.4; }
+  60%  { transform: scale(1.12); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+.animate-node-unlock {
+  animation: node-unlock 0.7s cubic-bezier(0.34, 1.56, 0.64, 1) 1.1s both;
+}
+
+/* ─── Reduced motion: respect the user's setting everywhere ───────── */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    animation-delay: 0ms !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
