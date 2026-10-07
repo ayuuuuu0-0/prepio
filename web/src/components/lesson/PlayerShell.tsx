@@ -13,6 +13,7 @@ export function PlayerShell({
   children,
   tray,
   companion,
+  onReplayIntro,
 }: {
   progress: number;
   combo: number;
@@ -23,6 +24,8 @@ export function PlayerShell({
   children: ReactNode;
   tray?: ReactNode;
   companion?: ReactNode;
+  /** When set, shows a button that replays the lesson intro. */
+  onReplayIntro?: () => void;
 }) {
   const pct = Math.round(Math.max(0, Math.min(1, progress)) * 100);
 
@@ -70,6 +73,18 @@ export function PlayerShell({
           <span aria-hidden>⚡</span>
           {combo}
         </div>
+
+        {onReplayIntro && (
+          <button
+            type="button"
+            onClick={onReplayIntro}
+            aria-label="Replay the intro"
+            className="font-display flex h-10 shrink-0 items-center gap-1 rounded-full px-3 text-xs font-bold transition-colors hover:bg-white/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#7C6EF5]"
+            style={{ color: "#8B92A8", border: "1px solid #2E3347" }}
+          >
+            <span aria-hidden>↺</span> Intro
+          </button>
+        )}
 
         {companion}
       </header>

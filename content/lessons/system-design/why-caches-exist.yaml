@@ -16,9 +16,9 @@ steps:
   - id: intro
     type: intro
     beats:
-      - { text: "Reading from a database is slow. Reading from memory is fast.", emphasis: "memory", durationMs: 4000 }
-      - { text: "A cache keeps a copy of hot data close by, so most requests never reach the database.", emphasis: "hot data", durationMs: 5000 }
-      - { text: "The trade-off: the copy can go stale. Every cache design is a bet on that.", emphasis: "stale", durationMs: 4500 }
+      - { text: "Reading from a database is slow. Reading from memory is fast.", emphasis: "memory", visual: bars, durationMs: 4000 }
+      - { text: "A cache keeps a copy of hot data close by, so most requests never reach the database.", emphasis: "hot data", visual: flow, durationMs: 5000 }
+      - { text: "The trade-off: the copy can go stale. Every cache design is a bet on that.", emphasis: "stale", visual: pulse, durationMs: 4500 }
   - id: read-heavy
     type: mcq
     prompt: "A product page is read 10,000 times for every time it is edited. Which change reduces database load the most?"

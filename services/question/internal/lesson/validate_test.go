@@ -80,6 +80,48 @@ func TestValidationRules(t *testing.T) {
 	}
 }
 
+func TestIntroMotionValidation(t *testing.T) {
+	intro := func(c *lesson.Content) *lesson.Step { return &c.Lessons[0].Steps[0] }
+
+	t.Run("known visuals and https or site-relative media are accepted", func(t *testing.T) {
+		c := validContent()
+		for i, name := range lesson.IntroVisuals {
+			intro(c).Beats[0].Visual = name
+			require.Empty(t, lesson.Validate(c, catalog), "visual %d %s", i, name)
+		}
+		for _, url := range []string{"https://cdn.example.com/a.mp4", "https://cdn.example.com/a.PNG?v=2", "/media/a.webm", "/media/a.svg#x"} {
+			intro(c).MediaURL = url
+			require.Empty(t, lesson.Validate(c, catalog), url)
+		}
+	})
+
+	tests := []struct {
+		name   string
+		mutate func(c *lesson.Content)
+		want   string
+	}{
+		{"unknown visual", func(c *lesson.Content) { intro(c).Beats[0].Visual = "hologram" }, `visual "hologram" is unknown`},
+		{"http media", func(c *lesson.Content) { intro(c).MediaURL = "http://cdn.example.com/a.png" }, "mediaUrl must be"},
+		{"protocol-relative media", func(c *lesson.Content) { intro(c).MediaURL = "//evil.example.com/a.png" }, "mediaUrl must be"},
+		{"script media", func(c *lesson.Content) { intro(c).MediaURL = "javascript:alert(1)" }, "mediaUrl must be"},
+		{"data url media", func(c *lesson.Content) { intro(c).MediaURL = "data:image/png;base64,AAAA" }, "mediaUrl must be"},
+		{"media of an unknown type", func(c *lesson.Content) { intro(c).MediaURL = "https://cdn.example.com/page.html" }, "mediaUrl must be"},
+		{"beat too short", func(c *lesson.Content) { intro(c).Beats[0].DurationMs = 400 }, "durationMs must be between"},
+		{"beat too long", func(c *lesson.Content) { intro(c).Beats[0].DurationMs = 20000 }, "durationMs must be between"},
+		{"intro too long overall", func(c *lesson.Content) {
+			b := lesson.Beat{Text: "again", DurationMs: 11000}
+			intro(c).Beats = append(intro(c).Beats, b, b, b, b)
+		}, "keep it under"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			c := validContent()
+			tt.mutate(c)
+			require.Contains(t, strings.Join(lesson.Validate(c, catalog), "\n"), tt.want)
+		})
+	}
+}
+
 func TestArrangeValidation(t *testing.T) {
 	c := validContent()
 	c.Lessons[0].Steps[3] = lesson.Step{ID: "q3", Type: lesson.StepArrange, Prompt: "p",

@@ -3,6 +3,7 @@ package lesson
 import (
 	"fmt"
 	"math"
+	"net/url"
 	"regexp"
 	"slices"
 	"strconv"
@@ -25,7 +26,48 @@ const (
 	minSummary       = 2
 	maxSummary       = 4
 	weightTolerance  = 0.001
+
+	// Intro timing: a beat is long enough to read and short enough not to drag, and the whole
+	// intro stays quick because it is always skippable but should not need to be.
+	minBeatMs  = 1500
+	maxBeatMs  = 12000
+	maxIntroMs = 45000
 )
+
+// IntroVisuals are the visual names an intro beat may use. Each must exist in the web client
+// (web/src/components/lesson/visuals.tsx); the list is kept here so an unknown name fails CI
+// instead of silently rendering nothing.
+var IntroVisuals = []string{"bars", "flow", "pulse"}
+
+var mediaExtensions = []string{".mp4", ".webm", ".png", ".jpg", ".jpeg", ".gif", ".webp", ".avif", ".svg"}
+
+// validMediaURL accepts https URLs and site-relative paths that point at known media types.
+// It mirrors the client, which refuses to render anything else.
+func validMediaURL(raw string) bool {
+	if strings.HasPrefix(raw, "//") {
+		return false
+	}
+	path := raw
+	if strings.HasPrefix(raw, "/") {
+		path = raw
+	} else {
+		u, err := url.Parse(raw)
+		if err != nil || u.Scheme != "https" || u.Host == "" {
+			return false
+		}
+		path = u.Path
+	}
+	if i := strings.IndexAny(path, "?#"); i >= 0 {
+		path = path[:i]
+	}
+	path = strings.ToLower(path)
+	for _, ext := range mediaExtensions {
+		if strings.HasSuffix(path, ext) {
+			return true
+		}
+	}
+	return false
+}
 
 // Catalog is the set of references a lesson may point to.
 // A nil Skills map skips skill resolution (offline validation).
@@ -297,16 +339,27 @@ func (v *validator) intro(scope string, s Step) {
 	if len(s.Beats) == 0 {
 		v.addf(scope, "intro needs at least one beat")
 	}
+	if s.MediaURL != "" && !validMediaURL(s.MediaURL) {
+		v.addf(scope, "mediaUrl must be an https URL or a site-relative path to a known image or video type")
+	}
+	total := 0
 	for i, b := range s.Beats {
+		total += b.DurationMs
 		if strings.TrimSpace(b.Text) == "" {
 			v.addf(scope, "beat %d has no text", i+1)
 		}
-		if b.DurationMs <= 0 {
-			v.addf(scope, "beat %d needs a positive durationMs", i+1)
+		if b.DurationMs < minBeatMs || b.DurationMs > maxBeatMs {
+			v.addf(scope, "beat %d durationMs must be between %d and %d", i+1, minBeatMs, maxBeatMs)
+		}
+		if b.Visual != "" && !slices.Contains(IntroVisuals, b.Visual) {
+			v.addf(scope, "beat %d visual %q is unknown (allowed: %s)", i+1, b.Visual, strings.Join(IntroVisuals, ", "))
 		}
 		if b.Emphasis != "" && !strings.Contains(b.Text, b.Emphasis) {
 			v.addf(scope, "beat %d emphasis %q is not part of its text", i+1, b.Emphasis)
 		}
+	}
+	if total > maxIntroMs {
+		v.addf(scope, "intro runs %ds, keep it under %ds", total/1000, maxIntroMs/1000)
 	}
 }
 

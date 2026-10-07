@@ -76,6 +76,8 @@ Never bypass this structure. Lesson completion does not unlock worlds directly: 
 | `type` | Payload | Graded by |
 |---|---|---|
 | `intro` | `beats[]` (`text`, `emphasis?`, `visual?`, `durationMs`), optional `mediaUrl` | not graded (marked viewed) |
+
+Intro motion: each beat plays for its `durationMs` (1.5-12 s; the whole intro at most 45 s): its words reveal, the `emphasis` phrase glows, and the next beat follows on its own. Tapping advances, "Skip intro" always works, it can be paused, and at the end it can be replayed (also from the player header). With reduced motion nothing auto-advances. `visual` is one of a fixed set of named illustrations the client draws (`bars`, `flow`, `pulse`); the validator rejects any other name, and adding one means adding it to both the web client and the validator. `mediaUrl` is optional, must be an `https://` URL or a site-relative path, and must end in a known image or video type (mp4, webm, png, jpg, gif, webp, avif, svg); it is decorative, so it must never carry information the text does not.
 | `mcq` | `prompt`, `options[]` (3–4), `answer` (index), `explanations.correct`, `explanations.wrong[index]` | deterministic |
 | `true_false` | `statement`, `answer` (bool), `explanation` | deterministic |
 | `fill_blank` | `code` with blanks written `___1___`, `___2___`, … (each exactly once), `bank[]` (includes distractors), `answers[]` (per blank), `explanation` | deterministic |
