@@ -143,12 +143,18 @@ export class ApiClient {
     return this.request<Companion[]>("/api/v1/companions");
   }
 
-  completeOnboarding(experienceLevel: string, companionId: string) {
+  /** getTopics returns the topic catalog (what a learner can choose to focus on). */
+  getTopics() {
+    return this.request<TopicInfo[]>("/api/v1/topics");
+  }
+
+  completeOnboarding(experienceLevel: string, companionId: string, focusTopics: string[]) {
     return this.request<Profile>("/api/v1/users/onboarding", {
       method: "POST",
       body: JSON.stringify({
         experience_level: experienceLevel,
         companion_id: companionId,
+        focus_topics: focusTopics,
       }),
     });
   }
@@ -204,6 +210,31 @@ export type Profile = {
   experience_level?: string;
   onboarding_completed: boolean;
   companion?: Companion;
+  focus_topics?: string[];
+};
+
+export type TopicInfo = { slug: string; name: string; description: string };
+
+/** TopicCard is the learner readiness in one topic; mastery is null until a skill is started. */
+export type TopicCard = {
+  slug: string;
+  name: string;
+  description: string;
+  mastery: number | null;
+  skills_started: number;
+  skills_total: number;
+  focused: boolean;
+};
+
+export type NextLesson = {
+  lesson_id: string;
+  title: string;
+  node_label: string;
+  world_name: string;
+  est_minutes: number;
+  xp_preview: number;
+  in_progress: boolean;
+  kind: "lesson" | "boss";
 };
 
 export type DashboardHome = {
@@ -220,17 +251,9 @@ export type DashboardHome = {
     xp_to_next_level: number;
   };
   companion: Companion;
-  league: { tier: string; rank: number; label: string; available: boolean };
-  daily_quests: {
-    id: string;
-    title: string;
-    progress: number;
-    target: number;
-    completed: boolean;
-    reward_xp: number;
-    reward_gems: number;
-    coming_soon: boolean;
-  }[];
+  topics: TopicCard[];
+  focus_topics: string[];
+  next_lesson: NextLesson | null;
   companion_message: string;
   onboarding_needed: boolean;
 };

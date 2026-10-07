@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"errors"
 	"slices"
 
 	"github.com/prepio/prepio/constants"
@@ -37,10 +38,14 @@ func (s *OnboardingService) ListCompanions(ctx context.Context) ([]dto.Character
 	return resp, nil
 }
 
-// Complete stores onboarding choices for the authenticated user.
+// Complete stores onboarding choices for the authenticated user: 1-3 focus topics, an
+// experience level, and a starter companion.
 func (s *OnboardingService) Complete(ctx context.Context, userID string, req dto.OnboardingRequest) (*dto.ProfileResponse, error) {
 	if len(req.ExperienceLevel) == 0 || len(req.CompanionID) == 0 {
 		return nil, ErrInvalidRequest
+	}
+	if err := validateFocusTopics(req.FocusTopics); err != nil {
+		return nil, err
 	}
 	if !slices.Contains(constants.ExperienceLevels, req.ExperienceLevel) {
 		return nil, ErrInvalidRequest
@@ -58,6 +63,13 @@ func (s *OnboardingService) Complete(ctx context.Context, userID string, req dto
 	}
 
 	if err := s.users.UnlockCharacter(ctx, userID, req.CompanionID); err != nil {
+		return nil, err
+	}
+
+	if err := s.users.SetFocusTopics(ctx, userID, req.FocusTopics); err != nil {
+		if errors.Is(err, store.ErrUnknownTopic) {
+			return nil, ErrInvalidRequest
+		}
 		return nil, err
 	}
 
@@ -85,12 +97,17 @@ func (s *OnboardingService) GetProfile(ctx context.Context, userID string) (*dto
 }
 
 func (s *OnboardingService) buildProfile(ctx context.Context, user *store.User) (*dto.ProfileResponse, error) {
+	focusTopics, err := s.users.ListFocusTopics(ctx, user.ID)
+	if err != nil {
+		return nil, err
+	}
 	resp := &dto.ProfileResponse{
 		ID:                  user.ID,
 		Email:               user.Email,
 		Username:            user.Username,
 		Timezone:            user.Timezone,
 		OnboardingCompleted: user.OnboardingCompleted,
+		FocusTopics:         focusTopics,
 	}
 	if user.ExperienceLevel != nil {
 		resp.ExperienceLevel = *user.ExperienceLevel
@@ -109,4 +126,23 @@ func (s *OnboardingService) buildProfile(ctx context.Context, user *store.User) 
 		}
 	}
 	return resp, nil
+}
+
+// maxFocusTopics is how many topics a learner may focus on.
+const maxFocusTopics = 3
+
+// validateFocusTopics requires 1-3 distinct topic slugs. Whether each slug exists is
+// checked against the topic catalog when they are stored.
+func validateFocusTopics(slugs []string) error {
+	if len(slugs) < 1 || len(slugs) > maxFocusTopics {
+		return ErrInvalidRequest
+	}
+	seen := make(map[string]bool, len(slugs))
+	for _, s := range slugs {
+		if s == "" || seen[s] {
+			return ErrInvalidRequest
+		}
+		seen[s] = true
+	}
+	return nil
 }

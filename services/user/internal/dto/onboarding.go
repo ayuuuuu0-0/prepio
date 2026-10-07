@@ -2,6 +2,7 @@ package dto
 
 // OnboardingRequest is the body for POST /api/v1/users/onboarding.
 type OnboardingRequest struct {
+	FocusTopics     []string `json:"focus_topics"`
 	ExperienceLevel string `json:"experience_level"`
 	CompanionID     string `json:"companion_id"`
 }
@@ -21,5 +22,6 @@ type ProfileResponse struct {
 	Timezone            string             `json:"timezone,omitempty"`
 	ExperienceLevel     string             `json:"experience_level,omitempty"`
 	OnboardingCompleted bool               `json:"onboarding_completed"`
+	FocusTopics         []string           `json:"focus_topics"`
 	Companion           *CharacterResponse `json:"companion,omitempty"`
 }

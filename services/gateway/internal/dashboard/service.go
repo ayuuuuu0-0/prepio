@@ -6,12 +6,13 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"strings"
+	"sync"
 
 	"github.com/prepio/prepio/config"
 )
 
-// Service aggregates dashboard data from upstream microservices.
+// Service aggregates dashboard data from upstream services. Aggregation does not change
+// ownership: every number here is computed and owned by the service it came from.
 type Service struct {
 	userURL     string
 	progressURL string
@@ -33,13 +34,14 @@ func NewService(userURL, progressURL, streakURL, questionURL string) *Service {
 
 // HomeResponse is returned by GET /api/v1/dashboard/home.
 type HomeResponse struct {
-	Streak           StreakCard       `json:"streak"`
-	Progress         ProgressCard     `json:"progress"`
-	Companion        CompanionCard    `json:"companion"`
-	League           LeagueCard       `json:"league"`
-	DailyQuests      []DailyQuestCard `json:"daily_quests"`
-	CompanionMessage string           `json:"companion_message"`
-	OnboardingNeeded bool             `json:"onboarding_needed"`
+	Streak           StreakCard    `json:"streak"`
+	Progress         ProgressCard  `json:"progress"`
+	Companion        CompanionCard `json:"companion"`
+	Topics           []TopicCard   `json:"topics"`
+	FocusTopics      []string      `json:"focus_topics"`
+	NextLesson       *NextLesson   `json:"next_lesson"`
+	CompanionMessage string        `json:"companion_message"`
+	OnboardingNeeded bool          `json:"onboarding_needed"`
 }
 
 // StreakCard summarizes streak state.
@@ -65,56 +67,74 @@ type CompanionCard struct {
 	Species string `json:"species"`
 }
 
-// LeagueCard summarizes league placement (placeholder until Phase 9).
-type LeagueCard struct {
-	Tier      string `json:"tier"`
-	Rank      int    `json:"rank"`
-	Label     string `json:"label"`
-	Available bool   `json:"available"`
+// TopicCard is the learner's readiness in one topic. Mastery is nil until a skill in the
+// topic has been practiced.
+type TopicCard struct {
+	Slug          string `json:"slug"`
+	Name          string `json:"name"`
+	Description   string `json:"description"`
+	Mastery       *int   `json:"mastery"`
+	SkillsStarted int    `json:"skills_started"`
+	SkillsTotal   int    `json:"skills_total"`
+	Focused       bool   `json:"focused"`
 }
 
-// DailyQuestCard is a daily quest entry.
-type DailyQuestCard struct {
-	ID         string `json:"id"`
+// NextLesson is the lesson the Continue button opens.
+type NextLesson struct {
+	LessonID   string `json:"lesson_id"`
 	Title      string `json:"title"`
-	Progress   int    `json:"progress"`
-	Target     int    `json:"target"`
-	Completed  bool   `json:"completed"`
-	RewardXP   int    `json:"reward_xp"`
-	RewardGems int    `json:"reward_gems"`
-	ComingSoon bool   `json:"coming_soon"`
+	NodeLabel  string `json:"node_label"`
+	WorldName  string `json:"world_name"`
+	EstMinutes int    `json:"est_minutes"`
+	XPPreview  int    `json:"xp_preview"`
+	InProgress bool   `json:"in_progress"`
+	Kind       string `json:"kind"`
 }
 
-// GetHome aggregates dashboard data for the authenticated user.
+// GetHome aggregates dashboard data for the authenticated user. Upstream calls run in
+// parallel; if any fails the dashboard fails, so it never shows partial or invented data.
 func (s *Service) GetHome(ctx context.Context, token string) (*HomeResponse, error) {
-	profile, err := s.fetchProfile(ctx, token)
-	if err != nil {
-		return nil, err
-	}
+	var (
+		wg      sync.WaitGroup
+		profile *profilePayload
+		prog    ProgressCard
+		streak  StreakCard
+		topics  []TopicCard
+		path    *pathPayload
+		errs    = make([]error, 5)
+	)
 
-	progress, err := s.fetchProgress(ctx, token)
-	if err != nil {
-		return nil, err
+	run := func(i int, fn func() error) {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			errs[i] = fn()
+		}()
 	}
+	run(0, func() (err error) { profile, err = s.fetchProfile(ctx, token); return })
+	run(1, func() (err error) { prog, err = s.fetchProgress(ctx, token); return })
+	run(2, func() (err error) { streak, err = s.fetchStreak(ctx, token); return })
+	run(3, func() (err error) { topics, err = s.fetchTopics(ctx, token); return })
+	run(4, func() (err error) { path, err = s.fetchPath(ctx, token); return })
+	wg.Wait()
 
-	streak, err := s.fetchStreak(ctx, token)
-	if err != nil {
-		return nil, err
+	for _, err := range errs {
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	resp := &HomeResponse{
-		Progress:         progress,
+		Progress:         prog,
 		Streak:           streak,
+		Topics:           orderTopics(topics, profile.FocusTopics),
+		FocusTopics:      profile.FocusTopics,
+		NextLesson:       nextLesson(path),
 		OnboardingNeeded: !profile.OnboardingCompleted,
-		League: LeagueCard{
-			Tier:      "",
-			Rank:      0,
-			Label:     "Leagues launching soon",
-			Available: false,
-		},
-		DailyQuests: comingSoonQuests(),
 	}
-
+	if resp.FocusTopics == nil {
+		resp.FocusTopics = []string{}
+	}
 	if profile.Companion != nil {
 		resp.Companion = CompanionCard{
 			ID:      profile.Companion.ID,
@@ -122,15 +142,79 @@ func (s *Service) GetHome(ctx context.Context, token string) (*HomeResponse, err
 			Species: profile.Companion.Species,
 		}
 	}
-
-	resp.CompanionMessage = companionMessage(resp.Companion.Name, progress)
-
+	resp.CompanionMessage = companionMessage(resp.Companion.Name, prog)
 	return resp, nil
+}
+
+// orderTopics puts the learner's focus topics first, in their chosen priority, then the rest
+// in catalog order. Focus never hides or locks a topic.
+func orderTopics(topics []TopicCard, focus []string) []TopicCard {
+	focused := make(map[string]bool, len(focus))
+	for _, slug := range focus {
+		focused[slug] = true
+	}
+	ordered := make([]TopicCard, 0, len(topics))
+	for _, slug := range focus {
+		for _, t := range topics {
+			if t.Slug == slug {
+				t.Focused = true
+				ordered = append(ordered, t)
+			}
+		}
+	}
+	for _, t := range topics {
+		if !focused[t.Slug] {
+			ordered = append(ordered, t)
+		}
+	}
+	return ordered
+}
+
+// nextLesson picks the node the path marks "current". Nil means there is nothing to continue
+// (no worlds yet, or everything is finished).
+func nextLesson(path *pathPayload) *NextLesson {
+	if path == nil {
+		return nil
+	}
+	for _, w := range path.Worlds {
+		for _, n := range w.Nodes {
+			if n.Status == "current" {
+				return &NextLesson{
+					LessonID:   n.LessonID,
+					Title:      n.Title,
+					NodeLabel:  n.Label,
+					WorldName:  w.Name,
+					EstMinutes: n.EstMinutes,
+					XPPreview:  n.XPPreview,
+					InProgress: n.InProgress,
+					Kind:       n.Kind,
+				}
+			}
+		}
+	}
+	return nil
 }
 
 type profilePayload struct {
 	OnboardingCompleted bool           `json:"onboarding_completed"`
 	Companion           *CompanionCard `json:"companion"`
+	FocusTopics         []string       `json:"focus_topics"`
+}
+
+type pathPayload struct {
+	Worlds []struct {
+		Name  string `json:"name"`
+		Nodes []struct {
+			Label      string `json:"label"`
+			Status     string `json:"status"`
+			LessonID   string `json:"lesson_id"`
+			Title      string `json:"title"`
+			Kind       string `json:"kind"`
+			EstMinutes int    `json:"est_minutes"`
+			XPPreview  int    `json:"xp_preview"`
+			InProgress bool   `json:"in_progress"`
+		} `json:"nodes"`
+	} `json:"worlds"`
 }
 
 func (s *Service) fetchProfile(ctx context.Context, token string) (*profilePayload, error) {
@@ -173,6 +257,34 @@ func (s *Service) fetchStreak(ctx context.Context, token string) (StreakCard, er
 		return StreakCard{}, fmt.Errorf("decode streak: %w", err)
 	}
 	return envelope.Data, nil
+}
+
+func (s *Service) fetchTopics(ctx context.Context, token string) ([]TopicCard, error) {
+	body, err := s.get(ctx, s.progressURL+"/api/v1/progress/topics", token)
+	if err != nil {
+		return nil, err
+	}
+	var envelope struct {
+		Data []TopicCard `json:"data"`
+	}
+	if err := json.Unmarshal(body, &envelope); err != nil {
+		return nil, fmt.Errorf("decode topics: %w", err)
+	}
+	return envelope.Data, nil
+}
+
+func (s *Service) fetchPath(ctx context.Context, token string) (*pathPayload, error) {
+	body, err := s.get(ctx, s.questionURL+"/api/v1/path", token)
+	if err != nil {
+		return nil, err
+	}
+	var envelope struct {
+		Data pathPayload `json:"data"`
+	}
+	if err := json.Unmarshal(body, &envelope); err != nil {
+		return nil, fmt.Errorf("decode path: %w", err)
+	}
+	return &envelope.Data, nil
 }
 
 func (s *Service) get(ctx context.Context, url, token string) ([]byte, error) {
@@ -222,20 +334,4 @@ func companionMessage(name string, progress ProgressCard) string {
 	default:
 		return fmt.Sprintf("Level %d. %d lessons from Level %d. Consistency compounds.", level, lessons, level+1)
 	}
-}
-
-func comingSoonQuests() []DailyQuestCard {
-	return []DailyQuestCard{
-		{ID: "daily_question", Title: "Complete today's challenge", Progress: 0, Target: 1, Completed: false, RewardXP: 50, RewardGems: 10, ComingSoon: true},
-		{ID: "maintain_streak", Title: "Keep the streak alive", Progress: 0, Target: 1, Completed: false, RewardXP: 20, RewardGems: 5, ComingSoon: true},
-		{ID: "score_high", Title: "Score above 80% on a challenge", Progress: 0, Target: 1, Completed: false, RewardXP: 30, RewardGems: 5, ComingSoon: true},
-	}
-}
-
-func extractBearer(header string) string {
-	parts := strings.SplitN(header, " ", 2)
-	if len(parts) != 2 {
-		return ""
-	}
-	return strings.TrimSpace(parts[1])
 }

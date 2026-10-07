@@ -14,3 +14,11 @@ type AttemptRewards = dto.AttemptRewardsResponse
 func NewLessonService(pool *pgxpool.Pool, publisher service.EventPublisher) *service.LessonService {
 	return service.NewLessonService(store.NewLessonStore(pool), publisher)
 }
+
+// TopicMastery re-exports the topic readiness DTO for integration tests.
+type TopicMastery = dto.TopicMasteryResponse
+
+// NewReadinessService wires the readiness service for integration tests.
+func NewReadinessService(pool *pgxpool.Pool) *service.ReadinessService {
+	return service.NewReadinessService(store.NewReadinessStore(pool))
+}

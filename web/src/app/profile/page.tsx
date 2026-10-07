@@ -2,7 +2,8 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { api, Profile } from "@/lib/api";
+import { api, Profile, TopicInfo } from "@/lib/api";
+import { topicTheme } from "@/lib/topics";
 import { GameBackground } from "@/components/game/GameBackground";
 import { CompanionHero } from "@/components/game/CompanionHero";
 import { GameCard } from "@/components/game/GameCard";
@@ -11,6 +12,7 @@ import { BottomNav } from "@/components/game/BottomNav";
 export default function ProfilePage() {
   const router = useRouter();
   const [profile, setProfile] = useState<Profile | null>(null);
+  const [topics, setTopics] = useState<TopicInfo[]>([]);
 
   useEffect(() => {
     (async () => {
@@ -20,7 +22,9 @@ export default function ProfilePage() {
         return;
       }
       try {
-        setProfile(await api.getProfile());
+        const [me, catalog] = await Promise.all([api.getProfile(), api.getTopics().catch(() => [] as TopicInfo[])]);
+        setProfile(me);
+        setTopics(catalog);
       } catch {
         router.replace("/login");
       }
@@ -60,6 +64,29 @@ export default function ProfilePage() {
             {profile.experience_level ?? "Not set"}
           </p>
         </GameCard>
+
+        {profile.focus_topics && profile.focus_topics.length > 0 && (
+          <GameCard className="mt-4" icon="🎯" accentColor="#7C6EF5">
+            <p className="font-display font-bold" style={{ color: "#E8EAED" }}>
+              Focus topics
+            </p>
+            <ul className="mt-3 flex flex-wrap gap-2">
+              {profile.focus_topics.map((slug) => {
+                const theme = topicTheme(slug);
+                const name = topics.find((t) => t.slug === slug)?.name ?? slug;
+                return (
+                  <li
+                    key={slug}
+                    className="font-mono rounded-full px-3 py-1 text-xs font-bold"
+                    style={{ background: `${theme.tint}22`, border: `1px solid ${theme.tint}55`, color: theme.tint }}
+                  >
+                    {theme.icon} {name}
+                  </li>
+                );
+              })}
+            </ul>
+          </GameCard>
+        )}
 
         <button
           onClick={() => {

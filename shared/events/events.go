@@ -73,7 +73,5 @@ const (
 	NotificationStreakReminder          = "streak_reminder"
 	NotificationStreakBroken            = "streak_broken"
 	NotificationLevelUp                 = "level_up"
-	NotificationLeaguePositionChange    = "league_position_change"
-	NotificationWeekendChallengeAvail   = "weekend_challenge_available"
 	NotificationStreakFreezeLow         = "streak_freeze_low"
 )
