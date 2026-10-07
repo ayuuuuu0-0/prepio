@@ -1,0 +1,5 @@
+DELETE FROM skills WHERE category_id = 'c1000000-0000-4000-8000-000000000009';
+DELETE FROM skill_categories WHERE id = 'c1000000-0000-4000-8000-000000000009';
+DROP INDEX IF EXISTS skill_categories_topic_id_idx;
+ALTER TABLE skill_categories DROP COLUMN IF EXISTS topic_id;
+DROP TABLE IF EXISTS topics;

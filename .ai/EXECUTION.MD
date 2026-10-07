@@ -56,10 +56,12 @@ Then request approval. When approved, update every affected document in the same
 ### Tasks (in order)
 
 **L1, Purge company targeting and company-based readiness**
+**Status: done** (commit f52f6f8).
 Remove: `user_targets`, `question_tags`, `company_skill_weights` (new migration, with down); company logic in user, question, progress, and gateway services; `shared/readiness`; company constants, config, and events fields; the `READINESS_V2` flag; web and dashboard company UI; the dashboard readiness card (reintroduced as topic mastery in L4). Keep skills, subskills, `question_skills`, `user_skill_scores`, XP, gems, streaks.
 *Done when:* grep for `company|companies|target_compan|readiness_v2|question_tags|user_targets` is clean outside historical migrations; migration up/down passes; gates pass; login → onboarding (experience, companion) → dashboard works.
 
 **L2, Lesson platform backend**
+**Status: implemented** on branch `feat/l2-lesson-platform`, pending review. The first lesson (`why-caches-exist`, world `First Ascent`) uses only an intro and `mcq` steps so the L3 player, which starts with MCQ, can run it; world and node names are provisional until the outline is designed with the product owner (L8). Skills added: the four Backend & Production skills. The new lesson journey is served at `GET /path`; the legacy `GET /journey` stays until L3 removes it.
 Schema (`lessons`, `lesson_steps`, `lesson_skills`, `lesson_attempts`, `lesson_step_results`, `mastery_ledger`); topic catalog migration; `content/` with the validator and `content-sync` (wired into the deploy entrypoint after migrations); grading package (pure, table-tested) and prose via the rubric evaluator; lesson runtime API; `lesson.completed` event; Progress consumer writes mastery + ledger + XP; Journey binds nodes to lessons and derives status from attempts; the first real lesson of the Working Professionals path authored in `content/`.
 *Done when:* integration tests cover the attempt lifecycle, idempotency, invalid answers, and completion rules; a test proves client payloads contain no answers; `content-sync` is idempotent; gates pass.
 

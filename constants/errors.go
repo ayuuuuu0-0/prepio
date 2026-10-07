@@ -34,6 +34,16 @@ const (
 	// Journey
 	ErrJourneyNodeNotFound     = "journey_node_not_found"
 
+	// Lessons
+	ErrLessonNotFound          = "lesson_not_found"
+	ErrLessonLocked            = "lesson_locked"
+	ErrAttemptNotFound         = "attempt_not_found"
+	ErrStepNotFound            = "step_not_found"
+	ErrAttemptNotInProgress    = "attempt_not_in_progress"
+	ErrAttemptIncomplete       = "attempt_incomplete"
+	ErrInvalidAnswer           = "invalid_answer"
+	ErrInvalidTry              = "invalid_try"
+
 	// Questions
 	ErrQuestionNotFound        = "question_not_found"
 	ErrQuestionNotInSession    = "question_not_in_session"

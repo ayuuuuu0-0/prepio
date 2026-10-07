@@ -13,6 +13,7 @@ import (
 	chimw "github.com/go-chi/chi/v5/middleware"
 	"github.com/prepio/prepio/constants"
 	"github.com/prepio/prepio/services/gateway/internal/dashboard"
+	"github.com/prepio/prepio/services/gateway/internal/lessons"
 	"github.com/prepio/prepio/shared/proxy"
 	"github.com/prepio/prepio/shared/jwt"
 	"github.com/prepio/prepio/shared/middleware"
@@ -63,6 +64,10 @@ func main() {
 		envOrDefault("QUESTION_SERVICE_URL", "http://localhost:8082"),
 	)
 	dashboardHandler := dashboard.NewHandler(dashboardService)
+	lessonsHandler := lessons.NewHandler(
+		envOrDefault("QUESTION_SERVICE_URL", "http://localhost:8082"),
+		envOrDefault("PROGRESS_SERVICE_URL", "http://localhost:8084"),
+	)
 
 	r := chi.NewRouter()
 	r.Use(middleware.CORS)
@@ -84,6 +89,10 @@ func main() {
 			r.Use(middleware.Auth(signer, redisClient))
 			r.Use(middleware.RateLimit(redisClient, constants.AuthenticatedRateLimitPerMinute, middleware.RateLimitKeyByUser))
 			r.Get("/dashboard/home", dashboardHandler.GetHome)
+			r.Get("/path", questionProxy.ServeHTTP)
+			r.Post("/lessons/{id}/attempts", questionProxy.ServeHTTP)
+			r.Post("/attempts/{id}/steps/{stepId}/answer", questionProxy.ServeHTTP)
+			r.Post("/attempts/{id}/complete", lessonsHandler.Complete)
 			r.Get("/journey", questionProxy.ServeHTTP)
 			r.Handle("/journey/*", questionProxy)
 			r.Get("/skills/readiness", progressProxy.ServeHTTP)

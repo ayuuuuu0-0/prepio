@@ -56,6 +56,7 @@ func main() {
 	skillStore := store.NewSkillStore(pool)
 	contentStore := store.NewContentStore(pool)
 	journeyStore := store.NewJourneyStore(pool)
+	lessonStore := store.NewLessonStore(pool)
 
 	// Build the evaluation pipeline.
 	// Stage 1 (keyword filter) + Stage 2 (structural coverage) always run.
@@ -81,11 +82,13 @@ func main() {
 		producer,
 		evaluator,
 	)
+	lessonService := service.NewLessonService(lessonStore, evaluator, producer)
 	skillService := service.NewSkillService(skillStore)
 	contentService := service.NewContentService(contentStore, journeyStore)
 
 	questionHandler := handler.NewQuestionHandler(questionService, contentService)
 	skillHandler := handler.NewSkillHandler(skillService)
+	lessonHandler := handler.NewLessonHandler(lessonService)
 	contentHandler := handler.NewContentHandler(contentService, questionService)
 
 	r := chi.NewRouter()
@@ -96,6 +99,10 @@ func main() {
 
 	r.Route("/api/v1", func(r chi.Router) {
 		r.Use(middleware.Auth(signer, redisClient))
+		r.Get("/path", lessonHandler.GetPath)
+		r.Post("/lessons/{id}/attempts", lessonHandler.StartAttempt)
+		r.Post("/attempts/{id}/steps/{stepId}/answer", lessonHandler.SubmitAnswer)
+		r.Post("/attempts/{id}/complete", lessonHandler.Complete)
 		r.Get("/journey", questionHandler.GetJourney)
 		r.Get("/journey/nodes/{id}/content", contentHandler.GetNodeContent)
 		r.Get("/skills", skillHandler.ListSkills)

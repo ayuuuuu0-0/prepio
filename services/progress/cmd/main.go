@@ -49,6 +49,7 @@ func main() {
 	)
 	readinessStore := store.NewReadinessStore(pool)
 	readinessService := service.NewReadinessService(readinessStore)
+	lessonService := service.NewLessonService(store.NewLessonStore(pool), producer)
 
 	if !devSyncEnabled() {
 		brokers := strings.Split(envOrDefault("KAFKA_BROKERS", "localhost:9092"), ",")
@@ -68,7 +69,20 @@ func main() {
 		}
 		defer streakConsumer.Close()
 
+		lessonConsumer, err := kafka.NewConsumer(kafka.ConsumerConfig{
+			Brokers: brokers, Topic: events.TopicLessonCompleted, GroupID: "progress-service",
+		})
+		if err != nil {
+			log.Fatalf("lesson consumer: %v", err)
+		}
+		defer lessonConsumer.Close()
+
 		eventHandler := consumer.NewHandler(progressService, readinessService)
+		go func() {
+			if err := lessonConsumer.Run(ctx, consumer.HandleLessonCompleted(lessonService)); err != nil && ctx.Err() == nil {
+				log.Printf("lesson consumer: %v", err)
+			}
+		}()
 		go func() {
 			if err := consumer.RunQuestionAnswered(ctx, questionConsumer, eventHandler); err != nil && ctx.Err() == nil {
 				log.Printf("question consumer: %v", err)
@@ -96,16 +110,19 @@ func main() {
 
 	progressHandler := handler.NewProgressHandler(progressService, readinessService)
 	readinessHandler := handler.NewReadinessHandler(readinessService)
+	lessonHandler := handler.NewLessonHandler(lessonService)
 	r := chi.NewRouter()
 	r.Use(chimw.Recoverer)
 	r.Get("/internal/progress/{userID}/gems", progressHandler.InternalGetGems)
 	r.Post("/internal/progress/{userID}/gems/deduct", progressHandler.InternalDeductGems)
 	r.Post("/internal/events/question-answered", progressHandler.InternalQuestionAnswered)
 	r.Post("/internal/events/streak-updated", progressHandler.InternalStreakUpdated)
+	r.Post("/internal/events/lesson-completed", lessonHandler.InternalLessonCompleted)
 	r.Route("/api/v1", func(r chi.Router) {
 		r.Use(middleware.Auth(signer, redisClient))
 		r.Get("/progress/me", progressHandler.GetMe)
 		r.Get("/skills/readiness", readinessHandler.GetSkillReadiness)
+		r.Get("/progress/attempts/{attemptID}/rewards", lessonHandler.GetAttemptRewards)
 	})
 
 	port := envOrDefault("PROGRESS_SERVICE_PORT", "8084")

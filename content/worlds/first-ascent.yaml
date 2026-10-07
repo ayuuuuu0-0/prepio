@@ -1,0 +1,9 @@
+slug: first-ascent
+name: "First Ascent"
+description: "Your first climb: how real systems stay fast under load."
+theme: summit
+order: 1
+nodes:
+  - slug: why-caches-exist
+    label: "Why Caches Exist"
+    type: lesson

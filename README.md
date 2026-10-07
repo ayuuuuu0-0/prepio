@@ -10,6 +10,7 @@ Prepio is a lesson-based progression platform for working engineers: short, inst
 - `web/` - Next.js application
 - `mobile/` - Flutter application (paused)
 - `scripts/` - local development, deployment, and validation scripts
+- `content/` - authored worlds and lessons (content-as-code), loaded by `content-sync`
 - `config/` and `constants/` - runtime configuration and shared values
 - `.ai/` - product, architecture, content, and execution documents (the source of truth)
 - `agent/` - index for AI agents
@@ -49,9 +50,13 @@ npm run dev
 make build-all   # build all Go packages
 make test        # run the full Go test suite
 make test-short  # run the fast gateway and shared tests
+make test-docker  # run the whole Go suite inside a Linux container (use this on Windows with Smart App Control)
+node scripts/lesson-smoke.mjs  # drive the lesson flow over HTTP against a running gateway (BASE_URL=...)
 make vet         # run go vet across the repo
 make migrate-up  # apply database migrations
 make e2e         # run end-to-end service validation
+make content-validate  # validate authored lessons without writing
+make content-sync      # load worlds and lessons into the database (idempotent; runs on every deploy)
 make docker-up   # start postgres, redis, and kafka
 make docker-up-all
 make docker-down

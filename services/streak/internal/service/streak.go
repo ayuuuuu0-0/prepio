@@ -51,7 +51,17 @@ func NewStreakService(
 
 // ProcessQuestionAnswered applies streak rules for a submitted answer.
 func (s *StreakService) ProcessQuestionAnswered(ctx context.Context, event events.QuestionAnswered) error {
-	timezone, err := s.streaks.Timezone(ctx, event.UserID)
+	return s.processActivity(ctx, event.UserID, event.SubmittedAt)
+}
+
+// ProcessLessonCompleted applies streak rules for a completed lesson.
+// Completing one lesson keeps the streak.
+func (s *StreakService) ProcessLessonCompleted(ctx context.Context, event events.LessonCompleted) error {
+	return s.processActivity(ctx, event.UserID, event.CompletedAt)
+}
+
+func (s *StreakService) processActivity(ctx context.Context, userID string, at time.Time) error {
+	timezone, err := s.streaks.Timezone(ctx, userID)
 	if err != nil {
 		return err
 	}
@@ -64,13 +74,13 @@ func (s *StreakService) ProcessQuestionAnswered(ctx context.Context, event event
 		return fmt.Errorf("load timezone: %w", err)
 	}
 
-	activityDate := calendarDateIn(event.SubmittedAt.In(loc))
-	state, err := s.streaks.Get(ctx, event.UserID)
+	activityDate := calendarDateIn(at.In(loc))
+	state, err := s.streaks.Get(ctx, userID)
 	if err != nil {
 		return err
 	}
 
-	freezeCount, err := s.freezes.Count(ctx, event.UserID)
+	freezeCount, err := s.freezes.Count(ctx, userID)
 	if err != nil {
 		return err
 	}
@@ -84,7 +94,7 @@ func (s *StreakService) ProcessQuestionAnswered(ctx context.Context, event event
 
 	if consumedFreeze {
 		freezeCount--
-		if err := s.freezes.SetCount(ctx, event.UserID, freezeCount); err != nil {
+		if err := s.freezes.SetCount(ctx, userID, freezeCount); err != nil {
 			return err
 		}
 	}
@@ -98,14 +108,14 @@ func (s *StreakService) ProcessQuestionAnswered(ctx context.Context, event event
 
 	streakEvent := events.StreakUpdated{
 		EventID:        uuid.NewString(),
-		UserID:         event.UserID,
+		UserID:         userID,
 		PreviousStreak: previous,
 		CurrentStreak:  updated.CurrentStreak,
 		StreakBroken:   updated.CurrentStreak < previous,
 		FreezeConsumed: consumedFreeze,
 		UpdatedAt:      time.Now().UTC(),
 	}
-	return s.publisher.Publish(ctx, events.TopicStreakUpdated, event.UserID, streakEvent)
+	return s.publisher.Publish(ctx, events.TopicStreakUpdated, userID, streakEvent)
 }
 
 // GetMe returns the authenticated user's streak summary.

@@ -69,7 +69,7 @@ If ownership is unclear: do not implement. Ask.
 
 ```
 Answer a step ──▶ server grades (Journey) ──▶ step result stored
-Attempt completes (all graded steps correct) ──▶ node marked done (Journey)
+Attempt completes (all graded steps correct) ──▶ node is done (Journey derives status from attempts)
                                              └─▶ `lesson.completed` fact
 `lesson.completed` ──▶ Progress: skill mastery + ledger, XP, gems
                    ├─▶ Streak: streak update
@@ -100,6 +100,8 @@ The `lesson.completed` payload carries performance facts only (user, lesson, att
    * Step answers are idempotent per (attempt, step, try number).
    * An attempt completes only when **every graded step has a correct result**.
    * Mastery uses **first-attempt correctness**. XP and mastery deltas are capped server-side.
+   * XP, gems, and mastery are granted on a user's **first completion of a lesson**; replaying a lesson grants none (Progress decides, per attempt, idempotently).
+   * `lesson.completed` is published after the attempt is marked completed; if the publish fails, completing again re-publishes the same event, and Progress ignores redelivery.
 5. **Re-queueing missed steps is UI sequencing** (presentation order is frontend state). Correctness and completion are server decisions.
 6. Latency budget: step-answer p95 < 150 ms server-side. The UI shows the pressed state immediately and never blocks on animation.
 
@@ -107,11 +109,11 @@ The `lesson.completed` payload carries performance facts only (user, lesson, att
 
 APIs expose capabilities, not tables:
 
-* `GET /journey`: path with node status plus preview fields (lesson title, takeaways, minutes, XP)
-* `POST /lessons/{id}/attempts`: start or resume; returns steps **without answers**
-* `POST /attempts/{id}/steps/{stepId}/answer`: server-graded feedback
-* `POST /attempts/{id}/complete`: performance summary (the gateway adds rewards from Progress)
-* `GET /progress/...`: topic mastery, explained mastery changes
+* `GET /path`: worlds and nodes with status (`locked`, `current`, `available`, `done`), preview fields (lesson title, takeaways, minutes, XP), and, for locked nodes, exactly what unlocks them. Status is derived from attempts and the configured node prerequisites. (The legacy `GET /journey` is removed in L3.)
+* `POST /lessons/{id}/attempts`: start or resume; returns steps **without answers**, plus per-step progress when resuming. A locked lesson returns 403.
+* `POST /attempts/{id}/steps/{stepId}/answer`: body `{ try, answer }`; `stepId` is the authored step key. Server-graded feedback; idempotent per (attempt, step, try); malformed answers are rejected and never recorded.
+* `POST /attempts/{id}/complete`: performance summary and newly unlocked nodes; the gateway adds `rewards` from Progress (`GET /progress/attempts/{id}/rewards`: XP, gems, and per-skill mastery changes with their topic).
+* `GET /progress/...`: topic mastery, explained mastery changes (topic readiness arrives with the dashboard in L4)
 
 ---
 
@@ -131,6 +133,7 @@ Content is configurable, not hardcoded in application code.
 * Worlds, nodes, and lessons are **content-as-code**: files in `content/`, validated in CI, and loaded into the database by an **idempotent `content-sync` command that runs after migrations on every deploy**.
 * The database is the runtime source of truth. The repo files are the authoring source of truth.
 * Sync **never deletes user data**; removed content is deprecated, not dropped.
+* Steps and skill weights are stored **per lesson version**. A change to a published lesson creates a new version; attempts keep grading against the version they started on, and old versions are never deleted.
 * The skill catalog (structure) changes through migrations; it changes rarely.
 * No lesson text, options, or answers appear in application code. Test fixtures live only under test directories.
 

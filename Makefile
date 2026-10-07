@@ -1,4 +1,4 @@
-.PHONY: build-all test vet migrate-up migrate-down docker-up docker-down dev e2e
+.PHONY: build-all test vet migrate-up migrate-down docker-up docker-down dev e2e content-validate content-sync test-docker
 
 DATABASE_URL ?= postgres://prepio:prepio@localhost:5432/prepio?sslmode=disable
 
@@ -7,6 +7,9 @@ build-all:
 
 test:
 	go test ./... -count=1 -timeout 20m
+
+test-docker:
+	./scripts/test-docker.sh
 
 test-short:
 	go test ./services/gateway/... ./shared/... -count=1 -timeout 2m
@@ -28,6 +31,12 @@ migrate-down:
 		echo "install golang-migrate CLI or use docker compose run migrate manually"; \
 		exit 1; \
 	fi
+
+content-validate:
+	go run ./services/question/cmd/content-sync --validate
+
+content-sync:
+	go run ./services/question/cmd/content-sync
 
 docker-up:
 	docker compose up -d postgres redis kafka

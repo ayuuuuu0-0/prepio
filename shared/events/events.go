@@ -8,7 +8,32 @@ const (
 	TopicStreakUpdated          = "streak.updated"
 	TopicProgressUpdated        = "progress.updated"
 	TopicNotificationsDispatch  = "notifications.dispatch"
+	TopicLessonCompleted        = "lesson.completed"
 )
+
+// LessonSkillWeight is one skill a lesson teaches, with its weight (weights sum to 1.0).
+type LessonSkillWeight struct {
+	SkillID   string  `json:"skill_id"`
+	SkillSlug string  `json:"skill_slug"`
+	Weight    float64 `json:"weight"`
+}
+
+// LessonCompleted is emitted when a user finishes a lesson attempt.
+// It carries performance facts only; XP and mastery are computed by Progress.
+type LessonCompleted struct {
+	EventID         string              `json:"event_id"`
+	UserID          string              `json:"user_id"`
+	LessonID        string              `json:"lesson_id"`
+	LessonSlug      string              `json:"lesson_slug"`
+	AttemptID       string              `json:"attempt_id"`
+	Kind            string              `json:"kind"`
+	Difficulty      string              `json:"difficulty"`
+	Skills          []LessonSkillWeight `json:"skills"`
+	GradedSteps     int                 `json:"graded_steps"`
+	FirstTryCorrect int                 `json:"first_try_correct"`
+	TotalTries      int                 `json:"total_tries"`
+	CompletedAt     time.Time           `json:"completed_at"`
+}
 
 // QuestionAnswered is emitted when a user submits an answer.
 type QuestionAnswered struct {

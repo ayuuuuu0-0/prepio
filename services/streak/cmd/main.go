@@ -77,6 +77,22 @@ func main() {
 				log.Printf("consumer stopped: %v", err)
 			}
 		}()
+
+		lessonConsumer, err := kafka.NewConsumer(kafka.ConsumerConfig{
+			Brokers: strings.Split(envOrDefault("KAFKA_BROKERS", "localhost:9092"), ","),
+			Topic:   events.TopicLessonCompleted,
+			GroupID: "streak-service",
+		})
+		if err != nil {
+			log.Fatalf("lesson consumer: %v", err)
+		}
+		defer lessonConsumer.Close()
+
+		go func() {
+			if err := lessonConsumer.Run(ctx, consumer.HandleLessonCompleted(streakService)); err != nil && ctx.Err() == nil {
+				log.Printf("lesson consumer stopped: %v", err)
+			}
+		}()
 	} else {
 		log.Printf("DEV_SYNC_EVENTS=true — kafka consumer disabled")
 	}
@@ -90,6 +106,7 @@ func main() {
 	r := chi.NewRouter()
 	r.Use(chimw.Recoverer)
 	r.Post("/internal/events/question-answered", streakHandler.InternalQuestionAnswered)
+	r.Post("/internal/events/lesson-completed", streakHandler.InternalLessonCompleted)
 	r.Route("/api/v1", func(r chi.Router) {
 		r.Use(middleware.Auth(signer, redisClient))
 		r.Get("/streaks/me", streakHandler.GetMe)
