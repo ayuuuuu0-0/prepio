@@ -1,0 +1,61 @@
+slug: building-objects
+title: "Building Objects"
+node: building-objects
+kind: lesson
+status: published
+difficulty: medium
+est_minutes: 5
+skills:
+  - { skill: lld-patterns, weight: 1.0 }
+summary:
+  - "A constructor that validates its few required fields is usually all an object needs."
+  - "A factory decides which class to create, keeping that choice in one place."
+  - "A builder sets many options by name and checks the whole combination in build()."
+steps:
+  - id: intro
+    type: intro
+    beats:
+      - { text: "Most objects need nothing more than a constructor.", emphasis: "nothing more than a constructor", visual: bars, durationMs: 4000 }
+      - { text: "A factory decides which class to create, so callers don't have to.", emphasis: "which class to create", visual: flow, durationMs: 5000 }
+      - { text: "A builder assembles an object with many options, step by step, and checks it at the end.", emphasis: "step by step", visual: pulse, durationMs: 5500 }
+  - id: many-params
+    type: mcq
+    prompt: "HttpRequest has 2 required fields and 9 optional ones, such as timeout, headers, and retries. Calls look like new HttpRequest(url, method, null, null, 3, null, true, ...). What fits best?"
+    options:
+      - "A builder that sets options by name and validates in build()"
+      - "A factory method that picks a subclass"
+      - "A constructor with all 11 parameters, each one documented in a doc comment"
+    answer: 0
+    explanations:
+      correct: "A builder names each option, lets callers set only what they need, and checks the combination once in build() before returning a complete object."
+      wrong:
+        1: "A factory chooses which class to create. Here there is one class with many options, so picking a subclass doesn't help."
+        2: "Documentation helps, but long positional argument lists still invite swapped arguments and runs of null values."
+  - id: pick-class
+    type: mcq
+    prompt: "The notification channel comes from user settings as a string: email, sms, or push. Several places need the matching Notifier. Where should that choice live?"
+    options:
+      - "In a builder with a setChannel method on each Notifier"
+      - "In an if/else chain copied into every call site that needs a Notifier"
+      - "In a factory function that maps the setting to a Notifier"
+    answer: 2
+    explanations:
+      correct: "A factory puts the decision in one place and returns the Notifier interface. Callers stay simple, and a new channel changes only the factory."
+      wrong:
+        0: "A builder configures one object's options; it doesn't decide which class to create."
+        1: "Copies drift apart, and every new channel means finding and editing each one."
+  - id: constructor-enough
+    type: true_false
+    statement: "A class with two required fields and no optional settings usually benefits from a builder."
+    answer: false
+    explanation: "A builder adds a class and ceremony. With a couple of required fields, a constructor that validates them is clearer. Reach for a builder when options pile up."
+  - id: use-builder
+    type: arrange
+    prompt: "Order the steps of creating an object with a builder."
+    items:
+      - "Set the optional fields you need"
+      - "Use the finished, complete object"
+      - "Create the builder with the required fields"
+      - "Call build(), which checks the values"
+    order: [2, 0, 3, 1]
+    explanation: "Required values go in up front, options are added by name, and build() validates the whole combination before handing back an object that is complete and ready to use."

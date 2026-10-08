@@ -1,0 +1,58 @@
+slug: page-by-page
+title: "Page by Page"
+node: page-by-page
+kind: lesson
+status: published
+difficulty: medium
+est_minutes: 5
+skills:
+  - { skill: backend-api-design, weight: 0.7 }
+  - { skill: backend-databases, weight: 0.3 }
+summary:
+  - "Offset pagination gets slower on deep pages because the database still walks past every skipped row."
+  - "Cursor pagination continues after the last row seen, so deep pages stay fast and new inserts do not shift results."
+  - "Pagination needs a stable order, so add a unique column such as id as a tiebreaker."
+steps:
+  - id: intro
+    type: intro
+    beats:
+      - { text: "No client wants ten million rows in one response.", emphasis: "ten million rows", visual: bars, durationMs: 4000 }
+      - { text: "Offsets count from the start every time. Cursors pick up where the last page ended.", emphasis: "where the last page ended", visual: flow, durationMs: 5500 }
+      - { text: "Either way, pages only hold together if the order is stable.", emphasis: "stable", visual: pulse, durationMs: 4500 }
+  - id: deep-offset
+    type: mcq
+    prompt: "The query SELECT * FROM posts ORDER BY created_at DESC LIMIT 20 OFFSET 100000 is much slower than the first page. Why?"
+    options:
+      - "The response carries all 100,000 skipped rows over the network to the client"
+      - "The database still has to walk past 100,000 rows before it can return 20"
+      - "Indexes cannot be used together with LIMIT"
+    answer: 1
+    explanations:
+      correct: "OFFSET skips rows by reading them and throwing them away, so the work grows with the page number even though only 20 rows come back."
+      wrong:
+        0: "Only the 20 requested rows are returned. The cost is inside the database, which reads and discards the skipped rows."
+        2: "An index on created_at can still supply rows in order with LIMIT; the problem is that OFFSET makes the database step through all the skipped ones."
+  - id: shifting-pages
+    type: true_false
+    statement: "With offset pagination over newest-first posts, a post published while a user reads page 1 can make them see a post from page 1 again at the top of page 2."
+    answer: true
+    explanation: "The new post pushes every row down by one, so the last post of page 1 becomes the first row at offset 20. A cursor avoids this by continuing after the last row seen."
+  - id: cursor-query
+    type: fill_blank
+    code: "-- the next page: rows that come after the cursor, newest first\nSELECT id, created_at FROM posts\nWHERE (created_at, id) ___1___ (:last_created_at, :last_id)\nORDER BY created_at DESC, id ___2___\nLIMIT 20;"
+    bank: ["<", ">", "DESC", "ASC", "OFFSET"]
+    answers: ["<", "DESC"]
+    explanation: "Sorting newest first, the next page holds rows that come after the cursor in that order, so they compare as less than it. Both columns sort DESC so the row comparison matches the order, and an index on (created_at, id) lets the database jump straight to the cursor."
+  - id: tiebreaker
+    type: mcq
+    prompt: "Why does the cursor query order by created_at and also by id?"
+    options:
+      - "Cursors only work on integer columns, so the timestamp needs an integer id next to it"
+      - "Adding a second sort column lets the database sort in smaller chunks and use less memory"
+      - "A unique id breaks ties between equal timestamps, so no row repeats or is skipped"
+    answer: 2
+    explanations:
+      correct: "Many rows can share a timestamp. A unique column gives every row exactly one position, so the cursor points to an exact place in the order."
+      wrong:
+        0: "A cursor can be built from any sortable columns, timestamps included; the issue is uniqueness, not type."
+        1: "An extra sort column does not reduce memory. It is there so the order is total and repeatable."

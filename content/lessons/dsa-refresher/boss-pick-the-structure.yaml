@@ -1,0 +1,97 @@
+slug: boss-pick-the-structure
+title: "Boss: Pick the Structure"
+node: boss-pick-the-structure
+kind: boss
+status: published
+difficulty: hard
+est_minutes: 7
+skills:
+  - { skill: hash-maps, weight: 0.3 }
+  - { skill: arrays, weight: 0.2 }
+  - { skill: trees, weight: 0.25 }
+  - { skill: graphs, weight: 0.25 }
+summary:
+  - "Reach for a set or map when you look things up by key, and for two pointers or a window when the data is sorted or the question is about contiguous runs."
+  - "Pick a tree walk by the order you need: preorder for parent before children, inorder for sorted keys, breadth-first for levels."
+  - "For fewest hops use breadth-first search with a visited set, and remember it ignores edge weights."
+steps:
+  - id: intro
+    type: intro
+    beats:
+      - { text: "Boss time: seven real tasks, each with a structure that fits.", emphasis: "seven real tasks", visual: bars, durationMs: 4500 }
+      - { text: "Lookups, pointers, windows, trees, and graphs all come back.", emphasis: "all come back", visual: flow, durationMs: 5000 }
+      - { text: "Read the constraints first; they usually name the tool.", emphasis: "constraints first", visual: pulse, durationMs: 4000 }
+  - id: duplicate-events
+    type: mcq
+    prompt: "A webhook endpoint can receive the same event more than once and must skip repeats by event ID as events arrive, at thousands per second. What do you keep?"
+    options:
+      - "A list of seen IDs, scanned before processing each event"
+      - "A set of seen IDs, checked before processing each event"
+      - "Nothing during the day; sort the day's events by ID at midnight and drop repeats"
+    answer: 1
+    explanations:
+      correct: "A set checks membership in O(1) on average, so each event costs about the same no matter how many have been seen."
+      wrong:
+        0: "Scanning a list is O(n) per event and gets slower all day as the list grows."
+        2: "Sorting at midnight finds repeats only after they have already been processed, which is what the endpoint must avoid."
+  - id: sorted-pair
+    type: mcq
+    prompt: "A sorted array holds 10 million file sizes. You must find two that add up to exactly the disk quota, in linear time and with O(1) extra memory. What fits?"
+    options:
+      - "Put every size in a hash set and look up each complement"
+      - "Compare every pair with two nested loops"
+      - "Two pointers starting at both ends, moving inward"
+    answer: 2
+    explanations:
+      correct: "The array is already sorted, so two pointers find the pair in one O(n) pass with no extra memory."
+      wrong:
+        0: "A hash set is O(n) time, but it needs O(n) extra memory for 10 million entries, which breaks the memory limit."
+        1: "Nested loops use no extra memory, but they are O(n squared), far from linear time."
+  - id: busiest-span
+    type: true_false
+    statement: "To find the most requests in any 10-second span of a log sorted by time, a sliding window is a good fit, because each span is a contiguous run of entries."
+    answer: true
+    explanation: "In time order, every 10-second span is a contiguous run. Add entries on the right and drop entries older than 10 seconds from the left, for one O(n) pass."
+  - id: comment-thread
+    type: mcq
+    prompt: "Comments can have replies to any depth. You render each comment followed by its replies, indented beneath it. Which walk produces that order?"
+    options:
+      - "A preorder depth-first walk: the comment, then each reply's subtree"
+      - "A breadth-first walk, one depth level at a time"
+      - "A postorder walk: all replies before their parent"
+    answer: 0
+    explanations:
+      correct: "Preorder emits a node and then its whole subtree before moving on, which is exactly a threaded view."
+      wrong:
+        1: "Breadth-first would print all top-level comments first and their replies later, separating replies from their parents."
+        2: "Postorder puts each reply above the comment it answers, the reverse of what readers expect."
+  - id: hop-steps
+    type: arrange
+    prompt: "Order the steps of breadth-first search for the fewest hops from a start node to a target."
+    items:
+      - "Stop when the target comes off the queue; its recorded distance is the fewest hops"
+      - "Take the next node from the front of the queue"
+      - "Put the start node in the queue with distance 0 and mark it visited"
+      - "Queue each unvisited neighbor with distance plus one and mark it visited"
+    order: [2, 1, 3, 0]
+    explanation: "Seed the queue with the start, then repeatedly take the front node and queue its unvisited neighbors one hop further out. Nodes leave the queue in distance order, so the target's distance is the minimum."
+  - id: time-range
+    type: mcq
+    prompt: "New events arrive all day, and dashboards ask for every event between two timestamps, in time order. Which structure serves both well?"
+    options:
+      - "A hash map keyed by timestamp"
+      - "An unsorted array of events"
+      - "A stack of events"
+      - "A balanced binary search tree keyed by timestamp"
+    answer: 3
+    explanations:
+      correct: "A balanced search tree inserts in O(log n) and answers a range query by finding the start in O(log n), then walking in order through the k matching events."
+      wrong:
+        0: "A hash map finds an exact key fast but keeps no order, so a range query must check every key."
+        1: "Appending is cheap, but every range query scans the whole array and then has to sort the matches."
+        2: "A stack only exposes its newest event, so reaching older ones means popping everything above them."
+  - id: skip-visited
+    type: true_false
+    statement: "Breadth-first search on a graph with cycles can safely skip the visited set, because the queue already processes nodes in order."
+    answer: false
+    explanation: "Order alone does not stop repeats: in a cycle, a visited node is discovered again and queued again, forever. The visited set is what keeps each node to one visit."

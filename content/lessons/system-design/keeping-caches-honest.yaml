@@ -1,0 +1,66 @@
+slug: keeping-caches-honest
+title: "Keeping Caches Honest"
+node: keeping-caches-honest
+kind: lesson
+status: published
+difficulty: easy
+est_minutes: 4
+skills:
+  - { skill: system-design-scaling, weight: 1.0 }
+summary:
+  - "A TTL bounds how stale a cached value can get; invalidating on write removes the staleness for that key."
+  - "Write-through updates the cache on every write; write-around skips the cache and lets the next read load it."
+  - "When a hot key expires, many requests can miss at once and stampede the database; one loader per key prevents it."
+steps:
+  - id: intro
+    type: intro
+    beats:
+      - { text: "Every cache is a copy, and every copy can drift from the truth.", emphasis: "drift", visual: pulse, durationMs: 4000 }
+      - { text: "Expiry sets how stale a copy may get. Invalidation removes it the moment the data changes.", emphasis: "Invalidation", visual: flow, durationMs: 5500 }
+      - { text: "Get either wrong and users see old data, or your database sees every request at once.", emphasis: "every request at once", visual: bars, durationMs: 5000 }
+  - id: ttl-meaning
+    type: mcq
+    prompt: "A cached user profile has a TTL of 5 minutes and nothing invalidates it. The user edits their bio. What is the longest anyone can see the old bio?"
+    options:
+      - "Until the server restarts"
+      - "It never goes stale: a TTL keeps the cache in sync"
+      - "About 5 minutes"
+    answer: 2
+    explanations:
+      correct: "Without invalidation the TTL is the only bound: the old value can be served until the entry expires, up to 5 minutes after it was cached."
+      wrong:
+        0: "A TTL expires entries on its own schedule; a restart is not needed for the old value to disappear."
+        1: "A TTL does not watch the database. It only limits how long a copy lives, so staleness up to the TTL is expected."
+  - id: invalidate-on-write
+    type: true_false
+    statement: "Deleting a key from the cache right after updating the database means the next read loads fresh data."
+    answer: true
+    explanation: "With cache-aside, deleting the key on write forces the next read to miss and reload from the database, so it sees the new value."
+  - id: write-strategies
+    type: mcq
+    prompt: "Which strategy writes to the cache and the database together on every write?"
+    options:
+      - "Write-around"
+      - "Cache-aside reads"
+      - "TTL expiry"
+      - "Write-through"
+    answer: 3
+    explanations:
+      correct: "Write-through updates both on each write, so the cache stays current at the cost of extra write work, even for data nobody reads."
+      wrong:
+        0: "Write-around sends writes straight to the database and skips the cache; the next read loads the value."
+        1: "Cache-aside describes how reads fill the cache on a miss, not how writes are handled."
+        2: "TTL expiry is about how long entries live, not about what happens on a write."
+  - id: stampede
+    type: mcq
+    prompt: "A key read 5,000 times a second expires. Hundreds of requests miss at the same moment and all query the database. What is the standard fix?"
+    options:
+      - "Remove the TTL so the key never expires"
+      - "Let one request rebuild the value while the others wait or serve the old copy"
+      - "Add more application servers so the burst of misses is spread across more machines"
+    answer: 1
+    explanations:
+      correct: "This is a cache stampede. Letting a single loader per key rebuild the value (a lock or request coalescing), while others wait or get the slightly stale copy, keeps the database load flat."
+      wrong:
+        0: "Never expiring trades the stampede for unbounded staleness, and the stampede returns on the next eviction or restart."
+        2: "Spreading the misses across more application servers does not reduce them; every server still queries the database, which is the bottleneck."

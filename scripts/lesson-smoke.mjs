@@ -152,6 +152,18 @@ await step("completing early is rejected with 409", async () => {
   await call("POST", `/attempts/${attempt.attempt_id}/complete`, { token, expect: 409 });
 });
 
+// firstGuess builds a well-formed first answer for any deterministic step type, so the script
+// works whatever exercises the first lesson uses; a miss reveals the correct answer to retry with.
+function firstGuess(step) {
+  switch (step.type) {
+    case "mcq": return { choice: 0 };
+    case "true_false": return { value: true };
+    case "fill_blank": return { blanks: step.fill_blank.bank.slice(0, step.fill_blank.blanks) };
+    case "arrange": return { order: step.arrange.items.map((_, i) => i) };
+    default: throw new Error("smoke test cannot answer step type " + step.type);
+  }
+}
+
 await step("a wrong first try reveals the answer; replay is idempotent; the right try passes", async () => {
   const first = graded()[0];
   const path = `/attempts/${attempt.attempt_id}/steps/${first.id}/answer`;
@@ -172,7 +184,7 @@ await step("a wrong first try reveals the answer; replay is idempotent; the righ
 await step("the remaining steps can be answered (answers discovered through feedback)", async () => {
   for (const s of graded().slice(1)) {
     const path = `/attempts/${attempt.attempt_id}/steps/${s.id}/answer`;
-    let r = await call("POST", path, { token, body: { try: 1, answer: { choice: 0 } }, expect: 200 });
+    let r = await call("POST", path, { token, body: { try: 1, answer: firstGuess(s) }, expect: 200 });
     if (!r.json.data.correct) {
       r = await call("POST", path, { token, body: { try: 2, answer: r.json.data.correct_answer }, expect: 200 });
       assert.equal(r.json.data.correct, true);
@@ -235,7 +247,7 @@ await step("replaying a finished lesson grants nothing more", async () => {
   const replay = r.json.data;
   for (const s of replay.steps.filter((x) => x.type !== "intro")) {
     const path = `/attempts/${replay.attempt_id}/steps/${s.id}/answer`;
-    let a = await call("POST", path, { token, body: { try: 1, answer: { choice: 0 } }, expect: 200 });
+    let a = await call("POST", path, { token, body: { try: 1, answer: firstGuess(s) }, expect: 200 });
     if (!a.json.data.correct) {
       await call("POST", path, { token, body: { try: 2, answer: a.json.data.correct_answer }, expect: 200 });
     }

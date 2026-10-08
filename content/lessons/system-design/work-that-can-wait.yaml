@@ -1,0 +1,62 @@
+slug: work-that-can-wait
+title: "Work That Can Wait"
+node: work-that-can-wait
+kind: lesson
+status: published
+difficulty: medium
+est_minutes: 5
+skills:
+  - { skill: system-design-reliability, weight: 0.6 }
+  - { skill: system-design-scaling, weight: 0.4 }
+summary:
+  - "A message queue lets the request finish quickly and hands slow work to background consumers."
+  - "Most queues deliver at least once, so a consumer can see the same message twice."
+  - "Make consumers idempotent, for example by recording processed message IDs, so a repeat changes nothing."
+steps:
+  - id: intro
+    type: intro
+    beats:
+      - { text: "Not every job has to finish before you answer the user.", emphasis: "before you answer", visual: pulse, durationMs: 4000 }
+      - { text: "Put slow work on a queue, reply right away, and let workers catch up.", emphasis: "on a queue", visual: flow, durationMs: 5000 }
+      - { text: "Queues absorb spikes, but they may deliver a message more than once.", emphasis: "more than once", visual: bars, durationMs: 4500 }
+  - id: when-async
+    type: mcq
+    prompt: "After signup the API sends a welcome email, which sometimes takes 3 seconds. What is the better design?"
+    options:
+      - "Send the email inside the request so the user knows it worked"
+      - "Publish a send-email message to a queue and return immediately"
+      - "Retry the email inside the request until it succeeds, so no email is lost"
+    answer: 1
+    explanations:
+      correct: "The user doesn't need to wait for the email. A queue lets the request finish fast while a worker sends the email and retries if needed."
+      wrong:
+        0: "Waiting on a slow, failure-prone call makes signup slow and makes it fail whenever the email provider has a hiccup."
+        2: "Retrying inside the request makes the user wait even longer and holds a server thread the whole time."
+  - id: at-least-once
+    type: true_false
+    statement: "With at-least-once delivery, each message is processed exactly one time."
+    answer: false
+    explanation: "At least once means at least once: if a consumer crashes after doing the work but before acknowledging, the queue delivers the message again. Consumers must expect repeats."
+  - id: idempotent-consumer
+    type: mcq
+    prompt: "A 'charge customer' message can arrive twice. How do you avoid charging twice?"
+    options:
+      - "Hope duplicates are rare"
+      - "Make the queue deliver every message exactly once by adding more consumers"
+      - "Record each processed message ID and skip IDs already seen"
+    answer: 2
+    explanations:
+      correct: "Storing the message ID (in the same transaction as the charge) makes the consumer idempotent: a repeat finds the ID and does nothing."
+      wrong:
+        0: "Rare is not never; at scale, duplicates happen every day, and here each one costs a customer money."
+        1: "More consumers increase throughput, but they don't change the delivery guarantee or stop duplicates."
+  - id: consumer-steps
+    type: arrange
+    prompt: "Order the steps of a safe consumer."
+    items:
+      - "Acknowledge the message"
+      - "Receive a message from the queue"
+      - "Do the work and record the message ID, in one transaction"
+      - "Check whether this message ID was already processed"
+    order: [1, 3, 2, 0]
+    explanation: "Receive, check for a repeat, do the work and record the ID together, then acknowledge. Acknowledging last means a crash leads to a retry instead of lost work."

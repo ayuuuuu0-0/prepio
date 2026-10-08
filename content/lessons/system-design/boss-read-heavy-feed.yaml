@@ -1,0 +1,102 @@
+slug: boss-read-heavy-feed
+title: "Boss: Scale a Read-Heavy Feed"
+node: boss-read-heavy-feed
+kind: boss
+status: published
+difficulty: hard
+est_minutes: 7
+skills:
+  - { skill: system-design-scaling, weight: 0.4 }
+  - { skill: system-design-data, weight: 0.2 }
+  - { skill: system-design-reliability, weight: 0.2 }
+  - { skill: system-design-fundamentals, weight: 0.2 }
+summary:
+  - "Estimate first: the read/write ratio tells you to optimize reads with caches and replicas."
+  - "Cache hot feeds, invalidate on new posts, and protect hot keys from stampedes."
+  - "Shard by a key that keeps a feed on one shard, and move slow fan-out work to a queue with idempotent consumers."
+steps:
+  - id: intro
+    type: intro
+    beats:
+      - { text: "Boss time: a social feed with 50 million readers and a steady stream of new posts.", emphasis: "50 million readers", visual: bars, durationMs: 5000 }
+      - { text: "Everything from this world comes together: numbers, caches, replicas, shards, and queues.", emphasis: "comes together", visual: flow, durationMs: 5500 }
+      - { text: "Take it one decision at a time.", emphasis: "one decision", visual: pulse, durationMs: 3500 }
+  - id: ratio
+    type: mcq
+    prompt: "Users load their feed 100 times for every post they write. What should the design optimize first?"
+    options:
+      - "Write throughput, because posts must never be lost"
+      - "Read latency and read capacity"
+      - "Storage cost, by compressing every post"
+    answer: 1
+    explanations:
+      correct: "At 100 reads per write, reads dominate the load. Caches and read replicas give the biggest win."
+      wrong:
+        0: "Durable writes matter, but at 1 write per 100 reads they are a small share of the load. Reads are where the system will struggle first."
+        2: "Storage is cheap compared with serving millions of reads per minute; compression doesn't touch the bottleneck."
+  - id: cache-feed
+    type: true_false
+    statement: "Caching each user's assembled feed is a good fit, because feeds are read far more often than they change."
+    answer: true
+    explanation: "Read-heavy data that changes occasionally is the ideal cache candidate: most feed loads never reach the database."
+  - id: new-post
+    type: mcq
+    prompt: "Feeds are cached for 10 minutes. A user posts and their followers don't see it for up to 10 minutes. Product wants new posts to show within seconds. What do you change?"
+    options:
+      - "Update or invalidate the affected followers' cached feeds when the post is written"
+      - "Lower the TTL to 1 second for every feed"
+      - "Remove the cache"
+    answer: 0
+    explanations:
+      correct: "Invalidating (or updating) the affected feeds on write makes new posts appear quickly while the cache keeps absorbing reads."
+      wrong:
+        1: "A 1-second TTL would send nearly every read back to the database and lose most of the cache's benefit."
+        2: "Removing the cache puts the full read load on the database, which is what the cache was protecting."
+  - id: celebrity
+    type: mcq
+    prompt: "A celebrity's cached profile is read 50,000 times a second. When it expires, the database spikes. What fixes this?"
+    options:
+      - "Shard the database by follower count so celebrities get their own shard"
+      - "Add another load balancer"
+      - "Let one request rebuild the entry while others get the cached copy"
+    answer: 2
+    explanations:
+      correct: "That spike is a cache stampede on a hot key. A single rebuilder per key (with the others served the existing copy) keeps the database calm."
+      wrong:
+        0: "The spike comes from many simultaneous misses for one key; a dedicated shard still receives them all for the same row."
+        1: "The load balancer isn't the bottleneck. The misses all land on the database either way."
+  - id: replica-reads
+    type: mcq
+    prompt: "Feed reads now go to read replicas. A user posts, refreshes, and can't see their own post. What is the fix?"
+    options:
+      - "Read that user's own posts from the leader for a short time after they write"
+      - "Add more replicas so each one carries less load and applies the new post sooner"
+      - "Turn off replication"
+    answer: 0
+    explanations:
+      correct: "Replication lag hides the write from the replica. Reading your own recent writes from the leader gives read-your-writes consistency."
+      wrong:
+        1: "More replicas spread load but each can lag just the same, so the user can still miss their own post."
+        2: "Without replication you lose the read capacity and the failover you added replicas for."
+  - id: fan-out
+    type: arrange
+    prompt: "A post must be added to millions of followers' feeds. Order the steps of a design that keeps posting fast."
+    items:
+      - "Workers add the post to followers' feeds, skipping any already applied"
+      - "Save the post and return success to the author"
+      - "Publish a 'new post' message to a queue"
+    order: [1, 2, 0]
+    explanation: "Save and respond first, publish to a queue, and let idempotent workers fan out. Posting stays fast, and redelivered messages don't duplicate feed entries."
+  - id: shard-key
+    type: mcq
+    prompt: "The feed store outgrows one database. Feeds are always read one user at a time. Which shard key fits?"
+    options:
+      - "The post's creation time"
+      - "The feed owner's user ID"
+      - "The post's ID, so posts spread evenly"
+    answer: 1
+    explanations:
+      correct: "Sharding by the feed owner's ID keeps a whole feed on one shard, so loading it is a single-shard read, and millions of users spread the load."
+      wrong:
+        0: "Time-based keys push all new writes to the newest shard, creating a hot shard."
+        2: "Spreading by post ID scatters one feed across every shard, so each feed load becomes a query to all shards."

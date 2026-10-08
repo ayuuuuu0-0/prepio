@@ -31,7 +31,7 @@ Never bypass this structure. Lesson completion does not unlock worlds directly: 
 * A **path** is an ordered set of worlds. Phase L ships one path: **Working Professionals**.
 * Worlds are destinations, not categories ("System Design" is a topic; a world has an identity).
 * A node is one milestone and binds exactly one lesson.
-* The world/node outline for the Working Professionals path is **designed jointly with the product owner and lives in `content/`**, not in these docs.
+* The world/node outline for the Working Professionals path is **designed jointly with the product owner and lives in `content/`** (`content/PLAN.md` holds the outline and the authoring standard), not in these docs.
 * There are no company worlds and no company content.
 
 ## Topics, Skills, Subskills

@@ -1,0 +1,58 @@
+slug: open-for-extension
+title: "Open for Extension"
+node: open-for-extension
+kind: lesson
+status: published
+difficulty: medium
+est_minutes: 5
+skills:
+  - { skill: lld-patterns, weight: 0.5 }
+  - { skill: lld-oop, weight: 0.5 }
+summary:
+  - "Open/closed means new behavior arrives as new code instead of edits to code that already works."
+  - "The strategy pattern puts each variation behind one interface, so a new case is a new class."
+  - "A small, stable switch is often fine; reach for a strategy when new cases keep arriving."
+steps:
+  - id: intro
+    type: intro
+    beats:
+      - { text: "A switch on type looks harmless until the fifth case arrives.", emphasis: "the fifth case", visual: bars, durationMs: 4500 }
+      - { text: "Each new case means editing code that already works and is already tested.", emphasis: "already works", visual: pulse, durationMs: 4500 }
+      - { text: "Put each variation behind one interface, and new behavior becomes a new class.", emphasis: "a new class", visual: flow, durationMs: 5000 }
+  - id: replace-switch
+    type: mcq
+    prompt: "calculateShipping(order) has a switch on order.method with cases for standard, express, and overnight. Product adds two new methods every quarter. Which change lets you add methods without editing calculateShipping?"
+    options:
+      - "Add a default case that throws for unknown methods"
+      - "Define a ShippingCost interface with one class per method, and pass the right one in"
+      - "Copy calculateShipping into a new function for each new method and call the right one"
+    answer: 1
+    explanations:
+      correct: "This is the strategy pattern: each shipping method is its own class behind one interface. A new method is a new class, and calculateShipping no longer changes."
+      wrong:
+        0: "A default case makes unknown methods fail loudly, which is useful, but every new method still means editing the switch."
+        2: "Copying spreads the shared logic around, and something still has to choose which copy to call, usually another switch."
+  - id: strategy-impl
+    type: fill_blank
+    code: "interface DiscountStrategy { apply(total: number): number; }\nclass HolidayDiscount ___1___ DiscountStrategy {\n  ___2___(total: number) { return total * 0.9; }\n}"
+    bank: ["implements", "extends", "apply", "calculate", "override"]
+    answers: ["implements", "apply"]
+    explanation: "A class implements an interface and must provide the method it declares, apply. Callers depend only on DiscountStrategy, so adding a discount never changes them."
+  - id: ocp-meaning
+    type: true_false
+    statement: "Open/closed means a module can gain new behavior by adding new code, rather than by editing code that already works."
+    answer: true
+    explanation: "Open for extension, closed for modification: new variations arrive as new classes, so existing, tested code stays untouched."
+  - id: when-switch-ok
+    type: mcq
+    prompt: "When is a plain switch on type usually a better choice than a strategy?"
+    options:
+      - "Never: every switch on type breaks open/closed and should become a strategy"
+      - "When each case is longer than ten lines"
+      - "When the cases are few, stable, and used in only one place"
+    answer: 2
+    explanations:
+      correct: "Patterns add indirection. A small switch that rarely changes and lives in one place is easy to read, and you can move to a strategy when new cases start arriving."
+      wrong:
+        0: "Open/closed is a guide for code that changes often, not a ban. A stable switch costs little to keep."
+        1: "Long cases are a reason to extract methods, but whether a strategy pays off depends on how often new cases arrive."

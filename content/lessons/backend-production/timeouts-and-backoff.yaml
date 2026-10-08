@@ -1,0 +1,58 @@
+slug: timeouts-and-backoff
+title: "Timeouts and Backoff"
+node: timeouts-and-backoff
+kind: lesson
+status: published
+difficulty: medium
+est_minutes: 5
+skills:
+  - { skill: backend-concurrency, weight: 0.6 }
+  - { skill: backend-observability, weight: 0.4 }
+summary:
+  - "Every call to another service needs a timeout, or one hung dependency ties up the caller's threads and connections."
+  - "Exponential backoff with jitter spreads retries out so they do not hit a recovering service in synchronized waves."
+  - "Retries at several layers multiply, so a small failure can turn into a retry storm."
+steps:
+  - id: intro
+    type: intro
+    beats:
+      - { text: "A call with no timeout can wait forever, and so can everyone queued behind it.", emphasis: "wait forever", visual: pulse, durationMs: 4500 }
+      - { text: "Retry, but wait longer each time, and add a little randomness.", emphasis: "randomness", visual: bars, durationMs: 4500 }
+      - { text: "Otherwise your retries become the outage.", emphasis: "become the outage", visual: flow, durationMs: 4000 }
+  - id: no-timeout
+    type: mcq
+    prompt: "A service calls a dependency with no timeout. The dependency stops responding but keeps connections open. What happens to the calling service?"
+    options:
+      - "Calls fail fast, because hung connections are dropped right away"
+      - "The operating system cancels each call after about a second, so threads are freed quickly"
+      - "Requests pile up holding threads and connections until the caller stalls too"
+    answer: 2
+    explanations:
+      correct: "Each waiting call holds a thread or connection. As they accumulate, the caller runs out and stops serving even requests that never touch the dependency."
+      wrong:
+        0: "An open but silent connection looks alive, so nothing drops it until some timeout fires. Without one, the call keeps waiting."
+        1: "There is no short default deadline to rely on; operating system limits are typically very long or absent, so the application has to set its own timeout."
+  - id: backoff-jitter
+    type: fill_blank
+    code: "# exponential backoff with full jitter\ndelay = min(cap, base * ___1___ ** attempt)\nsleep(random_between(0, ___2___))"
+    bank: ["2", "delay", "attempt", "base", "cap"]
+    answers: ["2", "delay"]
+    explanation: "Doubling the base delay per attempt gives exponential backoff, capped so waits stay bounded. Sleeping a random time up to that delay (full jitter) keeps clients from retrying in lockstep."
+  - id: synchronized-retries
+    type: true_false
+    statement: "If every client retries exactly 1 second after a failure, their retries tend to arrive together and can knock over a service that is just recovering."
+    answer: true
+    explanation: "Clients that failed together retry together. Adding jitter spreads those retries out, so the recovering service sees a steady trickle instead of a spike."
+  - id: retry-amplification
+    type: mcq
+    prompt: "The mobile app, the web tier, and the API tier each make up to 3 attempts when the call below them fails. The service at the bottom is down. How many attempts can one user action send to it?"
+    options:
+      - "27"
+      - "9"
+      - "3"
+    answer: 0
+    explanations:
+      correct: "Retries multiply across layers: 3 app attempts, each causing 3 web attempts, each causing 3 API attempts, is 3 x 3 x 3 = 27. On a dashboard this shows up as traffic to the failing service jumping far above real user traffic, so retry at one layer only."
+      wrong:
+        1: "Nine counts only two of the retrying layers. The app's own attempts multiply the total again."
+        2: "Three would hold only if a single layer retried. Here each layer's attempts trigger a full set of retries below it."

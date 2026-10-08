@@ -1,0 +1,59 @@
+slug: compose-dont-inherit
+title: "Compose, Don't Inherit"
+node: compose-dont-inherit
+kind: lesson
+status: published
+difficulty: medium
+est_minutes: 5
+skills:
+  - { skill: lld-oop, weight: 1.0 }
+summary:
+  - "Composition builds behavior from parts an object has, while inheritance ties a subclass to its parent's details."
+  - "A fragile base class breaks its subclasses when its internals change, even if its public contract does not."
+  - "Liskov substitution says a subtype must work anywhere its base type is expected."
+steps:
+  - id: intro
+    type: intro
+    beats:
+      - { text: "Inheritance says is-a. Composition says has-a.", emphasis: "has-a", visual: bars, durationMs: 4000 }
+      - { text: "Deep hierarchies tie subclasses to every detail of their parents.", emphasis: "every detail", visual: pulse, durationMs: 5000 }
+      - { text: "Building objects from small parts keeps each part free to change.", emphasis: "small parts", visual: flow, durationMs: 4500 }
+  - id: square-rectangle
+    type: mcq
+    prompt: "Square extends Rectangle and overrides setWidth and setHeight so both sides always stay equal. Code that sets width 5 and then height 4 on a Rectangle gets an area of 16 when handed a Square. Which principle is broken?"
+    options:
+      - "Single responsibility"
+      - "Dependency inversion"
+      - "Open/closed"
+      - "Liskov substitution"
+    answer: 3
+    explanations:
+      correct: "Liskov substitution says a subtype must work anywhere its base type is expected. Callers of Rectangle reasonably assume width and height are independent, and Square breaks that."
+      wrong:
+        0: "Square still has one job. The problem is that it behaves differently from what Rectangle's callers expect."
+        1: "Dependency inversion is about depending on abstractions instead of concrete classes; nothing here depends on the wrong layer."
+        2: "No existing code had to be edited to add Square. The failure appears when a Square is used in place of a Rectangle."
+  - id: never-inherit
+    type: true_false
+    statement: "Composition over inheritance means inheritance should never be used."
+    answer: false
+    explanation: "It is a default, not a ban. Inheritance fits a true is-a relationship where the subclass honors everything the base promises; composition is usually safer when you only want to reuse behavior."
+  - id: fragile-base
+    type: mcq
+    prompt: "A base class changes how one of its internal methods works. Its public contract is unchanged, yet a subclass in another module starts double-counting items. What is this called?"
+    options:
+      - "The fragile base class problem"
+      - "The diamond problem"
+      - "A god class"
+    answer: 0
+    explanations:
+      correct: "Subclasses often depend on how the parent works inside, not just on what it promises. When those internals change, subclasses break. Composition avoids this by relying only on the public interface."
+      wrong:
+        1: "The diamond problem is ambiguity when a class inherits the same member through two parents. Here there is a single parent."
+        2: "A god class has too many responsibilities. This break comes from the coupling between a subclass and its parent's internals."
+  - id: delegate-behavior
+    type: fill_blank
+    code: "class Duck {\n  constructor(private flyBehavior: ___1___) {}\n  fly() { ___2___.fly(); }\n}"
+    bank: ["FlyBehavior", "Bird", "this.flyBehavior", "super", "this"]
+    answers: ["FlyBehavior", "this.flyBehavior"]
+    explanation: "Duck has a FlyBehavior and delegates to it. Passing in a different FlyBehavior changes how it flies without a new subclass, and no parent internals are involved."

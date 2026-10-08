@@ -1,0 +1,37 @@
+slug: algorithm-gardens
+name: "Algorithm Gardens"
+description: "The structures and techniques you actually reach for, without the grind."
+theme: garden
+order: 4
+nodes:
+  - slug: the-right-lookup
+    label: "The Right Lookup"
+    type: lesson
+  - slug: two-pointers
+    label: "Two Pointers"
+    type: lesson
+    requires: [the-right-lookup]
+  - slug: the-sliding-window
+    label: "The Sliding Window"
+    type: lesson
+    requires: [two-pointers]
+  - slug: stacks-and-queues
+    label: "Stacks and Queues"
+    type: lesson
+    requires: [the-sliding-window]
+  - slug: halving-the-search
+    label: "Halving the Search"
+    type: lesson
+    requires: [stacks-and-queues]
+  - slug: walking-trees
+    label: "Walking Trees"
+    type: lesson
+    requires: [halving-the-search]
+  - slug: finding-the-way
+    label: "Finding the Way"
+    type: lesson
+    requires: [walking-trees]
+  - slug: boss-pick-the-structure
+    label: "Boss: Pick the Structure"
+    type: boss
+    requires: [finding-the-way]

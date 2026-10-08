@@ -1,0 +1,54 @@
+slug: when-things-happen
+title: "When Things Happen"
+node: when-things-happen
+kind: lesson
+status: published
+difficulty: medium
+est_minutes: 5
+skills:
+  - { skill: lld-patterns, weight: 1.0 }
+summary:
+  - "The observer pattern lets a publisher announce an event without knowing who reacts to it."
+  - "New reactions subscribe themselves, so adding one never edits the publisher."
+  - "The cost is a less visible flow, so name events clearly and make subscribers easy to find."
+steps:
+  - id: intro
+    type: intro
+    beats:
+      - { text: "Placing an order triggers email, analytics, and inventory updates.", emphasis: "triggers", visual: flow, durationMs: 4500 }
+      - { text: "If the order code calls each one directly, every new reaction means editing it.", emphasis: "editing it", visual: bars, durationMs: 4500 }
+      - { text: "Publish one event, and let any number of listeners react.", emphasis: "any number of listeners", visual: pulse, durationMs: 4500 }
+  - id: decouple
+    type: mcq
+    prompt: "After saving an order, OrderService calls EmailService, AnalyticsService, and InventoryService directly. A fourth team wants to react to new orders. Which design lets them do that without changing OrderService?"
+    options:
+      - "Have each team poll the orders table every few seconds"
+      - "OrderService publishes an OrderPlaced event that listeners subscribe to"
+      - "Make OrderService extend each service class"
+    answer: 1
+    explanations:
+      correct: "With the observer pattern, OrderService only announces that an order was placed. New reactions subscribe themselves, and OrderService never learns their names."
+      wrong:
+        0: "Polling can work, but it adds delay and load, and every team ends up rebuilding change detection on the same table."
+        2: "Most languages allow only one parent class, and inheritance would couple OrderService even more tightly to each service."
+  - id: notify-listeners
+    type: fill_blank
+    code: "interface OrderListener { onOrderPlaced(order: Order): void }\nsubscribe(l: OrderListener) { this.listeners.___1___(l); }\npublish(order: Order) { this.listeners.forEach(l => l.___2___(order)); }"
+    bank: ["push", "pop", "onOrderPlaced", "sendEmail", "subscribe"]
+    answers: ["push", "onOrderPlaced"]
+    explanation: "subscribe adds the listener to the list, and publish calls the listener interface method on each one. The publisher knows only OrderListener, never which classes are listening or what they do."
+  - id: event-flow
+    type: arrange
+    prompt: "Order what happens when an order is placed using the observer pattern."
+    items:
+      - "OrderService publishes OrderPlaced"
+      - "Each listener handles the event in its own way"
+      - "Email and inventory listeners subscribe at startup"
+      - "OrderService saves the order"
+    order: [2, 3, 0, 1]
+    explanation: "Listeners register before anything happens; the publisher saves the order, then announces the event; each listener reacts independently, without knowing about the others."
+  - id: tracing-cost
+    type: true_false
+    statement: "One cost of events is that following the full flow means finding every subscriber, not just reading one method."
+    answer: true
+    explanation: "Decoupling hides who reacts. Clear event names, an easy way to list subscribers, and logging on events keep the flow discoverable."

@@ -1,0 +1,57 @@
+slug: finding-the-way
+title: "Finding the Way"
+node: finding-the-way
+kind: lesson
+status: published
+difficulty: medium
+est_minutes: 5
+skills:
+  - { skill: graphs, weight: 1.0 }
+summary:
+  - "Breadth-first search reaches nodes in order of hop count, so it finds shortest paths in unweighted graphs."
+  - "When edges have different weights, fewest hops is not the cheapest path, and you need an algorithm such as Dijkstra's."
+  - "A visited set stops a walk from looping forever around cycles and from processing a node twice."
+steps:
+  - id: intro
+    type: intro
+    beats:
+      - { text: "Service calls, road maps, and social links are all graphs: nodes joined by edges.", emphasis: "nodes joined by edges", visual: flow, durationMs: 5000 }
+      - { text: "Breadth-first search reaches nodes in order of hop count.", emphasis: "hop count", visual: bars, durationMs: 4500 }
+      - { text: "Without a visited set, a cycle sends the walk around forever.", emphasis: "visited set", visual: pulse, durationMs: 4500 }
+  - id: fewest-hops
+    type: mcq
+    prompt: "You want the fewest network hops between two services in a graph where every link counts the same. Which approach is guaranteed to find it?"
+    options:
+      - "Depth-first search, stopping the first time it reaches the target"
+      - "From each node, follow its first listed neighbor until reaching the target"
+      - "Breadth-first search from the source"
+    answer: 2
+    explanations:
+      correct: "BFS finishes every node at distance 1 before any at distance 2, and so on, so the first time it reaches the target is along a fewest-hop path."
+      wrong:
+        0: "Depth-first search reaches the target along whatever branch it happens to explore first, which can be a long detour."
+        1: "Always taking the first neighbor ignores every other route and may never reach the target at all, let alone by the shortest path."
+  - id: weighted-edges
+    type: true_false
+    statement: "Breadth-first search finds the fastest route in a road graph where each road has a different travel time."
+    answer: false
+    explanation: "BFS minimizes the number of edges, not their total weight. Two slow roads can take longer than three fast ones; with non-negative weights, use Dijkstra's algorithm."
+  - id: bfs-loop
+    type: fill_blank
+    code: "# visit nodes in breadth-first order (queue is a deque)\nwhile queue:\n    node = queue.___1___()\n    for nxt in graph[node]:\n        if nxt not in seen: seen.add(nxt); queue.___2___(nxt)"
+    bank: ["popleft", "pop", "append", "appendleft"]
+    answers: ["popleft", "append"]
+    explanation: "queue is a collections.deque: popleft takes the oldest node and append adds new ones at the back, which keeps the visit order breadth-first. Checking seen before queuing means each node is queued once, even when the graph has cycles."
+  - id: endless-crawl
+    type: mcq
+    prompt: "An internal link checker follows links between wiki pages and never finishes on some spaces. What is the most likely cause?"
+    options:
+      - "It has no visited set, so pages that link to each other are crawled again and again"
+      - "It uses a queue where it should use a stack"
+      - "The graph has too many pages for breadth-first search"
+    answer: 0
+    explanations:
+      correct: "Pages that link back to each other form cycles. Without a visited set the crawler keeps returning to them; with one, each page is processed once."
+      wrong:
+        1: "A stack changes the order of visits to depth-first, but without a visited set it would loop around cycles just the same."
+        2: "BFS runs in O(V + E) time; a large graph takes longer but still ends. Never finishing points to revisiting pages."

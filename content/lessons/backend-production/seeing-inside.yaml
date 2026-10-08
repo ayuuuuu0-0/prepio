@@ -1,0 +1,57 @@
+slug: seeing-inside
+title: "Seeing Inside"
+node: seeing-inside
+kind: lesson
+status: published
+difficulty: medium
+est_minutes: 5
+skills:
+  - { skill: backend-observability, weight: 1.0 }
+summary:
+  - "Metrics show trends cheaply, logs record individual events, and traces follow one request across services."
+  - "The golden signals to watch for a service are latency, traffic, errors, and saturation."
+  - "A useful alert pages on sustained user-facing symptoms, not on every spike or log line."
+steps:
+  - id: intro
+    type: intro
+    beats:
+      - { text: "Production never tells you what is wrong. You have to ask it.", emphasis: "ask it", visual: pulse, durationMs: 4000 }
+      - { text: "Metrics show the trend, logs tell the story, traces follow one request end to end.", emphasis: "traces", visual: flow, durationMs: 6000 }
+      - { text: "Alert on what users feel, not on every blip.", emphasis: "what users feel", visual: bars, durationMs: 3500 }
+  - id: which-signal
+    type: mcq
+    prompt: "One checkout request took 6 seconds and passed through five services. What shows which service spent the time?"
+    options:
+      - "An aggregated latency metric for the checkout service"
+      - "A distributed trace of that request"
+      - "The load balancer's request count"
+    answer: 1
+    explanations:
+      correct: "A trace records a timed span for each service the request touched, so the slow hop stands out directly."
+      wrong:
+        0: "An aggregate tells you checkout is slow overall, but it cannot break one request down by service."
+        2: "Request counts measure traffic, not where time goes inside a request."
+  - id: metric-cardinality
+    type: true_false
+    statement: "Adding each user's unique ID as a label on a request-count metric is a cheap way to see traffic per user."
+    answer: false
+    explanation: "Each distinct label value creates a separate time series, so millions of user IDs explode storage and query cost. Per-user detail belongs in logs or traces."
+  - id: good-alert
+    type: mcq
+    prompt: "Which alert is most worth waking an on-call engineer for?"
+    options:
+      - "The checkout error rate has stayed above 2% for 5 minutes"
+      - "Any host's CPU went above 80%, since that means the service is about to fail"
+      - "A single error line appeared in the checkout service's logs"
+    answer: 0
+    explanations:
+      correct: "It is a sustained, user-facing symptom: real customers are failing to check out, and the 5-minute window filters out brief blips."
+      wrong:
+        1: "High CPU does not mean failure; it can be perfectly healthy under load. Alert on what users experience and use CPU as a clue while investigating."
+        2: "Isolated errors happen all the time in healthy systems. Paging on each one trains people to ignore pages."
+  - id: alert-rule
+    type: fill_blank
+    code: "# page on a sustained error spike, not a brief blip\nalert: CheckoutErrorsHigh\ncondition: error_rate(service=checkout) ___1___ 0.02\nfor: ___2___"
+    bank: [">", "<", "5m", "0s", "=="]
+    answers: [">", "5m"]
+    explanation: "The alert fires when the error rate goes above 2%, and only after it stays there for 5 minutes. A zero-length window would page on every short spike."

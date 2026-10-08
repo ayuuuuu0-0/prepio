@@ -1,0 +1,61 @@
+slug: copies-that-lag
+title: "Copies That Lag"
+node: copies-that-lag
+kind: lesson
+status: published
+difficulty: medium
+est_minutes: 4
+skills:
+  - { skill: system-design-reliability, weight: 0.6 }
+  - { skill: system-design-data, weight: 0.4 }
+summary:
+  - "With leader-follower replication, writes go to the leader and followers copy them, usually a little later."
+  - "Replication lag means a read from a follower can miss a write that just succeeded on the leader."
+  - "Read-your-writes: send a user's reads to the leader (or a caught-up replica) right after they write."
+steps:
+  - id: intro
+    type: intro
+    beats:
+      - { text: "Replicas copy the leader's data so you can serve more reads and survive a failure.", emphasis: "survive a failure", visual: flow, durationMs: 5000 }
+      - { text: "But copying takes time. For a moment, a replica is behind.", emphasis: "behind", visual: pulse, durationMs: 4000 }
+      - { text: "Design for that moment, or users will see their own changes vanish.", emphasis: "vanish", visual: bars, durationMs: 4500 }
+  - id: why-replicas
+    type: mcq
+    prompt: "A database serves 20 reads for every write and the leader's CPU is maxed out by reads. What do read replicas give you?"
+    options:
+      - "Followers that serve reads, taking that load off the leader"
+      - "Faster writes, because writes are split across replicas"
+      - "Strong consistency on every read"
+    answer: 0
+    explanations:
+      correct: "Replicas hold copies of the data, so reads can be spread across them. Writes still go to the leader."
+      wrong:
+        1: "In leader-follower replication every write still goes to the leader; followers only copy it."
+        2: "Follower reads can be slightly behind the leader, so they are eventually consistent, not strongly consistent."
+  - id: lag-effect
+    type: mcq
+    prompt: "A user updates their display name, the page reloads, and it shows the old name. Reads go to a replica. What happened?"
+    options:
+      - "The write failed on the leader, so the old name was never replaced"
+      - "The browser cached the old page"
+      - "The replica had not applied the write yet (replication lag)"
+    answer: 2
+    explanations:
+      correct: "The write succeeded on the leader, but the replica serving the reload was still behind, so it returned the old value."
+      wrong:
+        0: "If the write had failed, the user would have seen an error. Here it succeeded; the read was just served from a lagging copy."
+        1: "Browser caching is possible in general, but the setup described (reads from a replica right after a write) is the classic replication-lag symptom."
+  - id: read-your-writes
+    type: true_false
+    statement: "Once a write succeeds on the leader, every follower returns the new value on the very next read."
+    answer: false
+    explanation: "Followers apply writes a little later, so a read right after a write can still return the old value. For read-your-writes, send the user's reads to the leader (or a caught-up replica) for a short time after they write."
+  - id: failover
+    type: arrange
+    prompt: "The leader crashes. Put the failover steps in order."
+    items:
+      - "Point writes at the new leader"
+      - "Detect that the leader is no longer responding"
+      - "Promote the most up-to-date follower to leader"
+    order: [1, 2, 0]
+    explanation: "First detect the failure, then promote the follower with the most recent data, then send writes to it. Writes the old leader had not replicated yet can be lost."

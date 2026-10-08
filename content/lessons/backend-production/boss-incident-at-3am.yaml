@@ -1,0 +1,97 @@
+slug: boss-incident-at-3am
+title: "Boss: Incident at 3 a.m."
+node: boss-incident-at-3am
+kind: boss
+status: published
+difficulty: hard
+est_minutes: 7
+skills:
+  - { skill: backend-observability, weight: 0.3 }
+  - { skill: backend-concurrency, weight: 0.25 }
+  - { skill: backend-databases, weight: 0.25 }
+  - { skill: backend-api-design, weight: 0.2 }
+summary:
+  - "Start from the user-facing symptom and use traces to find where slow requests spend their time."
+  - "Keep transactions short: a slow call inside a transaction holds row locks and stalls every writer behind it."
+  - "Retries need backoff, jitter, and idempotency keys, or they amplify the outage and duplicate work."
+steps:
+  - id: intro
+    type: intro
+    beats:
+      - { text: "Boss time: your pager goes off at 3 a.m. Orders are slow and failing.", emphasis: "3 a.m.", visual: pulse, durationMs: 5000 }
+      - { text: "Everything from this world comes together: signals, transactions, locks, and retries.", emphasis: "comes together", visual: flow, durationMs: 5500 }
+      - { text: "Stay calm and follow the evidence.", emphasis: "follow the evidence", visual: bars, durationMs: 3500 }
+  - id: first-look
+    type: mcq
+    prompt: "The orders API's p99 latency jumped from 200 ms to 4 seconds and errors are rising. What finds fastest where slow requests spend their time?"
+    options:
+      - "Searching every service's logs for the word error"
+      - "Traces of a few slow requests"
+      - "CPU graphs for every host"
+    answer: 1
+    explanations:
+      correct: "A trace breaks a slow request into timed spans per service and query, so the step that grew from milliseconds to seconds stands out."
+      wrong:
+        0: "Error logs help later, but slow requests often log nothing, and a broad search across services is slow at 3 a.m."
+        2: "CPU may be normal while requests wait on locks or other services. It shows load, not where a request's time goes."
+  - id: gateway-timeout
+    type: true_false
+    statement: "Most of the errors are 504 Gateway Timeout, which means clients are sending malformed requests."
+    answer: false
+    explanation: "A 504 is a server-side error: a gateway or proxy gave up waiting for the service behind it. It fits the slow requests, not bad input."
+  - id: long-transaction
+    type: mcq
+    prompt: "Traces show requests waiting on row locks in the inventory table. Tonight's deploy moved a call to the payment service inside the transaction that updates inventory. What is the best fix?"
+    options:
+      - "Move the payment call outside the transaction so row locks are held only briefly"
+      - "Raise the isolation level to SERIALIZABLE so concurrent orders stop conflicting over the same rows"
+      - "Add an index to the inventory table so each update finds and locks its row faster"
+    answer: 0
+    explanations:
+      correct: "Row locks are held until the transaction ends. A slow network call inside it keeps those rows locked for seconds, so every other order touching them waits."
+      wrong:
+        1: "SERIALIZABLE does not stop conflicts; it adds more conflicts and aborts, and it does not shorten how long the slow transaction holds its locks."
+        2: "The requests are waiting for locks, not scanning rows. Finding the row faster cannot release a lock held by a long transaction."
+  - id: traffic-tripled
+    type: mcq
+    prompt: "Requests to the orders API have tripled, though the number of active users is flat. What is the most likely cause?"
+    options:
+      - "A marketing campaign just started and is sending a wave of shoppers to place orders"
+      - "The orders table is missing an index, so every request now does a full table scan"
+      - "The load balancer is copying each request to three servers"
+      - "Clients are retrying failed and timed-out calls immediately, without backoff"
+    answer: 3
+    explanations:
+      correct: "Flat users with tripled requests means each user action now sends several requests. Immediate retries of slow or failing calls multiply load on a service that is already struggling."
+      wrong:
+        0: "A campaign would bring more users, but the number of active users has not changed."
+        1: "A missing index makes each request slower; it does not create more requests."
+        2: "A load balancer sends each request to one server. Duplicating requests is not how it spreads load."
+  - id: jitter-helps
+    type: true_false
+    statement: "Adding jitter to client retries spreads them out, so they do not hit the recovering service in synchronized waves."
+    answer: true
+    explanation: "Clients that failed at the same moment would otherwise retry at the same moment. Random delays turn those spikes into a steady flow the service can absorb."
+  - id: duplicate-orders
+    type: mcq
+    prompt: "Some customers who retried during the incident now have two identical orders. What prevents this next time?"
+    options:
+      - "An idempotency key per order, reused on every retry"
+      - "Change order creation to use GET, which is idempotent"
+      - "Ask clients to never retry a failed request"
+    answer: 0
+    explanations:
+      correct: "With a key per logical order, the server recognizes a retry of an order it already created and returns the original result instead of creating another."
+      wrong:
+        1: "GET must not change state; creating an order with it breaks HTTP semantics and caches or crawlers could create orders by accident."
+        2: "Without retries, every timeout becomes a lost order. Retries are fine once the server can deduplicate them."
+  - id: incident-steps
+    type: arrange
+    prompt: "Order the incident response from page to wrap-up."
+    items:
+      - "Write a blameless review with follow-up actions"
+      - "Roll back tonight's deploy to stop the damage"
+      - "Confirm the user impact on dashboards and declare the incident"
+      - "Watch latency and error rate return to normal"
+    order: [2, 1, 3, 0]
+    explanation: "Confirm and declare so others know, mitigate first with the fastest safe action, verify recovery with the same signals that paged you, then learn from it without blame."

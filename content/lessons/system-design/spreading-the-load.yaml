@@ -1,0 +1,61 @@
+slug: spreading-the-load
+title: "Spreading the Load"
+node: spreading-the-load
+kind: lesson
+status: published
+difficulty: easy
+est_minutes: 4
+skills:
+  - { skill: system-design-scaling, weight: 1.0 }
+summary:
+  - "A load balancer spreads requests across servers and stops sending traffic to servers that fail health checks."
+  - "Round robin suits similar, short requests; least connections suits requests that vary a lot in duration."
+  - "Horizontal scaling works best when servers are stateless, so any server can handle any request."
+steps:
+  - id: intro
+    type: intro
+    beats:
+      - { text: "One server can only do so much. Two servers are only useful if traffic reaches both.", emphasis: "reaches both", visual: bars, durationMs: 5000 }
+      - { text: "A load balancer sits in front, spreading requests and skipping servers that are unhealthy.", emphasis: "skipping", visual: flow, durationMs: 5000 }
+      - { text: "It works best when any server can answer any request.", emphasis: "any server", visual: pulse, durationMs: 4000 }
+  - id: health-checks
+    type: mcq
+    prompt: "One of four servers behind a load balancer crashes. What keeps users from being sent to it?"
+    options:
+      - "Health checks that take the failing server out of rotation"
+      - "Round robin, because it spreads requests evenly across all four servers"
+      - "A larger timeout on the load balancer"
+    answer: 0
+    explanations:
+      correct: "The load balancer probes each server and stops routing to one that fails its checks, so traffic only reaches healthy servers."
+      wrong:
+        1: "Round robin keeps sending a quarter of requests to the dead server unless health checks remove it."
+        2: "A longer timeout makes users wait longer before the request to the dead server fails."
+  - id: least-connections
+    type: mcq
+    prompt: "Some requests take 20 ms and some take 20 seconds (report exports). Which algorithm avoids piling long requests onto one server?"
+    options:
+      - "Round robin"
+      - "Always the first server in the list"
+      - "Least connections"
+    answer: 2
+    explanations:
+      correct: "Least connections sends new work to the server with the fewest requests in flight, so a server busy with long exports gets fewer new ones."
+      wrong:
+        0: "Round robin counts requests, not their cost, so one server can end up holding several slow exports at once."
+        1: "Sending everything to one server is not load balancing; the others sit idle."
+  - id: sticky-sessions
+    type: true_false
+    statement: "If each server keeps logged-in sessions in its own memory, users can be logged out when the load balancer sends them to a different server."
+    answer: true
+    explanation: "State held in one server's memory is invisible to the others. Move sessions to a shared store (or signed tokens) so servers are stateless and interchangeable."
+  - id: request-path
+    type: arrange
+    prompt: "Put a request's path in order, from the user's click to the response."
+    items:
+      - "A healthy application server handles the request"
+      - "The load balancer picks a server that is passing health checks"
+      - "The user's request reaches the load balancer"
+      - "The response travels back to the user"
+    order: [2, 1, 0, 3]
+    explanation: "The load balancer receives the request first, chooses a healthy server, that server does the work, and the response returns to the user."

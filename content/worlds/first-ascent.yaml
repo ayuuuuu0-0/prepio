@@ -7,3 +7,35 @@ nodes:
   - slug: why-caches-exist
     label: "Why Caches Exist"
     type: lesson
+  - slug: keeping-caches-honest
+    label: "Keeping Caches Honest"
+    type: lesson
+    requires: [why-caches-exist]
+  - slug: spreading-the-load
+    label: "Spreading the Load"
+    type: lesson
+    requires: [keeping-caches-honest]
+  - slug: finding-rows-fast
+    label: "Finding Rows Fast"
+    type: lesson
+    requires: [spreading-the-load]
+  - slug: copies-that-lag
+    label: "Copies That Lag"
+    type: lesson
+    requires: [finding-rows-fast]
+  - slug: splitting-the-data
+    label: "Splitting the Data"
+    type: lesson
+    requires: [copies-that-lag]
+  - slug: work-that-can-wait
+    label: "Work That Can Wait"
+    type: lesson
+    requires: [splitting-the-data]
+  - slug: back-of-the-envelope
+    label: "Back of the Envelope"
+    type: lesson
+    requires: [work-that-can-wait]
+  - slug: boss-read-heavy-feed
+    label: "Boss: Scale a Read-Heavy Feed"
+    type: boss
+    requires: [back-of-the-envelope]

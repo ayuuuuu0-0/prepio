@@ -1,0 +1,58 @@
+slug: the-lost-update
+title: "The Lost Update"
+node: the-lost-update
+kind: lesson
+status: published
+difficulty: medium
+est_minutes: 5
+skills:
+  - { skill: backend-concurrency, weight: 0.6 }
+  - { skill: backend-databases, weight: 0.4 }
+summary:
+  - "When two requests read a value, change it in code, and write it back, one update can silently overwrite the other."
+  - "A row lock with SELECT ... FOR UPDATE makes the second writer wait until the first commits."
+  - "Optimistic concurrency takes no lock: it writes only if a version column is unchanged, and retries when it was."
+steps:
+  - id: intro
+    type: intro
+    beats:
+      - { text: "Two requests read stock = 10 at the same moment.", emphasis: "same moment", visual: pulse, durationMs: 3500 }
+      - { text: "Each subtracts one and writes back 9. One sale just vanished.", emphasis: "vanished", visual: bars, durationMs: 4500 }
+      - { text: "Lock the row while you work, or check a version before you write.", emphasis: "check a version", visual: flow, durationMs: 5000 }
+  - id: race-result
+    type: mcq
+    prompt: "At the common default READ COMMITTED level, two requests each run SELECT stock (both see 10), compute 10 - 1 in code, and run UPDATE products SET stock = 9. What is the final stock?"
+    options:
+      - "9, because the second write overwrote the first"
+      - "8, because the database applies both decrements"
+      - "An error, because the database rejects the conflicting write"
+    answer: 0
+    explanations:
+      correct: "Both requests wrote the value they computed from a stale read. The second UPDATE simply sets 9 again, so one decrement is lost."
+      wrong:
+        1: "The database only sees two statements that each set stock to 9. It has no idea the code meant subtract one."
+        2: "At READ COMMITTED each UPDATE is valid on its own, so nothing is rejected. That silence is what makes lost updates dangerous."
+  - id: version-check
+    type: fill_blank
+    code: "UPDATE products\nSET stock = :new_stock, ___1___ = version + 1\nWHERE id = :id AND version = ___2___;"
+    bank: ["version", ":read_version", "stock", ":new_stock", "id"]
+    answers: ["version", ":read_version"]
+    explanation: "The write succeeds only if the version is still the one you read, and it bumps the version so any other writer holding the old value now fails its check."
+  - id: zero-rows
+    type: mcq
+    prompt: "The product still exists, but the versioned UPDATE reports 0 rows affected. What does that mean?"
+    options:
+      - "The write succeeded, and the row count can be ignored because the database raised no error"
+      - "Another writer changed the row after it was read, so re-read and retry or report a conflict"
+      - "The database is overloaded and silently dropped the statement instead of running it"
+    answer: 1
+    explanations:
+      correct: "No row matched the old version, so someone else updated it first. Re-reading and retrying (or returning a conflict to the user) is how optimistic concurrency avoids losing their change."
+      wrong:
+        0: "No error does not mean success: zero rows affected means nothing was written. Ignoring it brings back the lost update the version check was added to catch."
+        2: "An overloaded database returns an error or times out; it does not report a clean success with zero rows."
+  - id: optimistic-no-lock
+    type: true_false
+    statement: "Optimistic concurrency locks the row when it is read, so other writers wait until the first one finishes."
+    answer: false
+    explanation: "That describes pessimistic locking, such as SELECT ... FOR UPDATE. Optimistic concurrency reads without a lock and detects a conflict at write time with the version check."

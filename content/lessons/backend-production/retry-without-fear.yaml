@@ -1,0 +1,62 @@
+slug: retry-without-fear
+title: "Retry Without Fear"
+node: retry-without-fear
+kind: lesson
+status: published
+difficulty: medium
+est_minutes: 5
+skills:
+  - { skill: backend-api-design, weight: 0.6 }
+  - { skill: system-design-reliability, weight: 0.4 }
+summary:
+  - "A timeout does not tell the client whether the request failed, so a blind retry of a POST can do the work twice."
+  - "An idempotency key is chosen once per logical operation by the client and reused on every retry."
+  - "The server stores the result under the key and returns the stored result when the same key arrives again."
+steps:
+  - id: intro
+    type: intro
+    beats:
+      - { text: "The request timed out. Did the payment go through, or not?", emphasis: "or not", visual: pulse, durationMs: 4000 }
+      - { text: "Retrying a POST blindly can charge the customer twice.", emphasis: "charge the customer twice", visual: bars, durationMs: 4500 }
+      - { text: "An idempotency key lets the server recognize a retry and replay the first answer.", emphasis: "idempotency key", visual: flow, durationMs: 5500 }
+  - id: blind-retry
+    type: mcq
+    prompt: "A client sends POST /payments. The connection times out before any response arrives, and the client sends the same POST again. What can happen?"
+    options:
+      - "The customer can be charged twice, because the first request may have succeeded"
+      - "Nothing bad: the server sees the identical request body and ignores it as a duplicate"
+      - "The second request is always rejected with 409 Conflict because the same body was already sent"
+    answer: 0
+    explanations:
+      correct: "A timeout only means the client stopped waiting. The server may have finished the charge, and without deduplication the retry charges again."
+      wrong:
+        1: "Two identical bodies can be two genuine purchases, so a server cannot safely treat them as duplicates unless the client marks them as the same operation."
+        2: "Nothing rejects the retry unless the API is designed to detect it; by default a repeated body is just another request."
+  - id: key-lifecycle
+    type: mcq
+    prompt: "How should a client use an idempotency key for a payment?"
+    options:
+      - "Generate a fresh key for every attempt, so each retry is tracked separately"
+      - "Wait for the server to return a key after the charge succeeds, then reuse it"
+      - "Generate one key per payment and send the same key on every retry"
+    answer: 2
+    explanations:
+      correct: "The key identifies the logical operation. Reusing it on retries is what lets the server see that the second attempt is the same payment."
+      wrong:
+        0: "A new key on each attempt makes every retry look like a new payment, so the server cannot deduplicate anything."
+        1: "If the key only arrives in the response, a timed-out request never delivers it, which is exactly the case the key must cover."
+  - id: put-repeat
+    type: true_false
+    statement: "Sending PUT /users/7/email with the same new address twice leaves the server in the same state as sending it once."
+    answer: true
+    explanation: "PUT replaces the resource with the given representation, so it is idempotent: the second identical request sets the same value again."
+  - id: server-dedup
+    type: arrange
+    prompt: "Order how the server handles a payment request that carries an idempotency key."
+    items:
+      - "If the key is new, charge the card and save the response under the key"
+      - "Read the idempotency key from the request"
+      - "Return the response to the client"
+      - "Look up the key; if it was seen before, return the saved response"
+    order: [1, 3, 0, 2]
+    explanation: "Read the key, check for an earlier result, do the work only for a new key while saving its response, then reply. A retry finds the saved response and gets the same answer without a second charge."

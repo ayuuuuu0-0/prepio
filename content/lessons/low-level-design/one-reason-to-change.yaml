@@ -1,0 +1,61 @@
+slug: one-reason-to-change
+title: "One Reason to Change"
+node: one-reason-to-change
+kind: lesson
+status: published
+difficulty: medium
+est_minutes: 5
+skills:
+  - { skill: lld-oop, weight: 1.0 }
+summary:
+  - "Single responsibility means a class should have one reason to change, not one method."
+  - "A god class is one that unrelated features keep forcing you to edit."
+  - "Split a large class safely by pinning behavior with tests, grouping by reason to change, and extracting one group at a time."
+steps:
+  - id: intro
+    type: intro
+    beats:
+      - { text: "Some classes do everything: calculate, save, format, and send.", emphasis: "do everything", visual: bars, durationMs: 4500 }
+      - { text: "Every new request touches them, and every change risks breaking something unrelated.", emphasis: "something unrelated", visual: pulse, durationMs: 5000 }
+      - { text: "Give each class one reason to change, and changes stay small.", emphasis: "one reason to change", visual: flow, durationMs: 4500 }
+  - id: split-invoice
+    type: mcq
+    prompt: "InvoiceService calculates totals and taxes, renders the invoice as a PDF, and emails it to the customer. Finance changes tax rules monthly and design restyles the PDF often. What is the best first step?"
+    options:
+      - "Move all three jobs into a base class that InvoiceService extends"
+      - "Keep one class but add clear comments separating the tax, PDF, and email sections"
+      - "Split it into a calculator, a renderer, and a sender"
+    answer: 2
+    explanations:
+      correct: "Tax rules, layout, and delivery change for different reasons and for different people. Separate classes let each one change without touching or retesting the others."
+      wrong:
+        0: "A base class keeps the same three responsibilities bundled together, just in another file."
+        1: "Comments help reading, but a tax change still edits and redeploys the same class as a layout change."
+  - id: one-method
+    type: true_false
+    statement: "Single responsibility means each class should have only one public method."
+    answer: false
+    explanation: "Responsibility is about reasons to change, not method count. A Money class can have add, subtract, and compare methods that all serve one purpose."
+  - id: god-class-sign
+    type: mcq
+    prompt: "Which is the strongest sign that a class has too many responsibilities?"
+    options:
+      - "Unrelated features keep forcing edits to it, often from different teams"
+      - "It is longer than 200 lines"
+      - "It implements two interfaces"
+    answer: 0
+    explanations:
+      correct: "Frequent edits for unrelated reasons are exactly what single responsibility warns about: each separate reason to change is a separate responsibility."
+      wrong:
+        1: "Length is a hint worth checking, but a long class with one cohesive job can be fine, and a short class can still mix concerns."
+        2: "Implementing interfaces is normal, and two interfaces can describe one cohesive role."
+  - id: split-safely
+    type: arrange
+    prompt: "You need to split a large OrderManager class safely. Order the steps."
+    items:
+      - "Extract each group into its own class"
+      - "Add tests that pin down the current behavior"
+      - "Point callers at the new classes and remove the old code"
+      - "Group the methods by the reason they change"
+    order: [1, 3, 0, 2]
+    explanation: "Tests first make the refactor safe, grouping by reason to change shows where the seams are, and extracting before rewiring callers keeps every step small and reversible."

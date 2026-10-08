@@ -1,0 +1,57 @@
+slug: the-right-lookup
+title: "The Right Lookup"
+node: the-right-lookup
+kind: lesson
+status: published
+difficulty: easy
+est_minutes: 4
+skills:
+  - { skill: hash-maps, weight: 1.0 }
+summary:
+  - "A hash map or set finds an entry by key in O(1) time on average, though heavy collisions can make a lookup O(n) in the worst case."
+  - "Counting with a map turns repeated scans into a single pass over the data."
+  - "Spending O(n) extra memory on a set or map often removes a whole nested loop."
+steps:
+  - id: intro
+    type: intro
+    beats:
+      - { text: "Scanning a list to find one item costs time proportional to its length.", emphasis: "proportional to its length", visual: bars, durationMs: 4500 }
+      - { text: "A hash map jumps straight to the entry by its key, in constant time on average.", emphasis: "constant time on average", visual: flow, durationMs: 5000 }
+      - { text: "You pay with extra memory, and it is usually a trade worth making.", emphasis: "extra memory", visual: pulse, durationMs: 4000 }
+  - id: seen-before
+    type: mcq
+    prompt: "A job checks 100,000 incoming order IDs against a list of 50,000 already processed IDs, scanning the list for each one. What is the simplest big speedup?"
+    options:
+      - "Sort the incoming IDs first so repeated IDs are checked side by side"
+      - "Load the processed IDs into a set and check membership"
+      - "Split the incoming IDs across several threads so the scans run in parallel"
+    answer: 1
+    explanations:
+      correct: "A set answers each membership check in O(1) on average, so the job drops from up to 5 billion comparisons to about 100,000 lookups."
+      wrong:
+        0: "Sorting the incoming IDs groups repeats together, but each check still scans the processed list, so every check is still O(n)."
+        2: "Threads divide the same O(n) work per check across cores, but the total work stays the same. A better structure removes most of it."
+  - id: worst-case
+    type: true_false
+    statement: "A hash map lookup is O(1) even in the worst case."
+    answer: false
+    explanation: "Lookups are O(1) on average. If many keys land in the same bucket, a lookup can degrade to O(n) in the worst case; good hash functions make this rare."
+  - id: count-words
+    type: fill_blank
+    code: "counts = {}\nfor word in words:\n    counts[word] = counts.___1___(word, ___2___) + 1"
+    bank: ["get", "0", "pop", "1", "None"]
+    answers: ["get", "0"]
+    explanation: "counts.get(word, 0) returns the current count, or 0 the first time a word appears, so one pass counts every word."
+  - id: pair-sum
+    type: mcq
+    prompt: "You need to know whether any two amounts in an unsorted list of 1 million transactions add up to a target, in a single pass. What works?"
+    options:
+      - "Keep a set of amounts seen so far and look up target minus each new amount"
+      - "Compare every amount with every other amount using two nested loops"
+      - "Sort the amounts, then binary search for each amount's complement"
+    answer: 0
+    explanations:
+      correct: "Each amount needs one O(1) average lookup for its complement, so the whole check is O(n) time, paid for with O(n) extra memory for the set."
+      wrong:
+        1: "Nested loops are correct but O(n squared): roughly half a trillion comparisons for a million amounts."
+        2: "Sorting plus binary search is correct, but it costs O(n log n) and needs more than one pass, which the task rules out."

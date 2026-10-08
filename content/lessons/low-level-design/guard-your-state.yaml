@@ -1,0 +1,58 @@
+slug: guard-your-state
+title: "Guard Your State"
+node: guard-your-state
+kind: lesson
+status: published
+difficulty: easy
+est_minutes: 4
+skills:
+  - { skill: lld-oop, weight: 0.6 }
+  - { skill: lld-fundamentals, weight: 0.4 }
+summary:
+  - "Encapsulation keeps an object's state private so only its own methods can change it."
+  - "An invariant is a rule the object's data must always satisfy, like a balance that never goes negative."
+  - "Public setters let callers skip the rules, so expose meaningful operations that check them instead."
+steps:
+  - id: intro
+    type: intro
+    beats:
+      - { text: "An object is a promise: its data always obeys its rules.", emphasis: "always obeys its rules", visual: pulse, durationMs: 4500 }
+      - { text: "A public setter lets any caller skip those rules, from anywhere in the codebase.", emphasis: "skip those rules", visual: flow, durationMs: 5000 }
+      - { text: "Keep state private and change it only through methods that check the rules.", emphasis: "only through methods", visual: bars, durationMs: 4500 }
+  - id: public-setter
+    type: mcq
+    prompt: "An Account class exposes setBalance(value). A bug report shows an account with a balance of -300, though overdrafts are not allowed. What is the root design problem?"
+    options:
+      - "The balance should be stored as a string"
+      - "Any caller can set any balance, so the no-overdraft rule can be bypassed"
+      - "The class needs more getters"
+    answer: 1
+    explanations:
+      correct: "setBalance accepts any value from any caller, so nothing in the class can enforce the rule. Replacing it with deposit and withdraw methods that check the rule protects the invariant."
+      wrong:
+        0: "The storage type is not the issue; a string balance can be set to -300 just as easily."
+        2: "Getters only read state. The problem is an unchecked way to write it."
+  - id: single-gate
+    type: true_false
+    statement: "If balance can only change through deposit and withdraw, those two methods are the only places that can break the no-overdraft rule."
+    answer: true
+    explanation: "That is the payoff of encapsulation: with no other way to write balance, checking the rule in those methods protects it everywhere, and a future fix touches only them."
+  - id: guard-withdraw
+    type: fill_blank
+    code: "class Account {\n  ___1___ balance = 0;\n  withdraw(amt: number) { if (amt > this.balance) throw new InsufficientFunds(); this.balance ___2___ amt; }\n}"
+    bank: ["private", "public", "-=", "+=", "static"]
+    answers: ["private", "-="]
+    explanation: "A private field can only be changed by the class's own methods, and withdraw checks the rule before subtracting, so the balance can never drop below zero."
+  - id: rule-location
+    type: mcq
+    prompt: "Orders cannot change their items after they ship. Where should that rule be enforced?"
+    options:
+      - "In Order's own addItem and removeItem methods"
+      - "In every API handler that edits orders"
+      - "In the UI, by hiding the edit button once shipped"
+    answer: 0
+    explanations:
+      correct: "Putting the rule in the methods that change the items means every caller gets it for free, whichever path it comes through."
+      wrong:
+        1: "Every handler would repeat the check, and the next new caller, such as a batch job or an admin tool, can easily forget it."
+        2: "Hiding the button helps users, but any other caller can still change a shipped order. The UI alone cannot protect a business rule."

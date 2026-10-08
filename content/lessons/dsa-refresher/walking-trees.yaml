@@ -1,0 +1,63 @@
+slug: walking-trees
+title: "Walking Trees"
+node: walking-trees
+kind: lesson
+status: published
+difficulty: medium
+est_minutes: 5
+skills:
+  - { skill: trees, weight: 0.6 }
+  - { skill: recursion, weight: 0.4 }
+summary:
+  - "Depth-first walks differ by when they visit the node: preorder before its children, inorder between them, postorder after them."
+  - "An inorder walk of a binary search tree yields its values in sorted order, and a breadth-first walk with a queue yields them level by level."
+  - "Recursion depth grows with a tree's height, so a long chain-shaped tree can overflow the call stack."
+steps:
+  - id: intro
+    type: intro
+    beats:
+      - { text: "A tree walk visits every node once; what changes is the order.", emphasis: "the order", visual: flow, durationMs: 4500 }
+      - { text: "Depth-first dives down one branch, while breadth-first sweeps level by level.", emphasis: "level by level", visual: bars, durationMs: 5000 }
+      - { text: "Recursion keeps depth-first code short, but each level of depth is a stack frame.", emphasis: "stack frame", visual: pulse, durationMs: 4500 }
+  - id: sorted-walk
+    type: mcq
+    prompt: "You need the keys of a binary search tree in ascending order. Which walk gives them directly?"
+    options:
+      - "Preorder"
+      - "Postorder"
+      - "Level order"
+      - "Inorder"
+    answer: 3
+    explanations:
+      correct: "Inorder visits the left subtree, then the node, then the right subtree. In a binary search tree that is exactly smallest to largest."
+      wrong:
+        0: "Preorder visits a node before its subtrees, so the root comes out first even though smaller keys sit to its left."
+        1: "Postorder visits a node after both subtrees, so the root comes out last, after larger keys from its right side."
+        2: "Level order follows depth, not key order; a node on level two can be smaller than the root while a node on level three is larger."
+  - id: recursion-depth
+    type: true_false
+    statement: "A recursive depth-first walk of a binary tree needs stack space proportional to the tree's height, so a tree shaped like a long chain can overflow the call stack."
+    answer: true
+    explanation: "Each recursive call waits for its child to finish, so the deepest path sets the number of frames. A balanced tree has height about log n, but a chain has height n."
+  - id: folder-size
+    type: arrange
+    prompt: "Order the steps of a recursive function that returns the total size of a folder tree."
+    items:
+      - "Return the folder's own size plus the sum of the children's totals"
+      - "If the folder has no subfolders, return its own size"
+      - "Call the function on each subfolder and add up the results"
+    order: [1, 2, 0]
+    explanation: "Handle the base case first, recurse into each child, then combine. Combining after the children is a postorder walk: a parent's total needs its children's totals first."
+  - id: org-chart
+    type: mcq
+    prompt: "You render an org chart with one management level per row. Which walk visits the nodes in that order on its own?"
+    options:
+      - "A preorder depth-first walk"
+      - "A breadth-first walk with a queue"
+      - "An inorder walk"
+    answer: 1
+    explanations:
+      correct: "A queue hands back nodes in the order they were found, so every node on one level comes out before any node on the next."
+      wrong:
+        0: "Preorder finishes one whole branch, all the way down, before moving to the next manager on the same level."
+        2: "Inorder visits a binary node's left subtree, then the node, then its right subtree. It does not go level by level."

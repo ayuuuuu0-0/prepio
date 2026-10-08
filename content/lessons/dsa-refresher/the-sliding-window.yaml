@@ -1,0 +1,57 @@
+slug: the-sliding-window
+title: "The Sliding Window"
+node: the-sliding-window
+kind: lesson
+status: published
+difficulty: medium
+est_minutes: 5
+skills:
+  - { skill: sliding-window, weight: 1.0 }
+summary:
+  - "A sliding window answers questions about contiguous runs by updating as elements enter and leave, instead of recomputing."
+  - "A fixed window keeps a running total; a variable window grows on the right and shrinks from the left when a rule breaks."
+  - "If the elements you pick need not be next to each other, a window does not apply."
+steps:
+  - id: intro
+    type: intro
+    beats:
+      - { text: "Many questions ask about a contiguous stretch: the last 60 requests, the busiest hour.", emphasis: "contiguous stretch", visual: bars, durationMs: 5000 }
+      - { text: "A window adds the new element and drops the old one instead of starting over.", emphasis: "drops the old one", visual: flow, durationMs: 5000 }
+      - { text: "One pass turns O(n times k) work into O(n).", emphasis: "into O(n)", visual: pulse, durationMs: 4000 }
+  - id: running-sum
+    type: mcq
+    prompt: "You report the average latency of every run of 60 consecutive requests across a million requests. What keeps the job O(n)?"
+    options:
+      - "Recompute each run's sum from scratch with a fresh loop"
+      - "Sort the latencies first so each window's sum is quick to read off"
+      - "Keep a running sum, updated as each value enters and leaves"
+    answer: 2
+    explanations:
+      correct: "Each step changes the sum by one value in and one value out, so every window costs O(1) and the whole job is O(n)."
+      wrong:
+        0: "Summing 60 values for each of a million windows is O(n times k): correct, but about 60 times more work than needed."
+        1: "Sorting destroys the request order, and the windows are defined by that order."
+  - id: contiguous-only
+    type: true_false
+    statement: "A sliding window fits only when the question is about contiguous runs, such as consecutive requests or a span of time."
+    answer: true
+    explanation: "The window works because neighbors enter and leave one at a time. When the chosen elements can be scattered, there is no single window to slide."
+  - id: fixed-window
+    type: fill_blank
+    code: "best = window = sum(nums[:k])\nfor i in range(k, len(nums)):\n    window += nums[___1___] - nums[___2___]\n    best = max(best, window)"
+    bank: ["i", "i - k", "i - 1", "k", "i + k"]
+    answers: ["i", "i - k"]
+    explanation: "When index i enters a window of size k, index i - k leaves it, so adding nums[i] and subtracting nums[i - k] keeps the sum exact in O(1)."
+  - id: shrink-rule
+    type: mcq
+    prompt: "You want the longest run of log lines that mentions at most 3 distinct user IDs. Extending the window on the right brings it to 4 distinct IDs. What do you do?"
+    options:
+      - "Shrink from the left until only 3 distinct IDs remain"
+      - "Restart the window at the current line and count from there"
+      - "Skip the current line and keep extending"
+    answer: 0
+    explanations:
+      correct: "Dropping lines from the left (and updating a count per ID) restores the rule while keeping as much of the run as possible. Each line enters and leaves once, so the scan is O(n)."
+      wrong:
+        1: "Restarting throws away valid lines that could still belong to the longest run, so the answer can come out too short."
+        2: "The run must be contiguous; skipping a line inside it produces something that is no longer a run of consecutive lines."

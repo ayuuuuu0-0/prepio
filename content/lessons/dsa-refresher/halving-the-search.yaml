@@ -1,0 +1,59 @@
+slug: halving-the-search
+title: "Halving the Search"
+node: halving-the-search
+kind: lesson
+status: published
+difficulty: medium
+est_minutes: 5
+skills:
+  - { skill: binary-search, weight: 1.0 }
+summary:
+  - "Binary search needs sorted input and halves the remaining range with each comparison, so it takes O(log n) steps."
+  - "Keep the bounds consistent: with while lo < hi and hi = mid, the small side must move lo to mid + 1 or the loop can stall."
+  - "You can binary search on the answer whenever a yes-or-no check flips from false to true exactly once."
+steps:
+  - id: intro
+    type: intro
+    beats:
+      - { text: "In sorted data, one comparison can rule out half of what is left.", emphasis: "half of what is left", visual: bars, durationMs: 4500 }
+      - { text: "A million items take about 20 steps instead of a million.", emphasis: "about 20 steps", visual: pulse, durationMs: 4500 }
+      - { text: "The hard part is the boundaries: where lo and hi stop, and how mid moves them.", emphasis: "boundaries", visual: flow, durationMs: 5000 }
+  - id: needs-sorted
+    type: true_false
+    statement: "Binary search gives correct results on any array you can index, whether or not it is sorted."
+    answer: false
+    explanation: "Discarding half the range is only safe when order tells you the target cannot be in that half. On unsorted data binary search can miss values that are present."
+  - id: lower-bound
+    type: fill_blank
+    code: "# first index i with nums[i] >= target (nums is sorted)\nlo, hi = 0, len(nums)\nwhile lo < hi:\n    mid = (lo + hi) // 2\n    if nums[mid] < target: lo = ___1___\n    else: hi = ___2___"
+    bank: ["mid + 1", "mid", "mid - 1", "lo + 1"]
+    answers: ["mid + 1", "mid"]
+    explanation: "Starting from lo = 0 and hi = len(nums), this finds the first index whose value is at least target. A too-small mid can be discarded, so lo = mid + 1; a large-enough mid might be the answer, so hi = mid keeps it in range."
+  - id: search-the-answer
+    type: mcq
+    prompt: "You need the smallest number of workers that can finish a batch within an hour. can_finish(w) tells you whether w workers are enough, and adding workers never hurts. How do you find the minimum with the fewest calls to can_finish?"
+    options:
+      - "Try every worker count from 1 upward until one works"
+      - "Sort the workers by speed and pick the fastest ones"
+      - "Binary search over the worker count, because can_finish switches from false to true exactly once"
+      - "Nothing beats trying every count, because binary search needs a sorted array and there is none here"
+    answer: 2
+    explanations:
+      correct: "The answers false, false, ..., true, true form a sorted sequence over w, so binary search finds the first true in O(log n) calls instead of O(n)."
+      wrong:
+        0: "Counting up is correct, but it can take as many calls as the answer itself, and each call may be expensive."
+        1: "Sorting workers does not tell you how many you need; the question is about the count, and can_finish already answers that."
+        3: "Binary search needs a monotonic yes-or-no condition, not a literal array. A range of candidate answers works just as well."
+  - id: stuck-loop
+    type: mcq
+    prompt: "Your loop is while lo < hi, with mid = (lo + hi) // 2, and on the too-small side it sets lo = mid. With lo = 4 and hi = 5 it never finishes. Why?"
+    options:
+      - "mid rounds down to lo, so lo = mid makes no progress; set lo = mid + 1"
+      - "Integer division is too slow for large indexes, so the loop stalls before it can finish"
+      - "Binary search only works when the range has an odd number of elements"
+    answer: 0
+    explanations:
+      correct: "(4 + 5) // 2 is 4, so lo = mid leaves lo at 4 forever. Every branch must shrink the range; lo = mid + 1 does that on the too-small side."
+      wrong:
+        1: "Integer division is fast and is the right way to compute mid. The loop is stuck because the range stops shrinking, not because it is slow."
+        2: "Range length does not matter when each branch shrinks the range. Here one branch can leave it unchanged, which is the real bug."

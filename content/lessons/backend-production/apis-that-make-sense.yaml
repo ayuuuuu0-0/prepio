@@ -1,0 +1,59 @@
+slug: apis-that-make-sense
+title: "APIs That Make Sense"
+node: apis-that-make-sense
+kind: lesson
+status: published
+difficulty: easy
+est_minutes: 4
+skills:
+  - { skill: backend-api-design, weight: 1.0 }
+summary:
+  - "A good HTTP API names resources with nouns and lets methods like GET, POST, PUT, and DELETE act as the verbs."
+  - "A 4xx status means the client must change the request; a 5xx status means the server failed."
+  - "Safe methods like GET change nothing, and idempotent methods like PUT and DELETE leave the same result however often they repeat."
+steps:
+  - id: intro
+    type: intro
+    beats:
+      - { text: "An API is a promise: other teams build on it, so it should read the way it works.", emphasis: "a promise", visual: pulse, durationMs: 4500 }
+      - { text: "Name the resource with a noun, then let the HTTP method say what happens to it.", emphasis: "HTTP method", visual: flow, durationMs: 5000 }
+      - { text: "Status codes tell the caller whose problem it is: theirs, or yours.", emphasis: "whose problem", visual: bars, durationMs: 4500 }
+  - id: missing-field
+    type: mcq
+    prompt: "A client calls POST /orders with a JSON body that is missing the required quantity field. Which status code should the API return?"
+    options:
+      - "500 Internal Server Error"
+      - "503 Service Unavailable"
+      - "200 OK with an error message in the body"
+      - "400 Bad Request"
+    answer: 3
+    explanations:
+      correct: "The request itself is invalid, which is a client error. A 400 tells the caller to fix the request instead of retrying it unchanged."
+      wrong:
+        0: "A 500 says the server broke. Here the server worked correctly; the client sent an incomplete request."
+        1: "A 503 means the server is temporarily unable to handle requests, which invites a retry that will fail the same way."
+        2: "A 200 tells clients, proxies, and dashboards that the call succeeded, so the failure becomes invisible to monitoring and retry logic."
+  - id: status-classes
+    type: true_false
+    statement: "A 503 Service Unavailable response tells the client that its request was malformed."
+    answer: false
+    explanation: "Codes in the 5xx range mean the server failed or is unavailable. A malformed request gets a 4xx, such as 400, because only the client can fix it."
+  - id: idempotent-not-safe
+    type: mcq
+    prompt: "Which HTTP method is idempotent but not safe?"
+    options:
+      - "POST"
+      - "GET"
+      - "DELETE"
+    answer: 2
+    explanations:
+      correct: "DELETE changes server state, so it is not safe, but deleting the same resource twice leaves the same end state as deleting it once, so it is idempotent."
+      wrong:
+        0: "POST is neither safe nor idempotent: sending the same POST twice can create two resources."
+        1: "GET is both safe and idempotent. It should only read, so repeating it changes nothing."
+  - id: resource-verbs
+    type: fill_blank
+    code: "___1___ /orders/42    (read one order)\n___2___ /orders       (create a new order)"
+    bank: ["GET", "POST", "PATCH", "DELETE"]
+    answers: ["GET", "POST"]
+    explanation: "GET reads a resource without changing it. POST to the collection creates a new member, and the server assigns its ID."

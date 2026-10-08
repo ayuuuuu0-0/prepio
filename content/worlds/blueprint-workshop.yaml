@@ -1,0 +1,37 @@
+slug: blueprint-workshop
+name: "Blueprint Workshop"
+description: "Classes, boundaries, and patterns that survive the next feature request."
+theme: workshop
+order: 3
+nodes:
+  - slug: guard-your-state
+    label: "Guard Your State"
+    type: lesson
+  - slug: one-reason-to-change
+    label: "One Reason to Change"
+    type: lesson
+    requires: [guard-your-state]
+  - slug: open-for-extension
+    label: "Open for Extension"
+    type: lesson
+    requires: [one-reason-to-change]
+  - slug: compose-dont-inherit
+    label: "Compose, Don't Inherit"
+    type: lesson
+    requires: [open-for-extension]
+  - slug: depend-on-abstractions
+    label: "Depend on Abstractions"
+    type: lesson
+    requires: [compose-dont-inherit]
+  - slug: building-objects
+    label: "Building Objects"
+    type: lesson
+    requires: [depend-on-abstractions]
+  - slug: when-things-happen
+    label: "When Things Happen"
+    type: lesson
+    requires: [building-objects]
+  - slug: boss-parking-lot
+    label: "Boss: Design a Parking Lot"
+    type: boss
+    requires: [when-things-happen]

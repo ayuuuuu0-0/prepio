@@ -1,0 +1,37 @@
+slug: the-engine-room
+name: "The Engine Room"
+description: "Where requests become work: APIs, data, and keeping services alive."
+theme: engine
+order: 2
+nodes:
+  - slug: apis-that-make-sense
+    label: "APIs That Make Sense"
+    type: lesson
+  - slug: retry-without-fear
+    label: "Retry Without Fear"
+    type: lesson
+    requires: [apis-that-make-sense]
+  - slug: page-by-page
+    label: "Page by Page"
+    type: lesson
+    requires: [retry-without-fear]
+  - slug: all-or-nothing
+    label: "All or Nothing"
+    type: lesson
+    requires: [page-by-page]
+  - slug: the-lost-update
+    label: "The Lost Update"
+    type: lesson
+    requires: [all-or-nothing]
+  - slug: timeouts-and-backoff
+    label: "Timeouts and Backoff"
+    type: lesson
+    requires: [the-lost-update]
+  - slug: seeing-inside
+    label: "Seeing Inside"
+    type: lesson
+    requires: [timeouts-and-backoff]
+  - slug: boss-incident-at-3am
+    label: "Boss: Incident at 3 a.m."
+    type: boss
+    requires: [seeing-inside]

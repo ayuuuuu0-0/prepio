@@ -1,0 +1,65 @@
+slug: splitting-the-data
+title: "Splitting the Data"
+node: splitting-the-data
+kind: lesson
+status: published
+difficulty: medium
+est_minutes: 5
+skills:
+  - { skill: system-design-scaling, weight: 0.6 }
+  - { skill: system-design-data, weight: 0.4 }
+summary:
+  - "Sharding splits one dataset across many databases by a shard key, so each holds and serves only part of it."
+  - "A good shard key spreads load evenly and keeps a typical query on one shard; a bad one creates hot shards."
+  - "Consistent hashing moves only a small share of keys when shards are added, instead of reshuffling everything."
+steps:
+  - id: intro
+    type: intro
+    beats:
+      - { text: "When one database can't hold the data or handle the writes, you split it.", emphasis: "split it", visual: bars, durationMs: 4500 }
+      - { text: "The shard key decides where each row lives and which queries stay cheap.", emphasis: "shard key", visual: flow, durationMs: 5000 }
+      - { text: "Choose it badly and one shard does all the work.", emphasis: "one shard", visual: pulse, durationMs: 4000 }
+  - id: why-shard
+    type: mcq
+    prompt: "When is sharding the right next step?"
+    options:
+      - "Reads are slow because a query is missing an index"
+      - "The app has a few thousand users and runs on one small database"
+      - "Writes or data size have outgrown a single database, even after adding indexes and replicas"
+    answer: 2
+    explanations:
+      correct: "Replicas help reads, but every write still lands on one leader. When writes or total data outgrow one machine, sharding splits them across several."
+      wrong:
+        0: "A missing index is fixed with an index. Sharding adds a lot of complexity for a problem it does not solve."
+        1: "A small system fits comfortably on one database; sharding early adds cost and complexity for no gain."
+  - id: shard-key
+    type: mcq
+    prompt: "A chat app stores messages and almost always loads the messages of one conversation. Which shard key fits best?"
+    options:
+      - "conversation_id"
+      - "created_at"
+      - "message length"
+    answer: 0
+    explanations:
+      correct: "Sharding by conversation_id keeps each conversation on one shard, so the common query touches a single shard, and many conversations spread the load."
+      wrong:
+        1: "Sharding by time sends all new messages to the newest shard, making it hot while the old shards sit idle."
+        2: "Message length has nothing to do with how data is queried, so loading one conversation would hit every shard."
+  - id: hot-shard
+    type: true_false
+    statement: "If one celebrity account gets most of the traffic, sharding by user_id can still leave one shard overloaded."
+    answer: true
+    explanation: "All of a single user's data lands on one shard, so a very hot key makes a hot shard. Fixes include splitting that key further or caching it."
+  - id: consistent-hashing
+    type: mcq
+    prompt: "Keys are placed with hash(key) % N. Going from 4 to 5 shards moves most keys. What does consistent hashing change?"
+    options:
+      - "No keys ever move, because each key stays pinned to its original shard"
+      - "Only about 1/N of the keys move when a shard is added"
+      - "Every key moves, but faster"
+    answer: 1
+    explanations:
+      correct: "Consistent hashing places shards and keys on a ring; a new shard takes over only the keys next to it, about 1/N of the total."
+      wrong:
+        0: "A new shard has to take some keys, otherwise it would stay empty. Consistent hashing minimizes the move, it doesn't eliminate it."
+        2: "With modulo hashing most keys move; avoiding that mass move is the point of consistent hashing."

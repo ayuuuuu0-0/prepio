@@ -1,0 +1,97 @@
+slug: boss-parking-lot
+title: "Boss: Design a Parking Lot"
+node: boss-parking-lot
+kind: boss
+status: published
+difficulty: hard
+est_minutes: 7
+skills:
+  - { skill: lld-fundamentals, weight: 0.4 }
+  - { skill: lld-oop, weight: 0.3 }
+  - { skill: lld-patterns, weight: 0.3 }
+summary:
+  - "Each class guards its own rules and has one reason to change: spots own occupancy, pricing and payments live apart."
+  - "Pricing is a strategy, vehicle creation is a factory, and spot changes are events that displays subscribe to."
+  - "Spots are composed from features, and the lot receives its policies and clock as injected interfaces."
+steps:
+  - id: intro
+    type: intro
+    beats:
+      - { text: "Boss time: design the classes for a multi-level parking lot.", emphasis: "multi-level parking lot", visual: bars, durationMs: 5000 }
+      - { text: "Spots, vehicles, tickets, and fees: every lesson from this workshop has a place here.", emphasis: "every lesson", visual: flow, durationMs: 5500 }
+      - { text: "Decide one class at a time.", emphasis: "one class", visual: pulse, durationMs: 3500 }
+  - id: spot-rule
+    type: mcq
+    prompt: "Two cars must never be assigned the same spot. Where should that rule be enforced?"
+    options:
+      - "In the entry gate's UI"
+      - "In a nightly job that finds double-booked spots and reassigns one of the cars"
+      - "In ParkingSpot.assign, which rejects a vehicle if the spot is taken"
+    answer: 2
+    explanations:
+      correct: "The spot owns its occupancy, so assign checks it before changing state, and every gate, kiosk, and admin tool gets the rule for free. If gates run concurrently, that check must also be atomic."
+      wrong:
+        0: "Other callers bypass the UI, so a UI check alone cannot guarantee the rule."
+        1: "A nightly job finds the problem only after two drivers have already been sent to the same spot."
+  - id: fee-policy
+    type: mcq
+    prompt: "Fees are hourly on weekdays and flat on weekends, and the business plans more schemes. How should the lot calculate a fee?"
+    options:
+      - "Call a FeePolicy interface, with one class per pricing scheme"
+      - "Use a switch on the day of the week inside Ticket"
+      - "Make WeekdayTicket and WeekendTicket subclasses of Ticket"
+    answer: 0
+    explanations:
+      correct: "A strategy per scheme keeps pricing open for extension: a new scheme is a new FeePolicy class, and Ticket and ParkingLot don't change."
+      wrong:
+        1: "A switch can be fine for two stable cases, but more schemes are planned, and each one would mean editing Ticket."
+        2: "A stay can start on Friday and end on Saturday, so the ticket's type can't decide the price. Pricing is a behavior to plug in, not a kind of ticket."
+  - id: lot-does-all
+    type: true_false
+    statement: "ParkingLot should also format receipts, charge cards, and send emails, so that all parking logic lives in one class."
+    answer: false
+    explanation: "Receipts, payments, and messaging change for different reasons. Keeping them in their own classes stops ParkingLot from becoming a god class that every change has to touch."
+  - id: spot-features
+    type: mcq
+    prompt: "Some spots have EV chargers, some are covered, and some are reserved for accessibility, in any combination. How should spots be modeled?"
+    options:
+      - "A subclass for each combination, such as CoveredChargingSpot"
+      - "One ParkingSpot class that holds a set of features"
+      - "A deep chain: Spot, then CoveredSpot, then CoveredChargingSpot"
+    answer: 1
+    explanations:
+      correct: "Composing a spot from features covers every combination with one class, and a new feature doesn't double the number of classes."
+      wrong:
+        0: "Subclassing every combination grows quickly: three yes/no features already make eight classes."
+        2: "A single chain can't express a charging spot that isn't covered without another branch, and each level is coupled to its parent."
+  - id: lot-deps
+    type: fill_blank
+    code: "class ParkingLot {\n  constructor(private fees: ___1___, private clock: ___2___) {}\n}"
+    bank: ["FeePolicy", "Clock", "HourlyFeePolicy", "SystemClock"]
+    answers: ["FeePolicy", "Clock"]
+    explanation: "Depending on the FeePolicy and Clock interfaces lets production pass real implementations while tests pass a simple policy and a fixed clock, so a three-hour stay can be tested instantly."
+  - id: exit-flow
+    type: arrange
+    prompt: "Order the steps when a car leaves the lot."
+    items:
+      - "The spot is freed and a SpotFreed event is published"
+      - "FeePolicy calculates the fee for the stay"
+      - "The driver scans the ticket at the exit"
+      - "Payment is taken"
+    order: [2, 1, 3, 0]
+    explanation: "Read the ticket, price the stay, take payment, then free the spot. Publishing SpotFreed last lets display boards and other listeners update without ParkingLot knowing about them."
+  - id: vehicle-factory
+    type: mcq
+    prompt: "The entry sensor reports a vehicle type code: M, C, or T. Several gates need the matching Motorcycle, Car, or Truck object. What fits best?"
+    options:
+      - "A builder for each vehicle type"
+      - "A switch on the code copied into each gate's handler"
+      - "A single Vehicle class with a type string that every caller checks"
+      - "A VehicleFactory with one create(code) method"
+    answer: 3
+    explanations:
+      correct: "The mapping from code to class lives in one place, gates depend only on Vehicle, and a new vehicle type changes just the factory."
+      wrong:
+        0: "Builders help with many optional settings. A vehicle from a sensor code has none, and something would still have to pick the builder."
+        1: "Copied switches drift apart, and each new vehicle type means editing every gate."
+        2: "Checking a type string everywhere brings back the scattered type switches that polymorphism was meant to replace."

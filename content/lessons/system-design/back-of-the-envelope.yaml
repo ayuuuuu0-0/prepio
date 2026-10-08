@@ -1,0 +1,59 @@
+slug: back-of-the-envelope
+title: "Back of the Envelope"
+node: back-of-the-envelope
+kind: lesson
+status: published
+difficulty: medium
+est_minutes: 5
+skills:
+  - { skill: system-design-fundamentals, weight: 1.0 }
+summary:
+  - "Start a design by agreeing on requirements and scale; numbers decide which problems you actually have."
+  - "A day has about 100,000 seconds, so requests per day divided by 10^5 gives average requests per second."
+  - "Plan for peak, not average: peak traffic is often several times the daily average."
+steps:
+  - id: intro
+    type: intro
+    beats:
+      - { text: "Before you draw a single box, ask how big the problem is.", emphasis: "how big", visual: bars, durationMs: 4500 }
+      - { text: "Rough numbers are enough: requests per second, data per day, reads versus writes.", emphasis: "Rough numbers", visual: flow, durationMs: 5500 }
+      - { text: "They tell you whether you need a cache, replicas, or just one good database.", emphasis: "whether", visual: pulse, durationMs: 4500 }
+  - id: start-with
+    type: mcq
+    prompt: "You are asked to design a URL shortener. What should come first?"
+    options:
+      - "Clarify requirements and expected scale"
+      - "Pick a database"
+      - "Draw the load balancer, servers and database boxes"
+    answer: 0
+    explanations:
+      correct: "Requirements and scale (users, reads per second, how long links live) decide everything after; without them, every other choice is a guess."
+      wrong:
+        1: "Choosing a database before knowing the access pattern and data size is guessing; the numbers might point to something else."
+        2: "Boxes without numbers can't be justified. Agree on what the system must do and how much load it takes first."
+  - id: qps
+    type: mcq
+    prompt: "An app has 10 million daily active users, each making about 10 reads a day. Roughly how many reads per second is that on average?"
+    options:
+      - "About 100"
+      - "About 10,000"
+      - "About 1,000"
+      - "About 100,000"
+    answer: 2
+    explanations:
+      correct: "10 million × 10 = 100 million reads a day. A day is about 86,400 (roughly 10^5) seconds, so 10^8 / 10^5 ≈ 1,000 reads per second on average."
+      wrong:
+        0: "That's off by 10×: 100 million reads spread over about 100,000 seconds is about 1,000 per second."
+        1: "That's 10× too high. Divide 100 million by roughly 100,000 seconds to get about 1,000 per second."
+        3: "That would be 100 times more traffic. A day has about 10^5 seconds, so 10^8 reads per day is about 10^3 per second."
+  - id: peak
+    type: true_false
+    statement: "If the average is 1,000 requests per second, sizing the system for 1,000 requests per second is enough."
+    answer: false
+    explanation: "Traffic isn't flat: evenings, launches, and news spikes push peaks to several times the average. Size for peak, often 2-5× the average."
+  - id: storage
+    type: fill_blank
+    code: "per_day  = 1,000,000 posts × 1 KB ≈ ___1___\nper_year = per_day × 365 days   ≈ ___2___"
+    bank: ["1 GB", "365 GB", "1 TB", "1 MB"]
+    answers: ["1 GB", "365 GB"]
+    explanation: "A million 1 KB posts is about 1 GB a day, and 1 GB × 365 is about 365 GB a year: enough to plan disks and backups, small enough for one well-sized database."

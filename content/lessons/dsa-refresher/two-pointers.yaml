@@ -1,0 +1,54 @@
+slug: two-pointers
+title: "Two Pointers"
+node: two-pointers
+kind: lesson
+status: published
+difficulty: medium
+est_minutes: 5
+skills:
+  - { skill: arrays, weight: 1.0 }
+summary:
+  - "On a sorted array, two pointers starting at both ends find a pair with a target sum in one O(n) pass."
+  - "Moving the left pointer raises the sum and moving the right pointer lowers it, which only holds because the data is sorted."
+  - "A read pointer and a write pointer filter an array in place with O(1) extra memory."
+steps:
+  - id: intro
+    type: intro
+    beats:
+      - { text: "Two indexes walking the same array can replace a nested loop.", emphasis: "replace a nested loop", visual: flow, durationMs: 4500 }
+      - { text: "On sorted data, every pointer move rules out a whole set of pairs.", emphasis: "rules out", visual: bars, durationMs: 4500 }
+      - { text: "One pass and no extra memory: that is the payoff.", emphasis: "no extra memory", visual: pulse, durationMs: 4000 }
+  - id: which-pointer
+    type: mcq
+    prompt: "In a sorted array of prices, left starts at the first index and right at the last. The two prices add up to less than the budget. Which move keeps the search correct?"
+    options:
+      - "Move both pointers inward to cover the array twice as fast"
+      - "Move the right pointer one step left"
+      - "Move the left pointer one step right"
+    answer: 2
+    explanations:
+      correct: "The sum is too small, and moving left to a larger value is the only move that can raise it. No pair using the current left value can reach the budget, so it is safe to drop."
+      wrong:
+        0: "Moving both pointers can skip the one pair that matches, such as the current right value with the next left value."
+        1: "Moving right toward smaller values can only keep the sum the same or make it smaller, the opposite of what is needed."
+  - id: compact-in-place
+    type: fill_blank
+    code: "# move non-zero values to the front, keeping their order\nwrite = 0\nfor x in nums:\n    if x != 0:\n        nums[___1___] = x; write ___2___ 1"
+    bank: ["write", "+=", "x", "-=", "0"]
+    answers: ["write", "+="]
+    explanation: "The write pointer marks where the next kept value goes and advances only after a write, so the non-zero values end up at the front in their original order, using O(1) extra memory."
+  - id: needs-sorted
+    type: true_false
+    statement: "The pair-sum technique with pointers at both ends works on an unsorted array, as long as the pointers start at opposite ends."
+    answer: false
+    explanation: "The technique relies on order: moving left must raise the sum and moving right must lower it. On unsorted data neither is guaranteed, so valid pairs get skipped."
+  - id: pair-steps
+    type: arrange
+    prompt: "Order the steps for finding two values with a target sum in an unsorted list using two pointers."
+    items:
+      - "Compare the sum of the two pointed values with the target"
+      - "Sort the values"
+      - "Move the left pointer right if the sum is too small, otherwise move the right pointer left"
+      - "Set one pointer at the first index and one at the last"
+    order: [1, 3, 0, 2]
+    explanation: "Sort first, place the pointers at both ends, compare, then move one pointer and repeat until they meet. The sort costs O(n log n) and dominates the O(n) scan."

@@ -1,0 +1,58 @@
+slug: depend-on-abstractions
+title: "Depend on Abstractions"
+node: depend-on-abstractions
+kind: lesson
+status: published
+difficulty: medium
+est_minutes: 5
+skills:
+  - { skill: lld-oop, weight: 0.6 }
+  - { skill: lld-fundamentals, weight: 0.4 }
+summary:
+  - "Dependency inversion means business logic depends on interfaces it defines, and low-level details implement them."
+  - "Dependency injection passes collaborators in, usually through the constructor, instead of creating them inside."
+  - "An injected interface is a testable seam: tests pass a fake, production passes the real thing."
+steps:
+  - id: intro
+    type: intro
+    beats:
+      - { text: "When a class creates its own database access, every test needs a real database.", emphasis: "a real database", visual: pulse, durationMs: 5000 }
+      - { text: "Depend on an interface instead, and let the caller hand in the implementation.", emphasis: "hand in the implementation", visual: flow, durationMs: 5000 }
+      - { text: "That seam is where tests, fakes, and future changes plug in.", emphasis: "That seam", visual: bars, durationMs: 4000 }
+  - id: hard-to-test
+    type: mcq
+    prompt: "OrderService calls new SqlOrderRepository() inside its constructor. Why is it hard to unit test?"
+    options:
+      - "Constructors should never contain logic, so the repository creation belongs in an init() method"
+      - "OrderService has too many public methods"
+      - "Tests cannot swap the repository, so every test needs a real database"
+    answer: 2
+    explanations:
+      correct: "OrderService builds its own concrete dependency, so there is no way to pass in a fake. Accepting the repository from outside creates a seam for tests."
+      wrong:
+        0: "Constructors may do simple setup, and moving the new SqlOrderRepository() call into init() would not help. The issue is that the class hard-codes a concrete dependency."
+        1: "Method count is unrelated; even a one-method class is hard to test if it creates its own database access."
+  - id: inject-fake
+    type: fill_blank
+    code: "class OrderService { constructor(private repo: ___1___) {} }\n// in a unit test:\nconst svc = new OrderService(new ___2___());"
+    bank: ["OrderRepository", "InMemoryOrderRepository", "SqlOrderRepository", "OrderService"]
+    answers: ["OrderRepository", "InMemoryOrderRepository"]
+    explanation: "OrderService depends on the OrderRepository interface, so production passes the SQL implementation and a unit test passes an in-memory one. Same class, no database needed."
+  - id: who-owns
+    type: mcq
+    prompt: "Under dependency inversion, which side usually defines the OrderRepository interface?"
+    options:
+      - "The database module, since it knows how storage works"
+      - "The order logic that uses it, in terms of what it needs"
+      - "Neither: the interface should be generated from the database schema"
+    answer: 1
+    explanations:
+      correct: "The high-level module states what it needs, such as save an order or find one by ID, and the storage code implements that. The dependency now points from details toward policy."
+      wrong:
+        0: "If the storage module defines the interface, the order logic still depends on the storage layer's view of the world, which is the direction inversion aims to flip."
+        2: "A schema-shaped interface leaks storage details into the business logic. The interface should describe the business need."
+  - id: no-framework
+    type: true_false
+    statement: "You do not need a framework to use dependency injection; passing a dependency into a constructor already is injection."
+    answer: true
+    explanation: "Dependency injection just means a class receives its collaborators instead of creating them. Containers can automate the wiring in large apps, but a constructor argument is the whole idea."

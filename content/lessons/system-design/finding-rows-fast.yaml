@@ -1,0 +1,58 @@
+slug: finding-rows-fast
+title: "Finding Rows Fast"
+node: finding-rows-fast
+kind: lesson
+status: published
+difficulty: medium
+est_minutes: 5
+skills:
+  - { skill: system-design-data, weight: 0.7 }
+  - { skill: backend-databases, weight: 0.3 }
+summary:
+  - "An index is a sorted structure (usually a B-tree) that finds rows without scanning the whole table."
+  - "A composite index on (a, b) helps queries that filter on a, or on a and b, but not on b alone."
+  - "Every index speeds up some reads and slows down every write, so index for the queries you actually run."
+steps:
+  - id: intro
+    type: intro
+    beats:
+      - { text: "Without an index, finding one row means reading every row.", emphasis: "every row", visual: bars, durationMs: 4000 }
+      - { text: "An index keeps values sorted, so the database jumps straight to the rows it needs.", emphasis: "sorted", visual: flow, durationMs: 5000 }
+      - { text: "The price: every write has to update every index too.", emphasis: "every write", visual: pulse, durationMs: 4000 }
+  - id: full-scan
+    type: mcq
+    prompt: "The query SELECT * FROM orders WHERE customer_id = 42 is slow on a table with 50 million rows. What is the most likely cause?"
+    options:
+      - "The query returns too many columns"
+      - "The table has too many rows to ever be fast and must be split into smaller tables"
+      - "There is no index on customer_id, so the database scans the whole table"
+    answer: 2
+    explanations:
+      correct: "Without an index on customer_id the database must read all 50 million rows to find customer 42's orders. An index lets it jump to those rows."
+      wrong:
+        0: "Selecting fewer columns helps a little, but the cost here is finding the rows, not returning them."
+        1: "Large tables are fine when the query can use an index; row count alone is not the problem, and splitting the table is premature."
+  - id: create-index
+    type: fill_blank
+    code: "CREATE ___1___ idx_orders_customer\n  ON orders (___2___);"
+    bank: ["INDEX", "TABLE", "customer_id", "created_at"]
+    answers: ["INDEX", "customer_id"]
+    explanation: "CREATE INDEX on the column the query filters by (customer_id) lets the database find that customer's rows without a full scan."
+  - id: left-prefix
+    type: mcq
+    prompt: "There is a composite index on (country, city). Which query can use it efficiently?"
+    options:
+      - "WHERE city = 'Pune'"
+      - "WHERE country = 'IN' AND city = 'Pune'"
+      - "WHERE LOWER(country) = 'in'"
+    answer: 1
+    explanations:
+      correct: "A composite index is sorted by country first, then city. Filtering on country (or country and city) follows that order, so the index applies."
+      wrong:
+        0: "Rows for a city are scattered across every country in the index, so filtering on city alone skips the leading column and usually cannot use it."
+        2: "Wrapping the column in a function changes the values being compared, so a plain index on country cannot be used."
+  - id: write-cost
+    type: true_false
+    statement: "Adding more indexes to a table makes inserts faster."
+    answer: false
+    explanation: "Each index is another structure to update on every insert, update, and delete. Indexes speed up matching reads and slow down writes."

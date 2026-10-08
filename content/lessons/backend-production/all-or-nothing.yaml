@@ -1,0 +1,63 @@
+slug: all-or-nothing
+title: "All or Nothing"
+node: all-or-nothing
+kind: lesson
+status: published
+difficulty: medium
+est_minutes: 5
+skills:
+  - { skill: backend-databases, weight: 1.0 }
+summary:
+  - "A transaction is atomic: either every change in it is applied, or none is."
+  - "Once COMMIT succeeds, durability means the changes survive a crash."
+  - "Weaker isolation levels allow more anomalies; READ COMMITTED prevents dirty reads but allows non-repeatable reads."
+steps:
+  - id: intro
+    type: intro
+    beats:
+      - { text: "Moving money is two writes: take it from one account, add it to another.", emphasis: "two writes", visual: flow, durationMs: 4500 }
+      - { text: "A transaction makes them one unit: all of it happens, or none of it does.", emphasis: "none of it does", visual: pulse, durationMs: 5000 }
+      - { text: "Isolation levels decide how much concurrent transactions can see of each other.", emphasis: "Isolation levels", visual: bars, durationMs: 5000 }
+  - id: crash-mid-transfer
+    type: mcq
+    prompt: "A transfer runs two UPDATEs in one transaction: debit account A, then credit account B. The server crashes after the debit but before COMMIT. What is true once the database recovers?"
+    options:
+      - "Account A stays debited and account B is never credited"
+      - "Neither change is applied, so no money has moved"
+      - "The database finishes the credit to account B on its own"
+    answer: 1
+    explanations:
+      correct: "Atomicity: an uncommitted transaction is rolled back as a whole, so the debit disappears along with the missing credit."
+      wrong:
+        0: "That half-done state is exactly what a transaction prevents. Without COMMIT, the debit does not survive."
+        2: "The database cannot guess the rest of your transaction. It undoes uncommitted work; it never completes it."
+  - id: name-the-anomaly
+    type: mcq
+    prompt: "Under READ COMMITTED, a transaction reads one account's balance twice and gets two different values, because another transaction committed a change in between. What is this anomaly called?"
+    options:
+      - "A dirty read"
+      - "A deadlock"
+      - "A non-repeatable read"
+      - "A phantom read"
+    answer: 2
+    explanations:
+      correct: "Reading the same row twice and seeing a committed change in between is a non-repeatable read. READ COMMITTED allows it; REPEATABLE READ prevents it."
+      wrong:
+        0: "A dirty read sees changes that are not yet committed. Here the other transaction had committed, and READ COMMITTED does prevent dirty reads."
+        1: "A deadlock is two transactions each waiting on a lock the other holds. Nothing is blocked here; a value simply changed."
+        3: "A phantom read is about a range query returning new or missing rows. Here a single existing row changed value."
+  - id: durability
+    type: true_false
+    statement: "If the database crashes right after COMMIT returns successfully, the committed changes may be lost."
+    answer: false
+    explanation: "Durability means a successful COMMIT has been recorded (typically in a write-ahead log on disk) before the database confirms it, so recovery brings those changes back."
+  - id: isolation-ladder
+    type: arrange
+    prompt: "Order the standard SQL isolation levels from weakest (allows the most anomalies) to strongest."
+    items:
+      - "SERIALIZABLE"
+      - "READ COMMITTED"
+      - "READ UNCOMMITTED"
+      - "REPEATABLE READ"
+    order: [2, 1, 3, 0]
+    explanation: "READ UNCOMMITTED allows dirty reads, READ COMMITTED stops them, REPEATABLE READ also stops non-repeatable reads, and SERIALIZABLE behaves as if transactions ran one at a time."

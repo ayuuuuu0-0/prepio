@@ -33,41 +33,33 @@ steps:
         1: "An index speeds up lookups by price, but every read still reaches the database, so the load barely changes."
         2: "A bigger disk adds capacity, not speed. Each read still goes to the database."
   - id: stale-reads
-    type: mcq
-    prompt: "A cache holds a product's price. An admin then changes the price in the database. What can a user see until the cached entry expires?"
-    options:
-      - "The old price"
-      - "An error page"
-      - "The new price immediately"
-    answer: 0
-    explanations:
-      correct: "The cache keeps returning its stored copy until it expires or is invalidated, so users can see stale data. Choosing a TTL is choosing how stale is acceptable."
-      wrong:
-        1: "A cache hit is not an error. It simply returns the stored value, even when that value is outdated."
-        2: "The cache does not know the database changed unless you invalidate or update the entry when you write."
+    type: true_false
+    statement: "A cache holds a product's price and an admin changes the price in the database. Users see the new price immediately, even before the cached entry expires."
+    answer: false
+    explanation: "The cache keeps returning its stored copy until it expires or is invalidated, so users can see the old price. Choosing a TTL is choosing how stale is acceptable."
   - id: cache-aside
     type: mcq
     prompt: "In the cache-aside pattern, what does the application do on a cache miss?"
     options:
-      - "Read from the database, then store the result in the cache"
-      - "Return an empty response and let the cache fill itself"
+      - "Return an empty response and let the cache fill itself in the background"
       - "Write to the cache and the database at the same time"
-    answer: 0
+      - "Read from the database, then store the result in the cache"
+    answer: 2
     explanations:
       correct: "In cache-aside the application checks the cache first. On a miss it loads from the source of truth and populates the cache for the next request."
       wrong:
-        1: "A cache does not fill itself. If the application returned empty on every miss, cold or evicted keys would look like missing data."
-        2: "That describes write-through, which happens on writes. A read miss is handled by loading from the database."
+        0: "A cache does not fill itself. If the application returned empty on every miss, cold or evicted keys would look like missing data."
+        1: "That describes write-through, which happens on writes. A read miss is handled by loading from the database."
   - id: poor-fit
     type: mcq
     prompt: "Which data is a poor fit for caching?"
     options:
-      - "An account balance that must always be exactly current"
       - "A blog post that changes once a month"
+      - "An account balance that must always be exactly current"
       - "A product image requested on every page view"
-    answer: 0
+    answer: 1
     explanations:
       correct: "Data that must always be exactly current cannot tolerate stale reads. Read it from the source of truth."
       wrong:
-        1: "Content that is read often and changes rarely is exactly what caches handle best."
+        0: "Content that is read often and changes rarely is exactly what caches handle best."
         2: "Static assets that are requested constantly are classic cache candidates, often served from a CDN."
