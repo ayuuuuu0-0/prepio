@@ -84,3 +84,25 @@ Anything outside `.ai/EXECUTION.MD`'s scope goes through its Change Process and 
 **A slip, caught and checked:** while verifying, I ran `content-sync` once without pointing it at the test database, so it defaulted to `localhost:5432` (your installed Postgres). It was refused at login (`password authentication failed`) before doing anything, and sync runs in one transaction anyway, so nothing was written. I now always pass the test database explicitly.
 
 **Clean-up:** stack and web server stopped; ports 3000, 8080–8085, 55432, 56379 confirmed free.
+
+---
+
+### Task 4 · Written answers (prose) in the player (L6.1) — done (`1d3596e`)
+
+**Why:** PRODUCT.MD lists "rare rubric-graded prose" as an exercise type, and the server has graded it since L2, but the player showed "this exercise isn't available" instead. Content was barred from using it.
+
+**What changed:**
+* A **text area** for written answers with a live counter ("62 more characters to go" → "✓ Long enough to check"); Check stays disabled until the minimum length is met.
+* **Keyboard:** Enter adds a new line (you're writing a paragraph); Ctrl+Enter (Cmd+Enter on Mac) checks.
+* The **feedback tray** for written answers shows the rubric score, a "You covered" list, a "Worth adding" list, and "A strong answer:" (the worked answer).
+* The server's low-score message used to say "focus on the approach, complexity, and tradeoffs" (left over from the old coding-interview grader). It now reads "Keep going: the ideas listed below are what a strong answer adds."
+* `content/PLAN.md` now allows prose and explains how to write a rubric that grades fairly (list real synonyms, mark only essentials as required, test a weak and a strong answer).
+
+**Tested:**
+* Unit: prose drafts (empty start, minimum length ignores surrounding spaces, the wire answer, the mistakes-review prompt). 68 web tests pass; lint, typecheck, build clean; full question-service suite passes.
+* Live, full stack, with a **test-only** prose lesson synced into the throwaway database (never into `content/`): too short → rejected with "write at least 100 characters"; a weak answer → score 33, covered "cache", worth adding "stale", "latency"; a strong answer → 100. The rubric itself never reaches the browser.
+* Real browser at phone size: Check disabled while short; Enter doesn't submit; Ctrl+Enter does; the tray reads clearly (I added the visible "You covered" / "Worth adding" labels after seeing the first screenshot). No console errors.
+
+**Not done (a content decision for you):** no real lesson uses a written answer yet. A few in the boss lessons would fit "rare", but each needs a carefully tested rubric; the plan explains how.
+
+**Clean-up:** stack and web server stopped; all ports confirmed free.
