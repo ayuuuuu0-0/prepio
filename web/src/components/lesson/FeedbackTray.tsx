@@ -10,13 +10,14 @@ import type { AnswerResult } from "@/lib/lesson/types";
  */
 export function FeedbackTray({
   result,
-  correctOptionText,
+  correctAnswer = [],
   companionName,
   onContinue,
   continueLabel,
 }: {
   result: AnswerResult;
-  correctOptionText?: string;
+  /** The server's correct answer in words, one line per part (sent only after a miss). */
+  correctAnswer?: string[];
   companionName?: string;
   onContinue: () => void;
   continueLabel: string;
@@ -64,14 +65,17 @@ export function FeedbackTray({
             </p>
           )}
 
-          {!ok && correctOptionText && (
-            <p className="mt-3 text-sm" style={{ color: "#E8EAED" }}>
-              <span className="font-mono text-[11px] font-bold uppercase tracking-widest" style={{ color: "#8B92A8" }}>
+          {!ok && correctAnswer.length > 0 && (
+            <div className="mt-3 text-sm" style={{ color: "#E8EAED" }}>
+              <p className="font-mono text-[11px] font-bold uppercase tracking-widest" style={{ color: "#8B92A8" }}>
                 Correct answer
-              </span>
-              <br />
-              <span className="font-semibold">{correctOptionText}</span>
-            </p>
+              </p>
+              {correctAnswer.map((line) => (
+                <p key={line} className="font-semibold">
+                  {line}
+                </p>
+              ))}
+            </div>
           )}
 
           {!ok && result.why_not && (

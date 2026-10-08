@@ -4,12 +4,16 @@ import { useParams, useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from "react";
 import { api, ApiRequestError, Profile } from "@/lib/api";
 import { currentStepId, nextTry, progress, reduce, start } from "@/lib/lesson/session";
+import { correctAnswerLines, emptyDraft, isReady, toAnswer, type Draft } from "@/lib/lesson/answers";
 import type { AnswerResult, AttemptData, ClientStep, CompletionData } from "@/lib/lesson/types";
 import { CompanionHero } from "@/components/game/CompanionHero";
 import { GameButton } from "@/components/game/GameButton";
 import { PlayerShell } from "@/components/lesson/PlayerShell";
 import { IntroStep } from "@/components/lesson/IntroStep";
 import { McqStep } from "@/components/lesson/McqStep";
+import { TrueFalseStep } from "@/components/lesson/TrueFalseStep";
+import { FillBlankStep } from "@/components/lesson/FillBlankStep";
+import { ArrangeStep } from "@/components/lesson/ArrangeStep";
 import { FeedbackTray } from "@/components/lesson/FeedbackTray";
 import { Celebration } from "@/components/lesson/Celebration";
 
@@ -107,7 +111,7 @@ function LoadError({ error, onRetry }: { error: { code: string; message: string 
   );
 }
 
-type Graded = { result: AnswerResult; chosen: number };
+type Graded = { result: AnswerResult; draft: Draft };
 
 function Player({
   attempt,
@@ -120,7 +124,8 @@ function Player({
 }) {
   const router = useRouter();
   const [session, dispatch] = useReducer(reduce, undefined, () => start(attempt.steps, attempt.progress));
-  const [selected, setSelected] = useState<number | null>(null);
+  // The draft belongs to one step; moving to another step starts a fresh one.
+  const [drafted, setDrafted] = useState<{ stepId: string; draft: Draft } | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [graded, setGraded] = useState<Graded | null>(null);
   const [problem, setProblem] = useState<string | null>(null);
@@ -139,13 +144,19 @@ function Player({
 
   const reaction = graded ? (graded.result.correct ? "correct" : "wrong") : "idle";
 
+  const draft: Draft | null = step ? (drafted?.stepId === step.id ? drafted.draft : emptyDraft(step)) : null;
+  const ready = !!step && isReady(step, draft);
+  const setDraft = useCallback((d: Draft) => {
+    if (step) setDrafted({ stepId: step.id, draft: d });
+  }, [step]);
+
   const check = useCallback(async () => {
-    if (!step || step.type !== "mcq" || selected === null || submitting || session.phase !== "answering") return;
+    if (!step || !draft || !ready || submitting || session.phase !== "answering") return;
     setSubmitting(true);
     setProblem(null);
     try {
-      const result = await api.answerStep(attempt.attempt_id, step.id, nextTry(session, step.id), { choice: selected });
-      setGraded({ result, chosen: selected });
+      const result = await api.answerStep(attempt.attempt_id, step.id, nextTry(session, step.id), toAnswer(step, draft));
+      setGraded({ result, draft });
       dispatch({ type: "graded", stepId: step.id, correct: result.correct });
     } catch (err) {
       if (err instanceof ApiRequestError && err.code === "invalid_try") {
@@ -159,11 +170,11 @@ function Player({
     } finally {
       setSubmitting(false);
     }
-  }, [step, selected, submitting, session, attempt.attempt_id, onResync]);
+  }, [step, draft, ready, submitting, session, attempt.attempt_id, onResync]);
 
   const next = useCallback(() => {
     setGraded(null);
-    setSelected(null);
+    setDrafted(null);
     setProblem(null);
     dispatch({ type: "continue" });
   }, []);
@@ -172,7 +183,7 @@ function Player({
   // Other focused buttons (Check, exit, intro; the feedback tray's Continue) keep their own Enter.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key !== "Enter" || confirmingExit || session.phase !== "answering" || selected === null) return;
+      if (e.key !== "Enter" || confirmingExit || session.phase !== "answering" || !ready) return;
       const target = e.target as HTMLElement | null;
       const onOption = target?.getAttribute("role") === "radio";
       if (!onOption && target?.tagName === "BUTTON") return;
@@ -181,7 +192,7 @@ function Player({
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [check, session.phase, confirmingExit, selected]);
+  }, [check, session.phase, confirmingExit, ready]);
 
   // When every graded step is solved, complete the attempt; the server decides if it really is complete.
   useEffect(() => {
@@ -277,11 +288,7 @@ function Player({
     session.phase === "feedback" && graded ? (
       <FeedbackTray
         result={graded.result}
-        correctOptionText={
-          step?.mcq && graded.result.correct_answer?.choice !== undefined
-            ? step.mcq.options[graded.result.correct_answer.choice]
-            : undefined
-        }
+        correctAnswer={step ? correctAnswerLines(step, graded.result.correct_answer) : []}
         companionName={companionName}
         onContinue={next}
         continueLabel={session.queue.length === 1 && graded.result.correct ? "Finish" : "Continue"}
@@ -304,19 +311,14 @@ function Player({
     >
       {session.phase === "intro" && intro?.intro ? (
         <IntroStep beats={intro.intro.beats} mediaUrl={intro.intro.media_url} onDone={() => dispatch({ type: "finishIntro" })} />
-      ) : step?.type === "mcq" && step.mcq ? (
+      ) : step && draft ? (
         <>
-          <McqStep
-            prompt={step.mcq.prompt}
-            options={step.mcq.options}
-            selected={selected}
-            result={
-              graded
-                ? { correct: graded.result.correct, chosen: graded.chosen, correctIndex: graded.result.correct_answer?.choice }
-                : null
-            }
+          <ExerciseStep
+            step={step}
+            draft={draft}
+            graded={graded}
             disabled={submitting || session.phase !== "answering"}
-            onSelect={setSelected}
+            onDraft={setDraft}
           />
           {session.phase === "answering" && (
             <div className="mt-auto pt-6">
@@ -325,7 +327,7 @@ function Player({
                   {problem}
                 </p>
               )}
-              <GameButton type="button" onClick={check} disabled={selected === null || submitting}>
+              <GameButton type="button" onClick={check} disabled={!ready || submitting}>
                 {submitting ? "Checking…" : "Check"}
               </GameButton>
             </div>
@@ -348,4 +350,75 @@ function Player({
       )}
     </PlayerShell>
   );
+}
+
+/** ExerciseStep renders the step component for the draft's type; the result shown is the server's. */
+function ExerciseStep({
+  step,
+  draft,
+  graded,
+  disabled,
+  onDraft,
+}: {
+  step: ClientStep;
+  draft: Draft;
+  graded: Graded | null;
+  disabled: boolean;
+  onDraft: (d: Draft) => void;
+}) {
+  const result = graded?.result ?? null;
+  const shownDraft = graded?.draft ?? draft;
+  switch (shownDraft.type) {
+    case "mcq":
+      return step.mcq ? (
+        <McqStep
+          prompt={step.mcq.prompt}
+          options={step.mcq.options}
+          selected={shownDraft.choice}
+          result={
+            result && shownDraft.choice !== null
+              ? { correct: result.correct, chosen: shownDraft.choice, correctIndex: result.correct_answer?.choice }
+              : null
+          }
+          disabled={disabled}
+          onSelect={(choice) => onDraft({ type: "mcq", choice })}
+        />
+      ) : null;
+    case "true_false":
+      return step.true_false ? (
+        <TrueFalseStep
+          statement={step.true_false.statement}
+          selected={shownDraft.value}
+          result={
+            result && shownDraft.value !== null
+              ? { correct: result.correct, chosen: shownDraft.value, correctValue: result.correct_answer?.value }
+              : null
+          }
+          disabled={disabled}
+          onSelect={(value) => onDraft({ type: "true_false", value })}
+        />
+      ) : null;
+    case "fill_blank":
+      return step.fill_blank ? (
+        <FillBlankStep
+          code={step.fill_blank.code}
+          bank={step.fill_blank.bank}
+          slots={shownDraft.slots}
+          result={result ? { correct: result.correct } : null}
+          disabled={disabled}
+          onChange={(slots) => onDraft({ type: "fill_blank", slots })}
+        />
+      ) : null;
+    case "arrange":
+      return step.arrange ? (
+        <ArrangeStep
+          prompt={step.arrange.prompt}
+          items={step.arrange.items}
+          order={shownDraft.order}
+          result={result ? { correct: result.correct } : null}
+          disabled={disabled}
+          onChange={(order) => onDraft({ type: "arrange", order })}
+        />
+      ) : null;
+  }
 }
