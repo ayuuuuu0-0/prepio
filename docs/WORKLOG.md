@@ -51,3 +51,36 @@ Anything outside `.ai/EXECUTION.MD`'s scope goes through its Change Process and 
 
 * The gateway rate limit (300 requests/minute per user) stopped the automated playthrough once; a person can't reach it, so the script waits and retries instead.
 * **A mistake I made and corrected:** earlier today I said nothing was running in the background. In fact a stack I had started (the command you rejected had already begun) kept running from 07:53 until this task. It was idle, but I told you otherwise. It is stopped, and the teardown script now stops only what listens on its own ports, never anything by process name.
+
+---
+
+### Task 2 · Self-host the web fonts — waiting for your OK
+
+**Why:** `next build` downloads the three Google Fonts (Sora, Manrope, IBM Plex Mono) at build time; once today it failed until retried. Shipping the font files in the repo (`next/font/local`) makes builds independent of Google.
+
+**Why it's paused:** it needs the font files downloaded once (about 10 `.woff2` files, roughly 300 KB, from Google Fonts or the npm `@fontsource` packages). I don't download files without your go-ahead. Say "OK, download the fonts" and I'll do it as its own task. Until then the build still works; it just depends on Google being reachable.
+
+---
+
+### Task 3 · Focus topics order the journey (L11) — done (`3af9771`)
+
+**Why:** onboarding (PRODUCT.MD) promises that the 1–3 topics you pick "reorder and highlight the path". Until now they only reordered the dashboard's topic cards: worlds didn't know their topic, so the journey and the Continue button always followed the fixed world order.
+
+**What changed** (recorded as a Change Process entry in `.ai/EXECUTION.MD`, L11):
+
+* Each world names its topic (`topic:` in the world file → `worlds.topic_id`, migration 000042). Content-sync checks it against the topic catalog.
+* `GET /path?focus=dsa-refresher,system-design` puts those topics' worlds first, in your priority order, and marks them `focused`. This happens *before* node status is worked out, so the one "current" node (what Continue opens) follows your focus.
+* The dashboard asks for the path with your profile's focus topics, so Continue and the journey always agree.
+* The journey shows a "Your focus" label on those worlds.
+* **Nothing is ever locked by focus:** unlocks still depend only on finishing the previous node. Unfocused worlds stay open ("available"). This is tested.
+
+**Tested:**
+* Unit: ordering (no focus, one, two, unknown topic; nodes inside a world never reorder) and `focus` input checks (max 3, valid slugs, no duplicates).
+* Gateway: the dashboard really sends your focus to the path.
+* Integration on the real 33-lesson content: every world has a topic; with focus the focused world is first and current, others available, none hidden.
+* Migrations: the rollback test used a hard-coded list and broke as soon as a newer migration depended on topics. It now rolls back every migration from 000035 up, read from the folder, so future migrations are always covered. 042 → 035 down and back up passes.
+* Live, full stack: a user focused on DSA then System Design gets Continue → *Algorithm Gardens / The Right Lookup*, and the journey screenshot shows Algorithm Gardens then First Ascent labelled "Your focus". Bad `focus` input → 400. No console errors.
+
+**A slip, caught and checked:** while verifying, I ran `content-sync` once without pointing it at the test database, so it defaulted to `localhost:5432` (your installed Postgres). It was refused at login (`password authentication failed`) before doing anything, and sync runs in one transaction anyway, so nothing was written. I now always pass the test database explicitly.
+
+**Clean-up:** stack and web server stopped; ports 3000, 8080–8085, 55432, 56379 confirmed free.
