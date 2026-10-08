@@ -176,3 +176,34 @@ Anything outside `.ai/EXECUTION.MD`'s scope goes through its Change Process and 
 * Full integration and question-service suites pass.
 
 **Clean-up:** stack stopped; ports free.
+
+---
+
+### Task 7 · Achievements, first slice (L12) — done (`c4bd745`)
+
+**Why:** PRODUCT.MD's fifth pillar, Collection (achievements, badges, trophies), had nothing built. ARCHITECTURE.MD already says the Progress service owns achievements. It wasn't in the phase plan, so it went through the Change Process (recorded as L12 in `.ai/EXECUTION.MD`).
+
+**What it is:** eight achievements, all earned from facts the Progress service already owns:
+
+| Achievement | How to earn it |
+|---|---|
+| 🌱 First Steps | Finish your first lesson |
+| 🔥 Warming Up | Keep a 3-day streak |
+| 📚 Getting Serious | Finish 10 lessons |
+| 🗓️ Full Week | Keep a 7-day streak |
+| ⭐ Level Five | Reach level 5 |
+| 🎯 Halfway There | Reach 50 readiness in any topic |
+| 🏆 Moving Up | Get promoted in a weekly league |
+| 🧭 Path Finder | Finish 30 lessons |
+
+* The list and the rules live in `config/achievements.go` (easy to change; slugs must never be renamed because they're stored per user).
+* Achievements are saved **in the same database transaction as the lesson's XP**, so they can't be lost or awarded twice. Streak ones are awarded when the streak bonus is processed.
+* "Halfway There" uses exactly the same readiness number the dashboard shows (same rounding), so they can never disagree.
+* **Profile:** an Achievements grid, "2 of 8", earned ones in gold with the date, locked ones greyed with how to earn them (real information, not a placeholder).
+* **Celebration screen:** an "Achievement unlocked" card when a lesson earns one.
+
+**Tested:** rule tests (thresholds inclusive, unknown facts never earn anything); store tests (streak awards only report what's new and never duplicate; readiness 40 and 61 → 51 exactly as the dashboard rounds); integration (the first lesson earns First Steps once; a redelivered event or a replay earns nothing); live: a new user got First Steps on lesson 1 and Getting Serious on lesson 10, nothing else, and the profile screenshot looks right. All suites pass; production build clean.
+
+**Left for later (needs other domains' facts):** world trophies (Journey knows when a world is finished), titles, companion evolutions. The approved `achievement.unlocked` event isn't published yet because nothing would listen to it.
+
+**Clean-up:** stack stopped; ports free.
