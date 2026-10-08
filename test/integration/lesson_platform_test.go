@@ -370,6 +370,11 @@ func TestLessonPlatform(t *testing.T) {
 		require.Equal(t, config.LessonMasteryDelta(0, "lesson", "medium", accuracy, 0.4), bySkill["backend-databases"])
 		require.Positive(t, bySkill["system-design-scaling"])
 
+		// The first completed lesson earns "First Steps", recorded against this attempt.
+		require.Len(t, rewards.AchievementsUnlocked, 1)
+		require.Equal(t, "first-steps", rewards.AchievementsUnlocked[0].Slug)
+		require.True(t, rewards.AchievementsUnlocked[0].Unlocked)
+
 		var mastery, ledger, xpRows int
 		require.NoError(t, pool.QueryRow(ctx, `
 			SELECT mastery FROM user_skill_scores u JOIN skills s ON s.id = u.skill_id
@@ -389,6 +394,9 @@ func TestLessonPlatform(t *testing.T) {
 		var totalXP int
 		require.NoError(t, pool.QueryRow(ctx, `SELECT total_xp FROM user_progress WHERE user_id = $1`, userID).Scan(&totalXP))
 		require.Equal(t, rewards.XPAwarded, totalXP)
+		var earned int
+		require.NoError(t, pool.QueryRow(ctx, `SELECT count(*) FROM user_achievements WHERE user_id = $1`, userID).Scan(&earned))
+		require.Equal(t, 1, earned, "a redelivered event never awards an achievement twice")
 
 		// Rewards are private to the user who earned them.
 		_, found, err = progressLessons.GetAttemptRewards(ctx, otherID, attemptID)
@@ -426,6 +434,7 @@ func TestLessonPlatform(t *testing.T) {
 		require.False(t, rewards.FirstCompletion)
 		require.Zero(t, rewards.XPAwarded)
 		require.Empty(t, rewards.MasteryChanges)
+		require.Empty(t, rewards.AchievementsUnlocked, "a replay earns nothing new")
 
 		var ledger int
 		require.NoError(t, pool.QueryRow(ctx, `SELECT count(*) FROM mastery_ledger WHERE user_id = $1`, userID).Scan(&ledger))

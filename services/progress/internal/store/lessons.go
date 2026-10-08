@@ -37,6 +37,7 @@ type LessonOutcome struct {
 	TotalXP         int
 	TotalGems       int
 	Mastery         []MasteryChange
+	Achievements    []string // achievement slugs this completion unlocked
 	CreatedAt       time.Time
 }
 
@@ -115,6 +116,16 @@ func (s *LessonStore) ApplyLessonCompleted(ctx context.Context, event events.Les
 		RETURNING created_at`,
 		event.AttemptID, event.UserID, event.LessonID, first, out.XPAwarded, out.GemsAwarded).Scan(&out.CreatedAt); err != nil {
 		return nil, false, fmt.Errorf("insert lesson reward: %w", err)
+	}
+
+	// Achievements are earned in the same transaction, so they can never be lost or doubled.
+	facts, err := lessonFacts(ctx, tx, event.UserID, out.LevelAfter)
+	if err != nil {
+		return nil, false, err
+	}
+	attemptID := event.AttemptID
+	if out.Achievements, err = unlockAchievements(ctx, tx, event.UserID, facts, &attemptID); err != nil {
+		return nil, false, err
 	}
 
 	if err := tx.Commit(ctx); err != nil {
@@ -219,6 +230,10 @@ func (s *LessonStore) GetAttemptRewards(ctx context.Context, userID, attemptID s
 	}
 	if err != nil {
 		return nil, fmt.Errorf("get lesson reward: %w", err)
+	}
+
+	if out.Achievements, err = NewAchievementStore(s.pool).AttemptAchievements(ctx, userID, attemptID); err != nil {
+		return nil, err
 	}
 
 	rows, err := s.pool.Query(ctx, `

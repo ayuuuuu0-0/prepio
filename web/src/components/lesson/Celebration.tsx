@@ -3,6 +3,7 @@
 import { useState } from "react";
 import type { CompletionData } from "@/lib/lesson/types";
 import type { Mistake } from "@/lib/lesson/answers";
+import { achievementIcon } from "@/lib/achievements";
 import { CompanionHero } from "@/components/game/CompanionHero";
 import { SpeechBubble } from "@/components/game/SpeechBubble";
 import { GameButton } from "@/components/game/GameButton";
@@ -173,6 +174,35 @@ export function Celebration({
           <Chip label="Gems" value={`+${rewards.gems_awarded}`} tone="#34D399" delay="0.5s" />
         )}
       </div>
+
+      {(rewards?.achievements_unlocked?.length ?? 0) > 0 && (
+        <section className="mt-6 w-full" aria-labelledby="achievements-heading">
+          <h2 id="achievements-heading" className="font-mono text-[11px] font-bold uppercase tracking-[0.2em]" style={{ color: "#F5B942" }}>
+            Achievement unlocked
+          </h2>
+          <ul className="mt-3 flex flex-col gap-2">
+            {rewards!.achievements_unlocked!.map((a) => (
+              <li
+                key={a.slug}
+                className="animate-result flex items-center gap-3 rounded-2xl px-4 py-3 text-left"
+                style={{ background: "rgba(245,185,66,0.1)", border: "1px solid rgba(245,185,66,0.45)" }}
+              >
+                <span aria-hidden className="text-2xl">
+                  {achievementIcon(a.slug)}
+                </span>
+                <span>
+                  <span className="font-display block font-extrabold" style={{ color: "#E8EAED" }}>
+                    {a.name}
+                  </span>
+                  <span className="text-sm" style={{ color: "#8B92A8" }}>
+                    {a.description}
+                  </span>
+                </span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       {moved.length > 0 && (
         <section className="mt-6 w-full text-left" aria-labelledby="mastery-heading">

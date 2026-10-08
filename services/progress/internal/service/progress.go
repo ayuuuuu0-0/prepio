@@ -19,13 +19,14 @@ type EventPublisher interface {
 
 // ProgressService owns XP, gems, and level state.
 type ProgressService struct {
-	progress  *store.ProgressStore
-	publisher EventPublisher
+	progress     *store.ProgressStore
+	achievements *store.AchievementStore
+	publisher    EventPublisher
 }
 
 // NewProgressService creates a ProgressService.
-func NewProgressService(progress *store.ProgressStore, publisher EventPublisher) *ProgressService {
-	return &ProgressService{progress: progress, publisher: publisher}
+func NewProgressService(progress *store.ProgressStore, achievements *store.AchievementStore, publisher EventPublisher) *ProgressService {
+	return &ProgressService{progress: progress, achievements: achievements, publisher: publisher}
 }
 
 // ProcessStreakUpdated awards streak bonus gems when a streak increments. Redelivery is safe.
@@ -35,6 +36,11 @@ func (s *ProgressService) ProcessStreakUpdated(ctx context.Context, event events
 	}
 	if !validIDs(event.EventID, event.UserID) {
 		return ErrInvalidRequest
+	}
+
+	// Streak achievements are idempotent, so they are checked even for a redelivered event.
+	if _, err := s.achievements.AwardStreak(ctx, event.UserID, event.CurrentStreak); err != nil {
+		return err
 	}
 
 	gems := config.StreakIncrementGemBonus

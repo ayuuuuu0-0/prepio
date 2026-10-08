@@ -72,11 +72,12 @@ func (s *LessonService) GetAttemptRewards(ctx context.Context, userID, attemptID
 		return nil, false, nil
 	}
 	resp = &dto.AttemptRewardsResponse{
-		AttemptID:       outcome.AttemptID,
-		FirstCompletion: outcome.FirstCompletion,
-		XPAwarded:       outcome.XPAwarded,
-		GemsAwarded:     outcome.GemsAwarded,
-		MasteryChanges:  make([]dto.MasteryChangeResponse, 0, len(outcome.Mastery)),
+		AttemptID:            outcome.AttemptID,
+		FirstCompletion:      outcome.FirstCompletion,
+		XPAwarded:            outcome.XPAwarded,
+		GemsAwarded:          outcome.GemsAwarded,
+		MasteryChanges:       make([]dto.MasteryChangeResponse, 0, len(outcome.Mastery)),
+		AchievementsUnlocked: achievementResponses(outcome.Achievements),
 	}
 	for _, m := range outcome.Mastery {
 		resp.MasteryChanges = append(resp.MasteryChanges, dto.MasteryChangeResponse{

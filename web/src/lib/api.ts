@@ -1,4 +1,5 @@
 import type {
+  Achievement,
   Answer,
   AnswerResult,
   AttemptData,
@@ -171,6 +172,11 @@ export class ApiClient {
 
   getDashboardHome() {
     return this.request<DashboardHome>("/api/v1/dashboard/home");
+  }
+
+  /** getAchievements returns the achievement catalog, marking the ones the learner has earned. */
+  getAchievements() {
+    return this.request<Achievement[]>("/api/v1/progress/achievements");
   }
 
   /** getLeague returns this week's league: tier, standings with public cards, last result. */

@@ -4,6 +4,8 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { api, Profile, TopicInfo } from "@/lib/api";
 import { topicTheme } from "@/lib/topics";
+import { achievementIcon, earnedLabel } from "@/lib/achievements";
+import type { Achievement } from "@/lib/lesson/types";
 import { GameBackground } from "@/components/game/GameBackground";
 import { CompanionHero } from "@/components/game/CompanionHero";
 import { GameCard } from "@/components/game/GameCard";
@@ -13,6 +15,7 @@ export default function ProfilePage() {
   const router = useRouter();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [topics, setTopics] = useState<TopicInfo[]>([]);
+  const [achievements, setAchievements] = useState<Achievement[] | null>(null);
 
   useEffect(() => {
     (async () => {
@@ -25,6 +28,8 @@ export default function ProfilePage() {
         const [me, catalog] = await Promise.all([api.getProfile(), api.getTopics().catch(() => [] as TopicInfo[])]);
         setProfile(me);
         setTopics(catalog);
+        // Achievements are a section of the profile; if they fail to load the section says so.
+        api.getAchievements().then(setAchievements, () => setAchievements([]));
       } catch {
         router.replace("/login");
       }
@@ -87,6 +92,52 @@ export default function ProfilePage() {
             </ul>
           </GameCard>
         )}
+
+        <section className="mt-6" aria-labelledby="achievements-title">
+          <div className="flex items-end justify-between">
+            <h2 id="achievements-title" className="font-display text-lg font-extrabold" style={{ color: "#E8EAED" }}>
+              Achievements
+            </h2>
+            {achievements && achievements.length > 0 && (
+              <p className="font-mono text-xs font-bold" style={{ color: "#8B92A8" }}>
+                {achievements.filter((a) => a.unlocked).length} of {achievements.length}
+              </p>
+            )}
+          </div>
+          {achievements === null ? (
+            <p className="font-mono mt-3 animate-pulse text-xs" style={{ color: "#8B92A8" }} role="status">
+              Loading achievements…
+            </p>
+          ) : achievements.length === 0 ? (
+            <p className="mt-3 text-sm" style={{ color: "#8B92A8" }} role="alert">
+              Couldn&apos;t load achievements right now.
+            </p>
+          ) : (
+            <ul className="mt-3 grid grid-cols-2 gap-3">
+              {achievements.map((a) => (
+                <li
+                  key={a.slug}
+                  className="rounded-2xl p-4"
+                  style={{
+                    background: a.unlocked ? "rgba(245,185,66,0.1)" : "#1A1D27",
+                    border: `1px solid ${a.unlocked ? "rgba(245,185,66,0.45)" : "#2E3347"}`,
+                  }}
+                >
+                  <span aria-hidden className="text-2xl" style={{ filter: a.unlocked ? "none" : "grayscale(1)", opacity: a.unlocked ? 1 : 0.45 }}>
+                    {achievementIcon(a.slug)}
+                  </span>
+                  <p className="font-display mt-2 text-sm font-extrabold" style={{ color: a.unlocked ? "#E8EAED" : "#8B92A8" }}>
+                    {a.name}
+                    <span className="sr-only">{a.unlocked ? ", earned" : ", not earned yet"}</span>
+                  </p>
+                  <p className="mt-1 text-xs leading-snug" style={{ color: "#8B92A8" }}>
+                    {a.unlocked ? earnedLabel(a.unlocked_at) : a.description}
+                  </p>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
 
         <button
           onClick={async () => {

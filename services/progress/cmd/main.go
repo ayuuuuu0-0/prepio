@@ -42,10 +42,13 @@ func main() {
 	}
 	defer producer.Close()
 
+	achievementStore := store.NewAchievementStore(pool)
 	progressService := service.NewProgressService(
 		store.NewProgressStore(pool),
+		achievementStore,
 		producer,
 	)
+	achievementHandler := handler.NewAchievementHandler(service.NewAchievementService(achievementStore))
 	readinessStore := store.NewReadinessStore(pool)
 	readinessService := service.NewReadinessService(readinessStore)
 	lessonService := service.NewLessonService(store.NewLessonStore(pool), producer)
@@ -109,6 +112,7 @@ func main() {
 		r.Get("/progress/me", progressHandler.GetMe)
 		r.Get("/progress/topics", readinessHandler.GetTopicMastery)
 		r.Get("/progress/league", leagueHandler.GetLeague)
+		r.Get("/progress/achievements", achievementHandler.List)
 		r.Get("/progress/attempts/{attemptID}/rewards", lessonHandler.GetAttemptRewards)
 	})
 

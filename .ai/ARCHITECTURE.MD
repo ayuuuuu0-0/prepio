@@ -113,6 +113,7 @@ APIs expose capabilities, not tables:
 * `POST /lessons/{id}/attempts`: start or resume; returns steps **without answers**, plus per-step progress when resuming. A locked lesson returns 403.
 * `POST /attempts/{id}/steps/{stepId}/answer`: body `{ try, answer }`; `stepId` is the authored step key. Server-graded feedback; idempotent per (attempt, step, try); malformed answers are rejected and never recorded.
 * `POST /attempts/{id}/complete`: performance summary and newly unlocked nodes; the gateway adds `rewards` from Progress (`GET /progress/attempts/{id}/rewards`: XP, gems, and per-skill mastery changes with their topic).
+* `GET /progress/achievements`: the achievement catalog (config) with `unlocked` and `unlocked_at` for the learner. Achievements are awarded by Progress inside the transactions that change their facts; lesson rewards carry `achievements_unlocked`.
 * `GET /topics`: the topic catalog (Content domain), used by the onboarding picker
 * `GET /progress/topics`: per-topic readiness with each skill's mastery (not started = null)
 * `GET /dashboard/home`: gateway aggregation of profile (focus topics, companion), XP/level, streak, topic readiness, the path's current node as the Continue target, and a league summary from `GET /progress/league` (tier, joined, rank, cohort size, weekly XP, zone, week end; no names, so no User call). If any upstream fails the dashboard fails; it never shows partial or invented data

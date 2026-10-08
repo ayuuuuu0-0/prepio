@@ -77,6 +77,17 @@ export type Rewards = {
   xp_awarded: number;
   gems_awarded: number;
   mastery_changes: MasteryChange[];
+  /** achievements this completion unlocked (usually none). */
+  achievements_unlocked?: Achievement[];
+};
+
+/** Achievement is one entry of the server's catalog; description says how to earn it. */
+export type Achievement = {
+  slug: string;
+  name: string;
+  description: string;
+  unlocked: boolean;
+  unlocked_at?: string;
 };
 
 export type UnlockedNode = { id: string; slug: string; label: string; lesson_id: string };
