@@ -196,13 +196,20 @@ await step("completion returns a summary with rewards from Progress", async () =
   const r = await call("POST", `/attempts/${attempt.attempt_id}/complete`, { token, expect: 200 });
   completion = r.json.data;
   assert.equal(completion.graded_steps, graded().length);
-  assert.ok(completion.accuracy > 0 && completion.accuracy <= 1);
+  assert.ok(completion.accuracy >= 0 && completion.accuracy <= 1, "accuracy in [0,1]: " + completion.accuracy);
+  assert.ok(completion.rewards, "rewards present: " + JSON.stringify(completion));
   assert.equal(completion.rewards_pending, false, "rewards should be ready (dev-sync events are synchronous)");
   assert.ok(completion.rewards.xp_awarded > 0, "XP awarded");
-  assert.ok(completion.rewards.first_completion === true);
-  assert.ok(completion.rewards.mastery_changes.length >= 1);
-  const m = completion.rewards.mastery_changes[0];
-  assert.ok(m.skill_name && m.topic_name && m.delta > 0 && m.after === m.before + m.delta);
+  assert.ok(completion.rewards.first_completion === true, "first completion: " + JSON.stringify(completion.rewards));
+  assert.ok(completion.rewards.mastery_changes.length >= 1, "a mastery change per lesson skill");
+  // Mastery follows first-try accuracy: the script guesses before it knows answers, so a change
+  // can be 0. Every change must still add up, and some skill must move whenever a first try was right.
+  for (const m of completion.rewards.mastery_changes) {
+    assert.ok(m.skill_name && m.topic_name && m.delta >= 0 && m.after === m.before + m.delta, JSON.stringify(m));
+  }
+  if (completion.first_try_correct > 0) {
+    assert.ok(completion.rewards.mastery_changes.some((m) => m.delta > 0), "a right first try moves mastery: " + JSON.stringify(completion.rewards.mastery_changes));
+  }
 });
 
 await step("completing again is idempotent and does not double-award", async () => {
@@ -215,15 +222,22 @@ await step("completing again is idempotent and does not double-award", async () 
 await step("mastery moved is explained by topic and skill, and topic readiness reflects it", async () => {
   const changes = completion.rewards.mastery_changes;
   assert.ok(changes.length >= 1);
-  assert.ok(changes.every((c) => c.topic_name && c.skill_name && c.delta > 0));
+  assert.ok(changes.every((c) => c.topic_name && c.skill_name && c.delta >= 0));
   const topics = (await call("GET", "/progress/topics", { token, expect: 200 })).json.data;
   const sd = topics.find((t) => t.slug === changes[0].topic_slug);
-  assert.ok(sd.mastery !== null && sd.skills_started >= 1, "the topic is started");
+  assert.ok(sd.mastery !== null && sd.skills_started >= 1, "the topic is started: " + JSON.stringify(sd));
   assert.equal(sd.mastery, Math.round(sd.skills.filter((k) => k.mastery !== null).reduce((a, k) => a + k.mastery, 0) / sd.skills_started));
   const untouched = topics.filter((t) => t.slug !== sd.slug);
   assert.ok(untouched.every((t) => t.mastery === null), "other topics stay not started");
   const home = (await call("GET", "/dashboard/home", { token, expect: 200 })).json.data;
-  assert.equal(home.next_lesson, null, "with the only lesson done there is nothing to continue");
+  const pathNow = (await call("GET", "/path", { token, expect: 200 })).json.data;
+  const current = pathNow.worlds.flatMap((w) => w.nodes).find((n) => n.status === "current");
+  if (current) {
+    assert.equal(home.next_lesson?.lesson_id, current.lesson_id, "Continue opens the path's current node");
+    assert.notEqual(current.lesson_id, node.lesson_id, "the finished lesson is no longer current");
+  } else {
+    assert.equal(home.next_lesson, null, "with nothing current there is nothing to continue");
+  }
 });
 
 await step("streak counts the completed lesson", async () => {
