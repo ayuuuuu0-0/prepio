@@ -5,6 +5,8 @@ import {
   emptyDraft,
   isReady,
   placeChip,
+  promptOf,
+  recordMistake,
   splitCode,
   toAnswer,
   toggleArrange,
@@ -124,5 +126,24 @@ describe("correctAnswerLines", () => {
   });
   it("shows nothing without a correct answer (a correct try)", () => {
     expect(correctAnswerLines(mcq, undefined)).toEqual([]);
+  });
+});
+
+describe("mistakes review", () => {
+  it("describes what each step asked", () => {
+    expect(promptOf(mcq)).toBe("P");
+    expect(promptOf(tf)).toBe("True or false: S");
+    expect(promptOf(fill)).toBe("Fill in the blanks: SET [1] EX [2]");
+    expect(promptOf(arrange)).toBe("Order");
+    expect(promptOf(prose)).toBe("");
+  });
+  it("keeps only the first miss of each step, in order", () => {
+    let list = recordMistake([], { stepId: "a", prompt: "A", correct: ["x"] });
+    list = recordMistake(list, { stepId: "b", prompt: "B", correct: ["y"] });
+    list = recordMistake(list, { stepId: "a", prompt: "A again", correct: ["z"] });
+    expect(list.map((m) => [m.stepId, m.prompt])).toEqual([
+      ["a", "A"],
+      ["b", "B"],
+    ]);
   });
 });

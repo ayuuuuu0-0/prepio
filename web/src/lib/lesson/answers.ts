@@ -125,3 +125,27 @@ export function correctAnswerLines(step: ClientStep, correct: Answer | undefined
       return [];
   }
 }
+
+/** Mistake is an exercise missed during this lesson, kept for the end-of-lesson review. */
+export type Mistake = { stepId: string; prompt: string; correct: string[]; explanation?: string };
+
+/** promptOf is a one-line description of what a step asked, for the mistakes review. */
+export function promptOf(step: ClientStep): string {
+  switch (step.type) {
+    case "mcq":
+      return step.mcq?.prompt ?? "";
+    case "true_false":
+      return step.true_false ? `True or false: ${step.true_false.statement}` : "";
+    case "fill_blank":
+      return step.fill_blank ? `Fill in the blanks: ${step.fill_blank.code.replace(/___(\d+)___/g, "[$1]")}` : "";
+    case "arrange":
+      return step.arrange?.prompt ?? "";
+    default:
+      return "";
+  }
+}
+
+/** recordMistake adds a step's first miss to the review list; later misses of the same step are ignored. */
+export function recordMistake(list: Mistake[], m: Mistake): Mistake[] {
+  return list.some((x) => x.stepId === m.stepId) ? list : [...list, m];
+}

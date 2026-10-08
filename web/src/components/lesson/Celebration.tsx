@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import type { CompletionData } from "@/lib/lesson/types";
+import type { Mistake } from "@/lib/lesson/answers";
 import { CompanionHero } from "@/components/game/CompanionHero";
 import { SpeechBubble } from "@/components/game/SpeechBubble";
 import { GameButton } from "@/components/game/GameButton";
@@ -41,12 +42,15 @@ export function Celebration({
   companionName,
   companionSpecies,
   onBackToJourney,
+  mistakes = [],
 }: {
   completion: CompletionData;
   streak: number | null;
   companionName?: string;
   companionSpecies?: string;
   onBackToJourney: () => void;
+  /** Exercises missed during this lesson, with the server's correct answers. */
+  mistakes?: Mistake[];
 }) {
   const [showSummary, setShowSummary] = useState(false);
   const rewards = completion.rewards;
@@ -80,6 +84,47 @@ export function Celebration({
             </li>
           ))}
         </ul>
+
+        {mistakes.length > 0 && (
+          <section className="mt-6" aria-labelledby="mistakes-title">
+            <h2
+              id="mistakes-title"
+              className="font-mono text-[11px] font-bold uppercase tracking-[0.2em]"
+              style={{ color: "#F5B942" }}
+            >
+              Worth another look
+            </h2>
+            <ul className="mt-3 flex flex-col gap-3">
+              {mistakes.map((m) => (
+                <li
+                  key={m.stepId}
+                  className="rounded-2xl px-4 py-4"
+                  style={{ background: "#1A1D27", border: "1px solid rgba(245,185,66,0.35)" }}
+                >
+                  <p className="text-sm leading-snug" style={{ color: "#C8CCDA" }}>
+                    {m.prompt}
+                  </p>
+                  {m.correct.length > 0 && (
+                    <div className="mt-2 text-sm font-semibold" style={{ color: "#E8EAED" }}>
+                      <span className="sr-only">Correct answer: </span>
+                      {m.correct.map((line) => (
+                        <p key={line}>
+                          <span aria-hidden style={{ color: "#34D399" }}>✓ </span>
+                          {line}
+                        </p>
+                      ))}
+                    </div>
+                  )}
+                  {m.explanation && (
+                    <p className="mt-2 text-sm leading-relaxed" style={{ color: "#8B92A8" }}>
+                      {m.explanation}
+                    </p>
+                  )}
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
 
         {completion.unlocked_nodes.length > 0 && (
           <div

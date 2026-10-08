@@ -14,6 +14,8 @@ export function PlayerShell({
   tray,
   companion,
   onReplayIntro,
+  soundOn,
+  onToggleSound,
 }: {
   progress: number;
   combo: number;
@@ -26,12 +28,14 @@ export function PlayerShell({
   companion?: ReactNode;
   /** When set, shows a button that replays the lesson intro. */
   onReplayIntro?: () => void;
+  soundOn: boolean;
+  onToggleSound: () => void;
 }) {
   const pct = Math.round(Math.max(0, Math.min(1, progress)) * 100);
 
   return (
     <div className="game-bg-challenge relative flex min-h-dvh flex-col">
-      <header className="relative z-10 mx-auto flex w-full max-w-2xl items-center gap-3 px-4 pb-2 pt-4">
+      <header inert={confirmingExit} className="relative z-10 mx-auto flex w-full max-w-2xl items-center gap-3 px-4 pb-2 pt-4">
         <button
           type="button"
           onClick={onRequestExit}
@@ -82,16 +86,33 @@ export function PlayerShell({
             className="font-display flex h-10 shrink-0 items-center gap-1 rounded-full px-3 text-xs font-bold transition-colors hover:bg-white/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#7C6EF5]"
             style={{ color: "#8B92A8", border: "1px solid #2E3347" }}
           >
-            <span aria-hidden>↺</span> Intro
+            <span aria-hidden>↺</span>
+            <span aria-hidden className="hidden sm:inline">Intro</span>
           </button>
         )}
+
+        <button
+          type="button"
+          onClick={onToggleSound}
+          aria-pressed={soundOn}
+          aria-label={soundOn ? "Sound on" : "Sound off"}
+          title={soundOn ? "Sound on" : "Sound off"}
+          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-base transition-colors hover:bg-white/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#7C6EF5]"
+          style={{ color: soundOn ? "#E8EAED" : "#4A5068", border: "1px solid #2E3347" }}
+        >
+          <span aria-hidden>{soundOn ? "🔊" : "🔇"}</span>
+        </button>
 
         {companion}
       </header>
 
-      <main className="relative z-10 mx-auto flex w-full max-w-2xl flex-1 flex-col px-4 pb-6 pt-4">{children}</main>
+      <main inert={confirmingExit} className="relative z-10 mx-auto flex w-full max-w-2xl flex-1 flex-col px-4 pb-6 pt-4">{children}</main>
 
-      {tray}
+      {tray && (
+        <div inert={confirmingExit} className="contents">
+          {tray}
+        </div>
+      )}
 
       {confirmingExit && <ExitDialog onCancel={onCancelExit} onConfirm={onConfirmExit} />}
     </div>

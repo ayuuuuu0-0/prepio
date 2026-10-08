@@ -4,7 +4,17 @@ import { useParams, useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from "react";
 import { api, ApiRequestError, Profile } from "@/lib/api";
 import { currentStepId, nextTry, progress, reduce, start } from "@/lib/lesson/session";
-import { correctAnswerLines, emptyDraft, isReady, toAnswer, type Draft } from "@/lib/lesson/answers";
+import {
+  correctAnswerLines,
+  emptyDraft,
+  isReady,
+  promptOf,
+  recordMistake,
+  toAnswer,
+  type Draft,
+  type Mistake,
+} from "@/lib/lesson/answers";
+import { useSound } from "@/lib/sound";
 import type { AnswerResult, AttemptData, ClientStep, CompletionData } from "@/lib/lesson/types";
 import { CompanionHero } from "@/components/game/CompanionHero";
 import { GameButton } from "@/components/game/GameButton";
@@ -134,6 +144,8 @@ function Player({
   const [completeFailed, setCompleteFailed] = useState(false);
   const [streak, setStreak] = useState<number | null>(null);
   const polls = useRef(0);
+  const [mistakes, setMistakes] = useState<Mistake[]>([]);
+  const sound = useSound();
 
   const stepsById = useMemo(() => new Map(attempt.steps.map((s) => [s.id, s])), [attempt.steps]);
   const intro = attempt.steps.find((s) => s.type === "intro");
@@ -157,6 +169,17 @@ function Player({
     try {
       const result = await api.answerStep(attempt.attempt_id, step.id, nextTry(session, step.id), toAnswer(step, draft));
       setGraded({ result, draft });
+      sound.cue(result.correct ? "correct" : "wrong");
+      if (!result.correct) {
+        setMistakes((list) =>
+          recordMistake(list, {
+            stepId: step.id,
+            prompt: promptOf(step),
+            correct: correctAnswerLines(step, result.correct_answer),
+            explanation: result.explanation,
+          }),
+        );
+      }
       dispatch({ type: "graded", stepId: step.id, correct: result.correct });
     } catch (err) {
       if (err instanceof ApiRequestError && err.code === "invalid_try") {
@@ -170,7 +193,7 @@ function Player({
     } finally {
       setSubmitting(false);
     }
-  }, [step, draft, ready, submitting, session, attempt.attempt_id, onResync]);
+  }, [step, draft, ready, submitting, session, attempt.attempt_id, onResync, sound]);
 
   const next = useCallback(() => {
     setGraded(null);
@@ -193,6 +216,26 @@ function Player({
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [check, session.phase, confirmingExit, ready]);
+
+  // Browser Back asks before leaving the lesson, like the close button (not once it is finished).
+  const finished = session.phase === "finished";
+  useEffect(() => {
+    if (finished) return;
+    window.history.pushState({ lessonGuard: true }, "", window.location.href);
+    const onPop = () => {
+      window.history.pushState({ lessonGuard: true }, "", window.location.href);
+      setConfirmingExit(true);
+    };
+    window.addEventListener("popstate", onPop);
+    return () => window.removeEventListener("popstate", onPop);
+  }, [finished]);
+
+  // The finish fanfare plays once, when the completion arrives.
+  const completedId = completion?.attempt_id;
+  const { cue } = sound;
+  useEffect(() => {
+    if (completedId) cue("complete");
+  }, [completedId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // When every graded step is solved, complete the attempt; the server decides if it really is complete.
   useEffect(() => {
@@ -257,6 +300,7 @@ function Player({
               companionName={companionName}
               companionSpecies={companionSpecies}
               onBackToJourney={backToJourney}
+              mistakes={mistakes}
             />
           ) : completeFailed ? (
             <div className="flex flex-1 flex-col items-center justify-center text-center">
@@ -307,6 +351,8 @@ function Player({
       onReplayIntro={
         session.hasIntro && session.phase === "answering" && !submitting ? () => dispatch({ type: "replayIntro" }) : undefined
       }
+      soundOn={sound.enabled}
+      onToggleSound={sound.toggle}
       companion={<CompanionHero name={companionName} species={companionSpecies} size="sm" reaction={reaction} />}
     >
       {session.phase === "intro" && intro?.intro ? (
@@ -317,7 +363,7 @@ function Player({
             step={step}
             draft={draft}
             graded={graded}
-            disabled={submitting || session.phase !== "answering"}
+            disabled={submitting || session.phase !== "answering" || confirmingExit}
             onDraft={setDraft}
           />
           {session.phase === "answering" && (
