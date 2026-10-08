@@ -1,31 +1,18 @@
-"use client";
+import type { Metadata } from "next";
+import { Landing } from "@/components/landing/Landing";
+import { SessionRedirect } from "@/components/landing/SessionRedirect";
 
-import { useRouter } from "next/navigation";
-import { useEffect } from "react";
-import { api } from "@/lib/api";
+export const metadata: Metadata = {
+  title: "Prepio · Level up as an engineer, five minutes a day",
+  description:
+    "Short, instantly graded lessons in system design, backend and production, low-level design, and DSA, with per-topic mastery, streaks, and weekly leagues.",
+};
 
 export default function Home() {
-  const router = useRouter();
-
-  useEffect(() => {
-    (async () => {
-      const ok = await api.ensureSession();
-      if (!ok) {
-        router.replace("/login");
-        return;
-      }
-      try {
-        const profile = await api.getProfile();
-        router.replace(profile.onboarding_completed ? "/dashboard" : "/onboarding");
-      } catch {
-        router.replace("/login");
-      }
-    })();
-  }, [router]);
-
   return (
-    <main className="flex min-h-screen items-center justify-center">
-      <p className="text-slate-500">Loading...</p>
-    </main>
+    <>
+      <SessionRedirect />
+      <Landing />
+    </>
   );
 }

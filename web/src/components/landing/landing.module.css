@@ -1,0 +1,110 @@
+/* Landing page motion. The global prefers-reduced-motion rule in globals.css stops all of it. */
+
+.sky {
+  background:
+    radial-gradient(ellipse 70% 55% at 50% 0%, rgba(124, 110, 245, 0.34) 0%, transparent 70%),
+    radial-gradient(ellipse 45% 35% at 85% 30%, rgba(96, 165, 250, 0.14) 0%, transparent 70%),
+    radial-gradient(ellipse 45% 35% at 12% 40%, rgba(244, 114, 182, 0.10) 0%, transparent 70%),
+    #0f1117;
+}
+
+.headline {
+  letter-spacing: -0.045em;
+  line-height: 0.98;
+}
+
+/* Floating stickers */
+@keyframes drift {
+  0%, 100% { transform: translateY(0) rotate(var(--tilt, -6deg)); }
+  50% { transform: translateY(-10px) rotate(calc(var(--tilt, -6deg) * -0.6)); }
+}
+.sticker {
+  animation: drift 6s ease-in-out infinite;
+  animation-delay: var(--delay, 0s);
+}
+
+/* Chip marquee */
+@keyframes marquee {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+@keyframes marqueeReverse {
+  from { transform: translateX(-50%); }
+  to { transform: translateX(0); }
+}
+.marquee {
+  mask-image: linear-gradient(90deg, transparent, #000 10%, #000 90%, transparent);
+}
+.track {
+  display: flex;
+  width: max-content;
+  animation: marquee 40s linear infinite;
+}
+.trackReverse {
+  display: flex;
+  width: max-content;
+  animation: marqueeReverse 46s linear infinite;
+}
+.marquee:hover .track,
+.marquee:hover .trackReverse {
+  animation-play-state: paused;
+}
+
+/* Journey screen: the current node pulses, the path draws in */
+@keyframes nodePulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(124, 110, 245, 0.55); }
+  50% { box-shadow: 0 0 0 10px rgba(124, 110, 245, 0); }
+}
+.nodeCurrent {
+  animation: nodePulse 2s ease-in-out infinite;
+}
+
+/* Lesson screen: an option gets picked, Check fills, the tray slides up — on a 6s loop */
+@keyframes pick {
+  0%, 22% { border-color: #2e3347; background: #1a1d27; }
+  28%, 100% { border-color: #7c6ef5; background: rgba(124, 110, 245, 0.16); }
+}
+.optionPicked {
+  animation: pick 6s ease-in-out infinite;
+}
+@keyframes checkReady {
+  0%, 28% { opacity: 0.4; }
+  34%, 100% { opacity: 1; }
+}
+.checkButton {
+  animation: checkReady 6s ease-in-out infinite;
+}
+@keyframes tray {
+  0%, 46% { transform: translateY(105%); }
+  54%, 92% { transform: translateY(0); }
+  100% { transform: translateY(105%); }
+}
+.tray {
+  animation: tray 6s cubic-bezier(0.22, 1, 0.36, 1) infinite;
+}
+
+/* Celebration screen: XP pops, bars rise */
+@keyframes pop {
+  0%, 10% { transform: scale(0.6); opacity: 0; }
+  22% { transform: scale(1.08); opacity: 1; }
+  30%, 100% { transform: scale(1); opacity: 1; }
+}
+.pop {
+  animation: pop 5s cubic-bezier(0.34, 1.56, 0.64, 1) infinite;
+}
+@keyframes grow {
+  0%, 18% { transform: scaleX(0.15); }
+  45%, 100% { transform: scaleX(1); }
+}
+.grow {
+  transform-origin: left;
+  animation: grow 5s cubic-bezier(0.22, 1, 0.36, 1) infinite;
+}
+
+/* Section reveal is left to the browser: content is visible without JS. */
+.card {
+  transition: transform 0.25s ease, border-color 0.25s ease;
+}
+.card:hover {
+  transform: translateY(-3px);
+}

@@ -133,6 +133,10 @@ A weekly reason to come back. Your first lesson of the week puts you on a leader
 
 Leagues must follow the Psychology rules below: demotion is limited (never from the lowest tier, never in small cohorts, never for a week you skipped), zones are named in words as well as colour, and copy frames a lower finish as a chance to win it back, never as failure. Rules and numbers live in config, not code (see EXECUTION.MD, L9).
 
+## Landing Page
+
+The public front door at `/`: one promise, our companions, and one obvious call to action (Duolingo's structure), built with Zeptap-style components (floating pill nav, announcement pill, two-tone headlines, sticker icons, a window of live phone screens, a chip strip, tinted feature cards). It keeps Prepio's dark theme and purple accent. Its phone screens illustrate the product; they never show real lesson content or user data. Signed-in visitors go straight to the app.
+
 ## Psychology
 
 Create motivation, curiosity, momentum, achievement. Avoid fear, punishment, guilt, shame. Users should feel encouraged to return, not pressured.
