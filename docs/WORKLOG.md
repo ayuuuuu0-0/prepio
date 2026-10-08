@@ -154,3 +154,25 @@ Anything outside `.ai/EXECUTION.MD`'s scope goes through its Change Process and 
 * `layout.tsx` keeps the same three CSS variables, so no page or component changed.
 * **Proof:** a clean production build passes; the built site contains no reference to Google Fonts; the page preloads the five font files from itself; a screenshot shows the same typography as before.
 * Also fixed while there: the default page description still said "a career RPG where interview prep is the progression mechanic", which contradicts PRODUCT.MD ("not a company-specific interview-prep tool"). It now uses the product's own line.
+
+---
+
+### Task 6 · World 5, Deep Roots (DSA part 2) — done (`2d3f1c0`)
+
+**Why:** the first path exercised 9 of the DSA topic's 14 skills. Strings, linked lists, heaps, greedy, and dynamic programming had no lessons, so those skills could never move your DSA readiness.
+
+**How (same process as the first four worlds):**
+1. **Plan first** in `content/PLAN.md`: seven nodes, their skills and what each teaches. Reviewing the plan caught one inconsistency before any lesson existed: the plan said every world's first node is open, but a *sequel* inside the same topic should open after the previous world's boss. The rule now says exactly that (across topics nothing is ever locked).
+2. **Authored** by one agent briefed with the full standard, including everything learned from Worlds 1–4 (answer positions, length tells, true/false balance, goal comments in fill-ins, plain text only).
+3. **Reviewed by me, every exercise** (28): facts and complexities checked (heapify O(n), top-k O(n log k), Floyd's cycle detection, memoized Fibonacci O(n), the 1/3/4 coin counterexample, the coin DP), one defensible answer per question.
+4. **Audited:** answers spread 4/4/3/4; correct option is the longest in only 4 of 15; true/false 4/4.
+
+**Lessons:** Strings Without Surprises · Following the Links · Always the Smallest · Take the Best Now · Remember the Answers · Fill the Table · Boss: Choose the Technique.
+
+**Tested:**
+* Content validation and the integration test against the real skill/topic catalog.
+* The L11 focus test had assumed one world per topic; with two DSA worlds it failed. It now checks the real rule (focused topics' worlds first, in priority order, any number per topic) and that Deep Roots stays locked until the Algorithm Gardens boss.
+* Live, full stack: **all 40 lessons and 175 exercises** played through; 36 unlocks (Deep Roots opened after its boss); **DSA now 14/14 skills; every skill in all four topics is covered**.
+* Full integration and question-service suites pass.
+
+**Clean-up:** stack stopped; ports free.
