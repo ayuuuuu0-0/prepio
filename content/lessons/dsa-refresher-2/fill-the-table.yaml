@@ -1,0 +1,56 @@
+slug: fill-the-table
+title: "Fill the Table"
+node: fill-the-table
+kind: lesson
+status: published
+difficulty: medium
+est_minutes: 5
+skills:
+  - { skill: dynamic-programming, weight: 1.0 }
+summary:
+  - "Bottom-up DP fills a table from the base cases up, so every entry's inputs are ready when it is computed."
+  - "Start by defining the state in plain words; the recurrence and base cases follow from it."
+  - "When an entry depends only on the last few entries, a few variables can replace the whole table."
+steps:
+  - id: intro
+    type: intro
+    beats:
+      - { text: "Bottom-up DP fills a table, starting from the smallest cases.", emphasis: "smallest cases", visual: bars, durationMs: 4500 }
+      - { text: "First name the state: what one cell means, in plain words.", emphasis: "what one cell means", visual: flow, durationMs: 4500 }
+      - { text: "Then write the recurrence and base case, and every cell follows.", emphasis: "recurrence and base case", visual: pulse, durationMs: 5000 }
+  - id: design-steps
+    type: arrange
+    prompt: "Order the steps for designing a bottom-up dynamic programming solution."
+    items:
+      - "Fill the table in an order where each entry's inputs are already computed"
+      - "Define the state: what one entry dp[i] means"
+      - "Read the answer from the entry that matches the original question"
+      - "Write the recurrence and the base cases"
+    order: [1, 3, 0, 2]
+    explanation: "The state comes first, because the recurrence and base cases are statements about it. With those in hand, choose a fill order that respects the dependencies, then read the answer from the cell the question asks about."
+  - id: stairs-recurrence
+    type: mcq
+    prompt: "dp[i] is the number of ways to reach step i of a staircase, taking 1 or 2 steps at a time. Which recurrence is right?"
+    options:
+      - "dp[i] = dp[i-1] * dp[i-2]"
+      - "dp[i] = dp[i-1] + 1"
+      - "dp[i] = max(dp[i-1], dp[i-2]) + 1"
+      - "dp[i] = dp[i-1] + dp[i-2]"
+    answer: 3
+    explanations:
+      correct: "The last move onto step i is either a 1-step from i-1 or a 2-step from i-2. Those cases never overlap, so their counts add."
+      wrong:
+        0: "Multiplying counts pairs of paths, one to i-1 and one to i-2, which is not a path to i. Separate cases add; they don't multiply."
+        1: "Adding 1 treats the step before as one extra way, and it ignores every path that arrives with a 2-step from i-2."
+        2: "max picks the better of two options, which suits optimization problems. Here you are counting, so both cases contribute."
+  - id: min-coins-table
+    type: fill_blank
+    code: "# fewest coins to make every amount from 0 to target\ndp = [___1___] + [float('inf')] * target\nfor a in range(1, target + 1):\n    for c in coins:\n        if c <= a: dp[a] = ___2___(dp[a], dp[a - c] + 1)\nbest = dp[target]"
+    bank: ["0", "min", "1", "max", "sum"]
+    answers: ["0", "min"]
+    explanation: "Zero coins make amount 0, so dp[0] is 0. Each amount takes the best over its last coin: one coin c plus the fewest coins for a - c, and fewest means min. This runs in O(target x number of coins) and, unlike greedy, is correct for any coin system."
+  - id: rolling-variables
+    type: true_false
+    statement: "A bottom-up table whose entries read only the previous two entries, as in Fibonacci, can be reduced to two variables, cutting extra space from O(n) to O(1)."
+    answer: true
+    explanation: "Once dp[i] is computed, entries older than i-1 are never read again. Keeping just the last two values gives the same answers with constant extra space."

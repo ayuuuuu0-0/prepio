@@ -1,0 +1,59 @@
+slug: strings-without-surprises
+title: "Strings Without Surprises"
+node: strings-without-surprises
+kind: lesson
+status: published
+difficulty: easy
+est_minutes: 4
+skills:
+  - { skill: strings, weight: 1.0 }
+summary:
+  - "In many languages strings are immutable, so every change produces a new string instead of editing the old one."
+  - "Appending to a string in a loop can be quadratic overall, so collect the pieces in a list and join them once."
+  - "Counting characters in a map or a fixed-size array answers anagram and frequency questions in O(n)."
+steps:
+  - id: intro
+    type: intro
+    beats:
+      - { text: "In many languages strings are immutable: every change builds a new one.", emphasis: "immutable", visual: bars, durationMs: 4500 }
+      - { text: "Adding to a string in a loop can copy everything so far, again and again.", emphasis: "again and again", visual: pulse, durationMs: 5000 }
+      - { text: "Collect the pieces and join once, and the work stays linear.", emphasis: "join once", visual: flow, durationMs: 4500 }
+  - id: slow-report
+    type: mcq
+    prompt: "A report job builds a 50,000-line CSV with out += line inside a loop, and it slows down far more than the line count grows. What is the most likely cause?"
+    options:
+      - "The loop runs once per line, so it is O(n); the slowdown must come from reading the input"
+      - "Each += can copy the whole string built so far, so the total work can grow quadratically"
+      - "Garbage collection runs after every line, because each old string is freed right away"
+    answer: 1
+    explanations:
+      correct: "With immutable strings, out += line may copy every character already in out. Copying 1, 2, 3, ... up to n chunks adds up to O(n^2) work in total, unless the runtime happens to optimize the append in place."
+      wrong:
+        0: "The loop runs n times, but each iteration is not constant work: the copy inside += grows with the string, and that is where the time goes."
+        2: "Freeing old strings adds some cost, but the main cost is the copying itself: each new string repeats all the work of the one before it."
+  - id: upper-in-place
+    type: true_false
+    statement: "In Python, calling s.upper() changes the string s in place, so no new string is created."
+    answer: false
+    explanation: "Python strings are immutable. s.upper() returns a new string and leaves s unchanged; you see the result only if you assign it, as in s = s.upper()."
+  - id: join-once
+    type: fill_blank
+    code: "# build one comma-separated line from many fields in linear time\nparts = []\nfor f in fields:\n    parts.___1___(str(f))\nline = ','.___2___(parts)"
+    bank: ["append", "join", "add", "concat", "split"]
+    answers: ["append", "join"]
+    explanation: "Appending to a list is amortized O(1), and join computes the final length once and copies each piece once, so the whole build is linear in the output size."
+  - id: anagram-check
+    type: mcq
+    prompt: "You need to check whether two strings of lowercase letters are anagrams of each other. Which approach runs in O(n) time?"
+    options:
+      - "Sort both strings and compare the results"
+      - "For each character of the first string, find it in the second and remove it"
+      - "Check that the lengths match and that the first and last characters match"
+      - "Count each letter in both strings and compare the counts"
+    answer: 3
+    explanations:
+      correct: "One pass per string fills a count for each letter, and comparing 26 counts is constant work, so the whole check is O(n)."
+      wrong:
+        0: "Sorting is correct and often fine in practice, but it costs O(n log n), not O(n)."
+        1: "Finding and removing a character is O(n) each time, so doing it for every character makes the check O(n^2)."
+        2: "Those checks are necessary but not enough: abc and aac have the same length and the same first and last letters, yet are not anagrams."

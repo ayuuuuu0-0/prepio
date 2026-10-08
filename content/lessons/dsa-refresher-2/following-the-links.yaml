@@ -1,0 +1,61 @@
+slug: following-the-links
+title: "Following the Links"
+node: following-the-links
+kind: lesson
+status: published
+difficulty: medium
+est_minutes: 5
+skills:
+  - { skill: linked-lists, weight: 1.0 }
+summary:
+  - "Linked lists give O(1) insert and delete at a node you already hold, but O(n) access by index."
+  - "Fast and slow pointers find a cycle or the middle node in one pass with O(1) extra space."
+  - "To reverse a list in place, save the next node before pointing each node back at the previous one."
+steps:
+  - id: intro
+    type: intro
+    beats:
+      - { text: "A linked list trades fast indexing for cheap inserts at a node you hold.", emphasis: "cheap inserts", visual: bars, durationMs: 4500 }
+      - { text: "Two pointers at different speeds find cycles and middles in one pass.", emphasis: "different speeds", visual: pulse, durationMs: 5000 }
+      - { text: "Reversing a list is just rewiring each next pointer, one node at a time.", emphasis: "rewiring", visual: flow, durationMs: 4500 }
+  - id: insert-cost
+    type: true_false
+    statement: "Inserting a node right after a node you already hold is O(1) in a singly linked list, while inserting into the middle of an array is O(n)."
+    answer: true
+    explanation: "The list insert rewires two pointers no matter how long the list is. The array has to shift every later element over by one slot to make room."
+  - id: detect-cycle
+    type: mcq
+    prompt: "You must detect whether a singly linked list contains a cycle, using only O(1) extra memory. What works?"
+    options:
+      - "Advance one pointer by one step and another by two, and check whether they ever meet"
+      - "Keep a hash set of visited nodes and stop on a repeat"
+      - "Walk until null, and assume a cycle if the walk passes a fixed step limit"
+    answer: 0
+    explanations:
+      correct: "This is Floyd's algorithm. Inside a cycle the fast pointer gains one node per step, so it catches the slow one within O(n) steps; if fast reaches null, there is no cycle. It needs only two pointers."
+      wrong:
+        1: "A visited set does find cycles in O(n) time, but it stores up to n nodes, which breaks the O(1) memory limit."
+        2: "A step limit is a guess: a long list without a cycle looks like a cycle, and no limit is safe without knowing the length."
+  - id: reverse-steps
+    type: arrange
+    prompt: "Order one iteration of the loop that reverses a singly linked list in place. prev starts as None and curr starts at the head."
+    items:
+      - "Move prev forward to curr"
+      - "Save the next node: nxt = curr.next"
+      - "Move curr forward to nxt"
+      - "Point curr.next back at prev"
+    order: [1, 3, 0, 2]
+    explanation: "Save curr.next first, or flipping the pointer loses the rest of the list. Then point curr back at prev, move prev to curr, and finally move curr to the saved node. When curr becomes None, prev is the new head."
+  - id: list-workload
+    type: mcq
+    prompt: "Which workload favors a doubly linked list over a dynamic array?"
+    options:
+      - "Reading the i-th element by index thousands of times per second"
+      - "Summing a million numbers as fast as possible"
+      - "An LRU cache that moves each hit entry to the front"
+    answer: 2
+    explanations:
+      correct: "With a hash map pointing at list nodes, an LRU cache finds an entry in O(1) and moves it to the front by rewiring a few pointers. An array would shift elements in O(n) for every hit."
+      wrong:
+        0: "A linked list must walk from the head to reach index i, which is O(n); an array indexes in O(1)."
+        1: "Both are O(n) to sum, but an array's contiguous memory is much friendlier to the CPU cache, so it is usually faster in practice."

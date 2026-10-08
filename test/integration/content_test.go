@@ -55,11 +55,29 @@ func TestAuthoredContent(t *testing.T) {
 	}
 	focused, err := questiontest.NewLessonService(pool, &fakes.KafkaProducer{}).GetPath(ctx, userID, []string{"dsa-refresher", "low-level-design"})
 	require.NoError(t, err)
+	// Worlds of the focus topics come first, in priority order (a topic can have several
+	// worlds), then every other world; the flag marks exactly the focused ones.
+	rank := map[string]int{"dsa-refresher": 0, "low-level-design": 1}
+	last := -1
+	for _, w := range focused.Worlds {
+		r, ok := rank[w.Topic]
+		if !ok {
+			r = len(rank)
+		}
+		require.GreaterOrEqual(t, r, last, "world %s is out of focus order", w.Slug)
+		last = r
+		require.Equal(t, ok, w.Focused, "world %s focused flag", w.Slug)
+	}
 	require.Equal(t, "dsa-refresher", focused.Worlds[0].Topic)
-	require.Equal(t, "low-level-design", focused.Worlds[1].Topic)
-	require.True(t, focused.Worlds[0].Focused && focused.Worlds[1].Focused && !focused.Worlds[2].Focused)
 	require.Equal(t, "current", focused.Worlds[0].Nodes[0].Status)
-	require.Equal(t, "available", focused.Worlds[2].Nodes[0].Status, "an unfocused world stays open")
+	for _, w := range focused.Worlds[1:] {
+		first := w.Nodes[0]
+		if w.Slug == "deep-roots" {
+			require.Equal(t, "locked", first.Status, "the DSA sequel waits for the Algorithm Gardens boss")
+			continue
+		}
+		require.Equal(t, "available", first.Status, "world %s stays open", w.Slug)
+	}
 	require.Len(t, focused.Worlds, len(path.Worlds), "focus reorders, never hides")
 }
 

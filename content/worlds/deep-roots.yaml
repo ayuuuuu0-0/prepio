@@ -1,0 +1,35 @@
+slug: deep-roots
+name: "Deep Roots"
+description: "The techniques that make hard problems small: strings, lists, heaps, greedy choices, and dynamic programming."
+theme: grove
+topic: dsa-refresher
+order: 5
+nodes:
+  - slug: strings-without-surprises
+    label: "Strings Without Surprises"
+    type: lesson
+    requires: [boss-pick-the-structure]
+  - slug: following-the-links
+    label: "Following the Links"
+    type: lesson
+    requires: [strings-without-surprises]
+  - slug: always-the-smallest
+    label: "Always the Smallest"
+    type: lesson
+    requires: [following-the-links]
+  - slug: take-the-best-now
+    label: "Take the Best Now"
+    type: lesson
+    requires: [always-the-smallest]
+  - slug: remember-the-answers
+    label: "Remember the Answers"
+    type: lesson
+    requires: [take-the-best-now]
+  - slug: fill-the-table
+    label: "Fill the Table"
+    type: lesson
+    requires: [remember-the-answers]
+  - slug: boss-choose-the-technique
+    label: "Boss: Choose the Technique"
+    type: boss
+    requires: [fill-the-table]

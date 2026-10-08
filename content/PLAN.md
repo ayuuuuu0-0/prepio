@@ -4,7 +4,7 @@ The authoring plan for the first path. The rules live in `.ai/CONTENT_SYSTEM.MD`
 
 ## Goal
 
-Thirty-three lessons, one per day, across the four topics, so the path supports the launch criterion of 30+ days of daily use. Every lesson teaches one idea a working engineer uses in design reviews, on call, or in interviews, and measures it with 3–5 server-graded exercises.
+Forty lessons, one per day (33 in the first release, 7 more in World 5), across the four topics, so the path supports the launch criterion of 30+ days of daily use. Every lesson teaches one idea a working engineer uses in design reviews, on call, or in interviews, and measures it with 3–5 server-graded exercises.
 
 ## Constraints (from the docs and the validator)
 
@@ -18,10 +18,10 @@ Thirty-three lessons, one per day, across the four topics, so the path supports 
 
 ## Path structure and unlock rules
 
-Four worlds, one per topic: seven or eight lessons, then a boss (33 nodes in all).
+Five worlds: one per topic, seven or eight lessons then a boss, plus a second DSA world (40 nodes in all).
 
 * **Within a world** each node requires the previous one, so the world reads as a climb. The boss requires the last lesson (and therefore all of them).
-* **Across worlds** nothing is locked: each world's first node has no `requires`. Topics "never lock content" (PRODUCT.MD), so a learner who focuses on DSA is never stuck behind System Design. The path still has a single *current* node (the first unlocked, unfinished node in world order); the other open nodes are *available*.
+* **Across topics** nothing is locked: the first world of each topic has no `requires` on its first node. A *sequel* world inside the same topic (World 5) may require the previous world's boss, because that only orders one topic's own material. Topics "never lock content" (PRODUCT.MD), so a learner who focuses on DSA is never stuck behind System Design. The path still has a single *current* node (the first unlocked, unfinished node in world order); the other open nodes are *available*.
 * World order: System Design, Backend & Production, Low-Level Design, DSA Refresher, matching the topic catalog order.
 
 ## Outline
@@ -91,6 +91,23 @@ Skill slugs: `lld-oop`, `lld-patterns`, `lld-fundamentals`.
 | 7 | `finding-the-way` | Finding the Way | graphs 1.0 | BFS shortest path in unweighted graphs, visited sets, cycles |
 | 8 | `boss-pick-the-structure` | Boss: Pick the Structure | hash-maps 0.3, arrays 0.2, trees 0.25, graphs 0.25 | choose the right tool for seven scenarios (7 steps) |
 
+### World 5 · Deep Roots (DSA Refresher, part 2) · theme `grove`
+"The techniques that make hard problems small: strings, lists, heaps, greedy choices, and dynamic programming."
+
+Added after the first four worlds shipped, to cover the five DSA skills they left untouched (`strings`, `linked-lists`, `heaps`, `greedy`, `dynamic-programming`). It is a sequel inside one topic, so its first node **requires the Algorithm Gardens boss**; that never locks another topic. `topic: dsa-refresher`, `order: 5`.
+
+| # | Slug | Title | Skills | Teaches |
+|---|---|---|---|---|
+| 1 | `strings-without-surprises` | Strings Without Surprises | strings 1.0 | immutable strings, why repeated concatenation is quadratic, join/builders, counting characters |
+| 2 | `following-the-links` | Following the Links | linked-lists 1.0 | when lists beat arrays, fast/slow pointers for cycles and middles, reversing in place |
+| 3 | `always-the-smallest` | Always the Smallest | heaps 1.0 | priority queues, O(log n) push/pop, top-k with a size-k heap in O(n log k) |
+| 4 | `take-the-best-now` | Take the Best Now | greedy 1.0 | interval scheduling by earliest finish, when greedy fails (coin systems), proving a choice is safe |
+| 5 | `remember-the-answers` | Remember the Answers | dynamic-programming 0.7, recursion 0.3 | overlapping subproblems, memoization, exponential vs linear |
+| 6 | `fill-the-table` | Fill the Table | dynamic-programming 1.0 | bottom-up tables, defining the state, the recurrence, and the base case |
+| 7 | `boss-choose-the-technique` | Boss: Choose the Technique | strings 0.2, linked-lists 0.2, heaps 0.2, greedy 0.2, dynamic-programming 0.2 | seven scenarios, one technique each (7 steps) |
+
+With World 5 every skill in all four topics is exercised by the path.
+
 ## Authoring standard (every lesson)
 
 * **Intro:** 3 beats, 12–16 s total, one `emphasis` phrase per beat, visuals chosen to match the idea (`bars` for comparisons, `flow` for pipelines, `pulse` for timing and events).
@@ -112,7 +129,7 @@ Skill slugs: `lld-oop`, `lld-patterns`, `lld-fundamentals`.
 
 ## Review checklist (applied to this plan and to every lesson)
 
-* Every skill slug exists; weights sum to 1.0; every skill in the System Design, Backend & Production, and Low-Level Design topics is exercised by its world. DSA Refresher covers its core skills now; `strings`, `linked-lists`, `heaps`, `greedy`, and `dynamic-programming` are left for a second DSA world (readiness only averages started skills, so nothing reads as a failure).
+* Every skill slug exists; weights sum to 1.0; every skill in the System Design, Backend & Production, and Low-Level Design topics is exercised by its world. DSA Refresher covered its core skills in World 4; World 5 adds `strings`, `linked-lists`, `heaps`, `greedy`, and `dynamic-programming`.
 * Unlock chain: no cycles, each world's first node open, boss last.
 * No `prose` steps; no company names; no hearts/lives language.
 * One idea per lesson; no lesson depends on a later one.

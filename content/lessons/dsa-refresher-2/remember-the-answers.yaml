@@ -1,0 +1,60 @@
+slug: remember-the-answers
+title: "Remember the Answers"
+node: remember-the-answers
+kind: lesson
+status: published
+difficulty: medium
+est_minutes: 5
+skills:
+  - { skill: dynamic-programming, weight: 0.7 }
+  - { skill: recursion, weight: 0.3 }
+summary:
+  - "Plain recursive Fibonacci is exponential because it solves the same subproblems over and over."
+  - "Memoization stores each answer the first time it is computed, so memoized Fibonacci runs in O(n)."
+  - "A cache only helps when subproblems overlap; divide and conquer with distinct halves gains nothing from it."
+steps:
+  - id: intro
+    type: intro
+    beats:
+      - { text: "Plain recursive Fibonacci recomputes the same values again and again.", emphasis: "the same values", visual: flow, durationMs: 4500 }
+      - { text: "Its calls grow exponentially with n, though only n distinct answers exist.", emphasis: "exponentially", visual: bars, durationMs: 5000 }
+      - { text: "Cache each answer the first time, and the work drops to linear.", emphasis: "drops to linear", visual: pulse, durationMs: 4500 }
+  - id: slow-fib
+    type: mcq
+    prompt: "fib(n) returns fib(n - 1) + fib(n - 2), with no caching. Why does fib(40) take so long?"
+    options:
+      - "The recursion is too deep for the call stack to handle"
+      - "Adding large integers dominates the running time"
+      - "It solves the same subproblems many times, so the calls grow exponentially"
+    answer: 2
+    explanations:
+      correct: "fib(38) is computed twice, fib(37) three times, and so on. The number of calls grows roughly like 1.6 to the power n, even though only n distinct values exist."
+      wrong:
+        0: "The depth is only about 40 frames, well within normal limits. The cost is the number of calls, not how deep they go."
+        1: "fib(40) is about 100 million and fits easily in a machine integer, so each addition is cheap. The problem is how many times the work is repeated."
+  - id: memo-fib
+    type: fill_blank
+    code: "memo = {}\ndef fib(n):\n    if n < 2: return n\n    if n ___1___ memo: return memo[n]\n    memo[n] = fib(n - 1) + fib(n - 2)\n    return ___2___"
+    bank: ["in", "memo[n]", "not in", "fib(n)", "n"]
+    answers: ["in", "memo[n]"]
+    explanation: "If n is already in memo, return the stored value. Otherwise compute it once, store it, and return memo[n]. Each n from 2 to the target is computed once, so the function makes O(n) calls."
+  - id: memo-still-exponential
+    type: true_false
+    statement: "Adding a memo to recursive Fibonacci speeds it up by a constant factor, but its running time stays exponential."
+    answer: false
+    explanation: "With the memo, each value is computed once and every later request is an O(1) lookup, so fib(n) takes O(n) time and O(n) space. That is a change from exponential to linear, not a constant factor."
+  - id: overlapping-subproblems
+    type: mcq
+    prompt: "In which problem do subproblems overlap, so that memoization helps?"
+    options:
+      - "Counting the ways to climb n stairs taking 1 or 2 steps at a time"
+      - "Merge sort, which splits the array into two halves and sorts each half separately"
+      - "Finding the maximum value in an unsorted array"
+      - "Binary search for a value in a sorted array"
+    answer: 0
+    explanations:
+      correct: "ways(n) = ways(n - 1) + ways(n - 2), so the same smaller counts are needed again and again, exactly like Fibonacci. Caching them makes it O(n)."
+      wrong:
+        1: "Merge sort's halves never overlap, so each subproblem is already solved once. That is divide and conquer, and a cache would never get a hit."
+        2: "One pass finds the maximum in O(n), and there are no repeated subproblems to cache."
+        3: "Binary search follows a single path through the ranges and never revisits one, so there is nothing to remember."

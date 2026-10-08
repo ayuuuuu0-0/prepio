@@ -1,0 +1,59 @@
+slug: always-the-smallest
+title: "Always the Smallest"
+node: always-the-smallest
+kind: lesson
+status: published
+difficulty: medium
+est_minutes: 5
+skills:
+  - { skill: heaps, weight: 1.0 }
+summary:
+  - "A heap keeps the smallest (or largest) item on top, with O(log n) push and pop."
+  - "Heapify builds a heap from n items in O(n), faster than n separate pushes."
+  - "For the top k of n items, a size-k min-heap takes O(n log k) time and O(k) memory."
+steps:
+  - id: intro
+    type: intro
+    beats:
+      - { text: "A min-heap always keeps the smallest item at the top, ready to take.", emphasis: "smallest item", visual: bars, durationMs: 4500 }
+      - { text: "Push and pop each cost O(log n), no matter how big the heap grows.", emphasis: "O(log n)", visual: pulse, durationMs: 5000 }
+      - { text: "For the top k of a stream, keep only k items and drop the rest.", emphasis: "only k items", visual: flow, durationMs: 4500 }
+  - id: deadline-scheduler
+    type: mcq
+    prompt: "A job scheduler always runs the pending job with the earliest deadline next, while new jobs keep arriving. Which structure fits?"
+    options:
+      - "A sorted array, kept in order as each job arrives"
+      - "A min-heap keyed by deadline, so the earliest job is always on top"
+      - "A queue, so jobs run in arrival order"
+    answer: 1
+    explanations:
+      correct: "The heap keeps the earliest deadline on top, and each push and pop is O(log n), so both new arrivals and picking the next job stay cheap."
+      wrong:
+        0: "The earliest job is easy to find, but keeping the array sorted costs O(n) per insert because later elements must shift, so it slows down as jobs pile up."
+        2: "A queue gives first-come order, not earliest deadline: an urgent job that arrives late would wait behind everything already queued."
+  - id: top-k-heap
+    type: fill_blank
+    code: "# keep the k largest scores seen so far\nimport heapq\nheap = []\nfor s in scores:\n    heapq.heappush(heap, s)\n    if len(heap) > ___1___: heapq.___2___(heap)"
+    bank: ["k", "heappop", "k - 1", "heapify", "heappush"]
+    answers: ["k", "heappop"]
+    explanation: "Python's heapq is a min-heap, so once the heap holds more than k items, heappop removes the smallest and leaves the k largest. Each step is O(log k), so the whole stream costs O(n log k)."
+  - id: heapify-cost
+    type: true_false
+    statement: "Building a heap from n unsorted items with heapify takes O(n log n), the same as pushing them one at a time."
+    answer: false
+    explanation: "Heapify sifts down from the last parent to the root. Most nodes sit near the leaves and move only a short way, so the total is O(n). Pushing n items one at a time is O(n log n) in the worst case."
+  - id: stream-top-ten
+    type: mcq
+    prompt: "You need the 10 largest values from a stream of 100 million numbers, using as little memory as possible. Which plan is best?"
+    options:
+      - "A size-10 min-heap whose top is the smallest kept value"
+      - "Store all values, sort them, and take the last 10"
+      - "Push every value onto a max-heap, then pop 10 times"
+      - "Track the running maximum and log each new maximum as it appears"
+    answer: 0
+    explanations:
+      correct: "The heap holds the 10 largest values so far with the smallest of them on top. A new value enters only if it beats the top, so time is O(n log 10) and memory stays at 10 items."
+      wrong:
+        1: "Sorting gives the right answer, but it holds all 100 million values in memory and costs O(n log n) time."
+        2: "Popping 10 times is fast, but the max-heap holds every value, so it needs O(n) memory."
+        3: "Logging each new maximum misses large values: in 5, 9, 8, 7 the maximum changes only at 5 and 9, so 8 and 7 are never recorded."

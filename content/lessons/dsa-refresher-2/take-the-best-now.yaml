@@ -1,0 +1,63 @@
+slug: take-the-best-now
+title: "Take the Best Now"
+node: take-the-best-now
+kind: lesson
+status: published
+difficulty: medium
+est_minutes: 5
+skills:
+  - { skill: greedy, weight: 1.0 }
+summary:
+  - "A greedy algorithm commits to the best local choice and never revisits it."
+  - "Picking the meeting that ends earliest gives the most non-overlapping meetings, which an exchange argument proves."
+  - "Greedy coin change is optimal for some coin systems, like 1, 5, 10, 25, but not all: with 1, 3, 4 it makes 6 with 3 coins instead of 2."
+steps:
+  - id: intro
+    type: intro
+    beats:
+      - { text: "A greedy algorithm makes the best-looking choice and never looks back.", emphasis: "never looks back", visual: flow, durationMs: 4500 }
+      - { text: "Sometimes that local choice is provably safe, and the result is optimal.", emphasis: "provably safe", visual: bars, durationMs: 5000 }
+      - { text: "Sometimes it is not, so test it on a small counterexample first.", emphasis: "small counterexample", visual: pulse, durationMs: 4500 }
+  - id: earliest-finish
+    type: true_false
+    statement: "To fit the most non-overlapping meetings into one room, repeatedly taking the meeting that ends earliest among those that still fit gives an optimal schedule."
+    answer: true
+    explanation: "The earliest-ending meeting leaves the most time for the rest. Any optimal schedule can swap its first meeting for this one without creating an overlap, so greedy never does worse."
+  - id: coins-one-three-four
+    type: mcq
+    prompt: "Coins are 1, 3, and 4, and you need to make 6 with as few coins as possible. What does greedy, always taking the largest coin that fits, do?"
+    options:
+      - "Finds the optimum, 2 coins: 3 + 3"
+      - "Finds the optimum, 3 coins: 4 + 1 + 1"
+      - "Fails to make 6 at all, because taking 4 leaves a remainder of 2"
+      - "Uses 3 coins, 4 + 1 + 1, while 3 + 3 needs only 2"
+    answer: 3
+    explanations:
+      correct: "Greedy takes 4, then 1 and 1, for 3 coins. The optimum is 3 + 3 with 2 coins, so greedy is not optimal for this coin system."
+      wrong:
+        0: "3 + 3 is the optimum, but greedy never finds it: its first move takes 4, the largest coin that fits."
+        1: "Greedy does produce 4 + 1 + 1, but that is not optimal; 3 + 3 uses one coin fewer."
+        2: "The 1 coin can always cover a remainder, so greedy does reach 6; the problem is the coin count, not failure."
+  - id: schedule-steps
+    type: arrange
+    prompt: "Order the steps of the earliest-finish greedy for picking the most non-overlapping meetings."
+    items:
+      - "After taking a meeting, set last_end to its end time"
+      - "Return the meetings taken"
+      - "Sort the meetings by end time, earliest first"
+      - "Walk the sorted meetings, taking each one that starts at or after last_end"
+    order: [2, 3, 0, 1]
+    explanation: "Sort by end time once, then make one pass: take a meeting if it starts no earlier than the last taken meeting ends, and update last_end. The sort dominates, so the whole algorithm is O(n log n)."
+  - id: why-safe
+    type: mcq
+    prompt: "Why is it safe for the meeting scheduler to commit to the earliest-ending meeting first?"
+    options:
+      - "Because the meeting that ends first is always the shortest, and short meetings waste less time"
+      - "Any optimal schedule can swap its first meeting for it and stay valid"
+      - "Because once meetings are sorted by end time, they are also sorted by start time"
+    answer: 1
+    explanations:
+      correct: "This is an exchange argument: the earliest-ending meeting ends no later than an optimal schedule's first meeting, so swapping it in keeps every later meeting compatible and the count the same."
+      wrong:
+        0: "Ending first is not the same as being shortest: a short meeting can start late. Shortest-first can even lose meetings, as when one short meeting overlaps two longer ones that fit together."
+        2: "End order and start order can differ: a long meeting can start first and end last. The argument relies on end times alone."
