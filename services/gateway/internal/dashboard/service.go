@@ -42,8 +42,23 @@ type HomeResponse struct {
 	Topics           []TopicCard   `json:"topics"`
 	FocusTopics      []string      `json:"focus_topics"`
 	NextLesson       *NextLesson   `json:"next_lesson"`
+	League           LeagueCard    `json:"league"`
 	CompanionMessage string        `json:"companion_message"`
 	OnboardingNeeded bool          `json:"onboarding_needed"`
+}
+
+// LeagueCard is the learner's weekly league at a glance. Until they earn XP this week
+// Joined is false and Rank, CohortSize, WeeklyXP, and Zone are zero values.
+type LeagueCard struct {
+	TierIndex  int    `json:"tier_index"`
+	TierSlug   string `json:"tier_slug"`
+	TierName   string `json:"tier_name"`
+	Joined     bool   `json:"joined"`
+	Rank       int    `json:"rank"`
+	CohortSize int    `json:"cohort_size"`
+	WeeklyXP   int    `json:"weekly_xp"`
+	Zone       string `json:"zone"`
+	EndsAt     string `json:"ends_at"`
 }
 
 // StreakCard summarizes streak state.
@@ -103,7 +118,8 @@ func (s *Service) GetHome(ctx context.Context, token string) (*HomeResponse, err
 		streak  StreakCard
 		topics  []TopicCard
 		path    *pathPayload
-		errs    = make([]error, 4)
+		league  LeagueCard
+		errs    = make([]error, 5)
 	)
 
 	run := func(i int, fn func() error) {
@@ -125,6 +141,7 @@ func (s *Service) GetHome(ctx context.Context, token string) (*HomeResponse, err
 	run(1, func() (err error) { prog, err = s.fetchProgress(ctx, token); return })
 	run(2, func() (err error) { streak, err = s.fetchStreak(ctx, token); return })
 	run(3, func() (err error) { topics, err = s.fetchTopics(ctx, token); return })
+	run(4, func() (err error) { league, err = s.fetchLeague(ctx, token); return })
 	wg.Wait()
 
 	for _, err := range errs {
@@ -139,6 +156,7 @@ func (s *Service) GetHome(ctx context.Context, token string) (*HomeResponse, err
 		Topics:           orderTopics(topics, profile.FocusTopics),
 		FocusTopics:      profile.FocusTopics,
 		NextLesson:       nextLesson(path),
+		League:           league,
 		OnboardingNeeded: !profile.OnboardingCompleted,
 	}
 	if resp.FocusTopics == nil {
@@ -298,6 +316,46 @@ func (s *Service) fetchPath(ctx context.Context, token string, focus []string) (
 		return nil, fmt.Errorf("decode path: %w", err)
 	}
 	return &envelope.Data, nil
+}
+
+// fetchLeague summarizes the learner's weekly league from Progress. Names and companions
+// are not needed here, so the User service is not involved.
+func (s *Service) fetchLeague(ctx context.Context, token string) (LeagueCard, error) {
+	body, err := s.get(ctx, s.progressURL+"/api/v1/progress/league", token)
+	if err != nil {
+		return LeagueCard{}, err
+	}
+	var envelope struct {
+		Data struct {
+			EndsAt string `json:"ends_at"`
+			Joined bool   `json:"joined"`
+			Tier   struct {
+				Index int    `json:"index"`
+				Slug  string `json:"slug"`
+				Name  string `json:"name"`
+			} `json:"tier"`
+			MyRank    int `json:"my_rank"`
+			Standings []struct {
+				WeeklyXP int    `json:"weekly_xp"`
+				Zone     string `json:"zone"`
+				IsMe     bool   `json:"is_me"`
+			} `json:"standings"`
+		} `json:"data"`
+	}
+	if err := json.Unmarshal(body, &envelope); err != nil {
+		return LeagueCard{}, fmt.Errorf("decode league: %w", err)
+	}
+	d := envelope.Data
+	card := LeagueCard{TierIndex: d.Tier.Index, TierSlug: d.Tier.Slug, TierName: d.Tier.Name, Joined: d.Joined, EndsAt: d.EndsAt}
+	if d.Joined {
+		card.Rank, card.CohortSize = d.MyRank, len(d.Standings)
+		for _, st := range d.Standings {
+			if st.IsMe {
+				card.WeeklyXP, card.Zone = st.WeeklyXP, st.Zone
+			}
+		}
+	}
+	return card, nil
 }
 
 func (s *Service) get(ctx context.Context, url, token string) ([]byte, error) {

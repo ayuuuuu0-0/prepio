@@ -66,6 +66,7 @@ func TestGetHomeAggregatesAllUpstreams(t *testing.T) {
 		require.Equal(t, "be", r.URL.Query().Get("focus"), "the path is ordered by the profile's focus topics")
 		respond(`{"data":{"worlds":[{"name":"First Ascent","nodes":[{"label":"Why Caches Exist","status":"current","lesson_id":"L1","title":"Why Caches Exist","est_minutes":4,"xp_preview":20}]}]}}`)(w, r)
 	})
+	mux.HandleFunc("/api/v1/progress/league", respond(`{"data":{"ends_at":"2026-10-12T00:00:00Z","joined":true,"tier":{"index":1,"slug":"silver","name":"Silver"},"my_rank":2,"standings":[{"rank":1,"user_id":"a","weekly_xp":90,"zone":"promote","is_me":false},{"rank":2,"user_id":"b","weekly_xp":60,"zone":"promote","is_me":true},{"rank":3,"user_id":"c","weekly_xp":10,"zone":"stay","is_me":false}]}}`))
 	srv := httptest.NewServer(mux)
 	t.Cleanup(srv.Close)
 
@@ -85,6 +86,17 @@ func TestGetHomeAggregatesAllUpstreams(t *testing.T) {
 	require.NotNil(t, home.NextLesson)
 	require.Equal(t, "L1", home.NextLesson.LessonID)
 	require.NotEmpty(t, home.CompanionMessage)
+	require.Equal(t, LeagueCard{TierIndex: 1, TierSlug: "silver", TierName: "Silver", Joined: true, Rank: 2, CohortSize: 3, WeeklyXP: 60, Zone: "promote", EndsAt: "2026-10-12T00:00:00Z"}, home.League)
+}
+
+func TestFetchLeagueNotJoined(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		_, _ = w.Write([]byte(`{"data":{"ends_at":"2026-10-12T00:00:00Z","joined":false,"tier":{"index":0,"slug":"bronze","name":"Bronze"},"my_rank":0,"standings":[]}}`))
+	}))
+	t.Cleanup(srv.Close)
+	card, err := NewService(srv.URL, srv.URL, srv.URL, srv.URL).fetchLeague(context.Background(), "tok")
+	require.NoError(t, err)
+	require.Equal(t, LeagueCard{TierSlug: "bronze", TierName: "Bronze", EndsAt: "2026-10-12T00:00:00Z"}, card, "not joined: tier and deadline only, no invented rank")
 }
 
 func TestGetHomeFailsWhenAnyUpstreamFails(t *testing.T) {
@@ -94,6 +106,7 @@ func TestGetHomeFailsWhenAnyUpstreamFails(t *testing.T) {
 	mux.HandleFunc("/api/v1/progress/me", ok)
 	mux.HandleFunc("/api/v1/streaks/me", ok)
 	mux.HandleFunc("/api/v1/path", ok)
+	mux.HandleFunc("/api/v1/progress/league", ok)
 	mux.HandleFunc("/api/v1/progress/topics", func(w http.ResponseWriter, _ *http.Request) { w.WriteHeader(http.StatusInternalServerError) })
 	srv := httptest.NewServer(mux)
 	t.Cleanup(srv.Close)

@@ -270,6 +270,18 @@ export type DashboardHome = {
   topics: TopicCard[];
   focus_topics: string[];
   next_lesson: NextLesson | null;
+  /** league is this week's league at a glance; rank and XP are only set once joined. */
+  league: {
+    tier_index: number;
+    tier_slug: string;
+    tier_name: string;
+    joined: boolean;
+    rank: number;
+    cohort_size: number;
+    weekly_xp: number;
+    zone: LeagueZone;
+    ends_at: string;
+  };
   companion_message: string;
   onboarding_needed: boolean;
 };

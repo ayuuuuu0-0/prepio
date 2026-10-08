@@ -11,6 +11,7 @@ import { GameButton } from "@/components/game/GameButton";
 import { BottomNav } from "@/components/game/BottomNav";
 import { HUDBar } from "@/components/game/HUDBar";
 import { ContinueCard } from "@/components/dashboard/ContinueCard";
+import { LeagueCard } from "@/components/dashboard/LeagueCard";
 import { TopicMasteryCard } from "@/components/dashboard/TopicMasteryCard";
 
 export default function DashboardPage() {
@@ -109,6 +110,10 @@ export default function DashboardPage() {
 
         <div className="mt-5">
           <ContinueCard lesson={home.next_lesson} companionName={home.companion?.name} />
+        </div>
+
+        <div className="mt-4">
+          <LeagueCard league={home.league} />
         </div>
 
         <section className="mt-8" aria-labelledby="topics-heading">

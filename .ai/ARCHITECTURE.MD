@@ -115,7 +115,7 @@ APIs expose capabilities, not tables:
 * `POST /attempts/{id}/complete`: performance summary and newly unlocked nodes; the gateway adds `rewards` from Progress (`GET /progress/attempts/{id}/rewards`: XP, gems, and per-skill mastery changes with their topic).
 * `GET /topics`: the topic catalog (Content domain), used by the onboarding picker
 * `GET /progress/topics`: per-topic readiness with each skill's mastery (not started = null)
-* `GET /dashboard/home`: gateway aggregation of profile (focus topics, companion), XP/level, streak, topic readiness, and the path's current node as the Continue target. If any upstream fails the dashboard fails; it never shows partial or invented data
+* `GET /dashboard/home`: gateway aggregation of profile (focus topics, companion), XP/level, streak, topic readiness, the path's current node as the Continue target, and a league summary from `GET /progress/league` (tier, joined, rank, cohort size, weekly XP, zone, week end; no names, so no User call). If any upstream fails the dashboard fails; it never shows partial or invented data
 * `POST /users/onboarding`: `{ focus_topics (1-3 distinct slugs, ordered), experience_level, companion_id }`; stored by the User domain, validated against the topic catalog
 * `GET /progress/league` (Progress): the learner's league this week: tier, the ladder, standings by user id with each rank's zone (`promote`, `stay`, `demote`), and how last week ended. Not joined until XP is earned that week.
 * `GET /league` (gateway): `/progress/league` with usernames and companions attached from the User domain (`POST /users/public-cards`, up to 50 ids). Fails closed: a standing without a public card fails the request.
