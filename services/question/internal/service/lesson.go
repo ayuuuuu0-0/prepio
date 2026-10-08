@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"sort"
 	"strings"
 	"time"
 
@@ -37,7 +38,10 @@ func NewLessonService(lessons *store.LessonStore, evaluator Evaluator, publisher
 }
 
 // GetPath returns the learner's path: worlds, nodes in order, status, and lesson previews.
-func (s *LessonService) GetPath(ctx context.Context, userID string) (*dto.PathResponse, error) {
+// Worlds whose topic is one of focus (the learner's focus topic slugs, in priority order)
+// come first, so the single current node respects focus. Order never changes what is
+// locked: unlocks depend only on prerequisites.
+func (s *LessonService) GetPath(ctx context.Context, userID string, focus []string) (*dto.PathResponse, error) {
 	if len(userID) == 0 {
 		return nil, ErrInvalidRequest
 	}
@@ -45,6 +49,7 @@ func (s *LessonService) GetPath(ctx context.Context, userID string) (*dto.PathRe
 	if err != nil {
 		return nil, err
 	}
+	nodes = orderByFocus(nodes, focus)
 
 	byID := make(map[string]store.PathNode, len(nodes))
 	for _, n := range nodes {
@@ -82,6 +87,7 @@ func (s *LessonService) GetPath(ctx context.Context, userID string) (*dto.PathRe
 			resp.Worlds = append(resp.Worlds, dto.PathWorld{
 				ID: n.WorldID, Slug: n.WorldSlug, Name: n.WorldName,
 				Description: n.WorldDescription, Theme: n.WorldTheme,
+				Topic: n.WorldTopic, Focused: focusRank(n.WorldTopic, focus) < len(focus),
 				Nodes: []dto.PathNode{},
 			})
 			last++
@@ -89,6 +95,32 @@ func (s *LessonService) GetPath(ctx context.Context, userID string) (*dto.PathRe
 		resp.Worlds[last].Nodes = append(resp.Worlds[last].Nodes, node)
 	}
 	return resp, nil
+}
+
+// orderByFocus moves the nodes of worlds whose topic is a focus topic to the front, in
+// focus priority order. Everything else keeps its authored order (the sort is stable, and
+// nodes arrive grouped by world).
+func orderByFocus(nodes []store.PathNode, focus []string) []store.PathNode {
+	if len(focus) == 0 {
+		return nodes
+	}
+	out := append([]store.PathNode(nil), nodes...)
+	sort.SliceStable(out, func(i, j int) bool {
+		return focusRank(out[i].WorldTopic, focus) < focusRank(out[j].WorldTopic, focus)
+	})
+	return out
+}
+
+// focusRank is the topic's position in focus, or len(focus) when it is not a focus topic.
+func focusRank(topic string, focus []string) int {
+	if topic != "" {
+		for i, f := range focus {
+			if f == topic {
+				return i
+			}
+		}
+	}
+	return len(focus)
 }
 
 // unmetPrerequisites returns the nodes the user still has to finish before this one.

@@ -62,7 +62,10 @@ func TestGetHomeAggregatesAllUpstreams(t *testing.T) {
 	mux.HandleFunc("/api/v1/progress/me", respond(`{"data":{"total_xp":0,"current_level":1,"gem_balance":0,"xp_to_next_level":100}}`))
 	mux.HandleFunc("/api/v1/streaks/me", respond(`{"data":{"current_streak":3,"longest_streak":5,"freeze_count":1,"streak_active_today":true}}`))
 	mux.HandleFunc("/api/v1/progress/topics", respond(`{"data":[{"slug":"sd","name":"System Design","mastery":42,"skills_started":1,"skills_total":4},{"slug":"be","name":"Backend","mastery":null,"skills_started":0,"skills_total":4}]}`))
-	mux.HandleFunc("/api/v1/path", respond(`{"data":{"worlds":[{"name":"First Ascent","nodes":[{"label":"Why Caches Exist","status":"current","lesson_id":"L1","title":"Why Caches Exist","est_minutes":4,"xp_preview":20}]}]}}`))
+	mux.HandleFunc("/api/v1/path", func(w http.ResponseWriter, r *http.Request) {
+		require.Equal(t, "be", r.URL.Query().Get("focus"), "the path is ordered by the profile's focus topics")
+		respond(`{"data":{"worlds":[{"name":"First Ascent","nodes":[{"label":"Why Caches Exist","status":"current","lesson_id":"L1","title":"Why Caches Exist","est_minutes":4,"xp_preview":20}]}]}}`)(w, r)
+	})
 	srv := httptest.NewServer(mux)
 	t.Cleanup(srv.Close)
 

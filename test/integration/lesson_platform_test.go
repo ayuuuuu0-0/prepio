@@ -121,9 +121,9 @@ func TestLessonPlatform(t *testing.T) {
 	sync := questiontest.NewContentSync(pool)
 	content := testContent()
 
-	skills, err := sync.SkillSlugs(ctx)
+	catalog, err := sync.Catalog(ctx)
 	require.NoError(t, err)
-	require.Empty(t, questiontest.Validate(content, skills), "fixture content must be valid")
+	require.Empty(t, questiontest.Validate(content, catalog), "fixture content must be valid")
 
 	userID := newUser(t, pool, "learner")
 	otherID := newUser(t, pool, "intruder")
@@ -152,7 +152,7 @@ func TestLessonPlatform(t *testing.T) {
 	var lessonOneID, lessonTwoID string
 
 	t.Run("path shows status, previews, and exactly what unlocks a locked node", func(t *testing.T) {
-		path, err := lessons.GetPath(ctx, userID)
+		path, err := lessons.GetPath(ctx, userID, nil)
 		require.NoError(t, err)
 		require.Len(t, path.Worlds, 1, "the legacy deprecated world must not appear")
 		nodes := path.Worlds[0].Nodes
@@ -336,7 +336,7 @@ func TestLessonPlatform(t *testing.T) {
 	})
 
 	t.Run("path reflects completion and unlocks the next node", func(t *testing.T) {
-		path, err := lessons.GetPath(ctx, userID)
+		path, err := lessons.GetPath(ctx, userID, nil)
 		require.NoError(t, err)
 		nodes := path.Worlds[0].Nodes
 		require.Equal(t, "done", nodes[0].Status)

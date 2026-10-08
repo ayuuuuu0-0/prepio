@@ -121,6 +121,9 @@ export type PathWorld = {
   name: string;
   description: string;
   theme: string;
+  /** topic is the topic slug the world builds; focused worlds are the learner's focus topics. */
+  topic?: string;
+  focused: boolean;
   nodes: PathNode[];
 };
 

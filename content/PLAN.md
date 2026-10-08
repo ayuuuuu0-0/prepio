@@ -130,6 +130,6 @@ Skill slugs: `lld-oop`, `lld-patterns`, `lld-fundamentals`.
 
 ## Out of scope for L8 (follow-ups)
 
-* Focus topics reordering the journey: worlds carry no topic today, so the path cannot yet be ordered by focus. The dashboard already orders topic cards by focus. A `topic` field on worlds would be a schema and content-model change (Change Process).
+* ~~Focus topics reordering the journey~~: done in L11 (worlds now name their `topic`).
 * `prose` exercises, until the player renders them.
 * A second path for other audiences.

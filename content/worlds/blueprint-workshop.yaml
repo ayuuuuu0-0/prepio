@@ -2,6 +2,7 @@ slug: blueprint-workshop
 name: "Blueprint Workshop"
 description: "Classes, boundaries, and patterns that survive the next feature request."
 theme: workshop
+topic: low-level-design
 order: 3
 nodes:
   - slug: guard-your-state

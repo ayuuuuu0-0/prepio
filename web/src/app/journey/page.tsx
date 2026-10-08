@@ -70,10 +70,20 @@ function JourneyContent() {
   const [open, setOpen] = useState<PathNode | null>(null);
   const [companion, setCompanion] = useState<{ name?: string; species?: string }>({});
 
+  // The path is ordered by the learner's focus topics, so it loads after the profile.
+  // A profile failure only loses that ordering, never the journey itself.
   const load = useCallback(async () => {
     setError("");
+    let focus: string[] = [];
     try {
-      setPath(await api.getPath());
+      const p = await api.getProfile();
+      focus = p.focus_topics ?? [];
+      setCompanion({ name: p.companion?.name, species: p.companion?.species });
+    } catch {
+      // keep the default order
+    }
+    try {
+      setPath(await api.getPath(focus));
     } catch (err) {
       setError(err instanceof Error ? err.message : "Couldn't load your journey.");
     }
@@ -87,10 +97,6 @@ function JourneyContent() {
         return;
       }
       load();
-      api
-        .getProfile()
-        .then((p) => setCompanion({ name: p.companion?.name, species: p.companion?.species }))
-        .catch(() => undefined);
     })();
   }, [router, load]);
 
@@ -167,6 +173,14 @@ function JourneyContent() {
                 <div className="text-center">
                   <p className="font-mono text-[11px] font-bold uppercase tracking-[0.2em]" style={{ color: "#7C6EF5" }}>
                     World {wi + 1}
+                    {w.focused && (
+                      <span
+                        className="ml-2 rounded-full px-2 py-0.5 align-middle text-[10px] tracking-[0.12em]"
+                        style={{ background: "rgba(124,110,245,0.18)", color: "#B6ACFF", border: "1px solid rgba(124,110,245,0.4)" }}
+                      >
+                        Your focus
+                      </span>
+                    )}
                   </p>
                   <h1 id={`world-${w.slug}`} className="font-display mt-1 text-2xl font-extrabold" style={{ color: "#E8EAED" }}>
                     {w.name}

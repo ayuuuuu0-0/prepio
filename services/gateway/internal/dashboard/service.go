@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
+	"strings"
 	"sync"
 
 	"github.com/prepio/prepio/config"
@@ -101,7 +103,7 @@ func (s *Service) GetHome(ctx context.Context, token string) (*HomeResponse, err
 		streak  StreakCard
 		topics  []TopicCard
 		path    *pathPayload
-		errs    = make([]error, 5)
+		errs    = make([]error, 4)
 	)
 
 	run := func(i int, fn func() error) {
@@ -111,11 +113,18 @@ func (s *Service) GetHome(ctx context.Context, token string) (*HomeResponse, err
 			errs[i] = fn()
 		}()
 	}
-	run(0, func() (err error) { profile, err = s.fetchProfile(ctx, token); return })
+	// The path is ordered by the learner's focus topics, so it follows the profile; the
+	// other upstreams run alongside.
+	run(0, func() (err error) {
+		if profile, err = s.fetchProfile(ctx, token); err != nil {
+			return err
+		}
+		path, err = s.fetchPath(ctx, token, profile.FocusTopics)
+		return err
+	})
 	run(1, func() (err error) { prog, err = s.fetchProgress(ctx, token); return })
 	run(2, func() (err error) { streak, err = s.fetchStreak(ctx, token); return })
 	run(3, func() (err error) { topics, err = s.fetchTopics(ctx, token); return })
-	run(4, func() (err error) { path, err = s.fetchPath(ctx, token); return })
 	wg.Wait()
 
 	for _, err := range errs {
@@ -273,8 +282,12 @@ func (s *Service) fetchTopics(ctx context.Context, token string) ([]TopicCard, e
 	return envelope.Data, nil
 }
 
-func (s *Service) fetchPath(ctx context.Context, token string) (*pathPayload, error) {
-	body, err := s.get(ctx, s.questionURL+"/api/v1/path", token)
+func (s *Service) fetchPath(ctx context.Context, token string, focus []string) (*pathPayload, error) {
+	u := s.questionURL + "/api/v1/path"
+	if len(focus) > 0 {
+		u += "?focus=" + url.QueryEscape(strings.Join(focus, ","))
+	}
+	body, err := s.get(ctx, u, token)
 	if err != nil {
 		return nil, err
 	}

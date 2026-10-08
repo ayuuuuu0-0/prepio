@@ -122,7 +122,7 @@ steps:
 * `content/worlds/*.yaml` define worlds and their nodes. `content/lessons/**/*.yaml` define lessons.
 * `content-sync --validate` validates without writing (structure always; skill references too when `DATABASE_URL` is set). The same checks run in `go test ./...` so CI blocks invalid content. `content-sync` upserts by stable slug after migrations on every deploy, is idempotent, and never deletes user data (it deprecates).
 * Changing a lesson's content (anything but `status`) increments its `version`; its steps and skill weights are stored per version, attempts record the version they ran against, and old versions are kept so in-flight attempts finish on the content they started with.
-* A world file is `slug`, `name`, `description`, `theme`, `order`, and `nodes[]`. A node is `slug` (unique across worlds), `label`, `type` (`lesson` or `boss`), and optional `requires[]` (node slugs that must be completed first; this is the configurable unlock rule). Nodes with no `requires` are open from the start.
+* A world file is `slug`, `name`, `description`, `theme`, `topic` (optional topic slug, validated against the topic catalog; focus topics put their worlds first), `order`, and `nodes[]`. A node is `slug` (unique across worlds), `label`, `type` (`lesson` or `boss`), and optional `requires[]` (node slugs that must be completed first; this is the configurable unlock rule). Nodes with no `requires` are open from the start.
 
 ### Validation rules (CI blocks on failure)
 

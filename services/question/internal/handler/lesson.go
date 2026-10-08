@@ -5,6 +5,8 @@ import (
 	"errors"
 	"log"
 	"net/http"
+	"regexp"
+	"strings"
 
 	"github.com/prepio/prepio/constants"
 	"github.com/prepio/prepio/services/question/internal/dto"
@@ -33,7 +35,12 @@ func (h *LessonHandler) GetPath(w http.ResponseWriter, r *http.Request) {
 		response.Error(w, http.StatusUnauthorized, constants.ErrUnauthorized, "authorization required")
 		return
 	}
-	resp, err := h.lessons.GetPath(r.Context(), userID)
+	focus, ok := parseFocus(r.URL.Query().Get("focus"))
+	if !ok {
+		response.Error(w, http.StatusBadRequest, constants.ErrInvalidRequest, "focus must be up to 3 comma-separated topic slugs")
+		return
+	}
+	resp, err := h.lessons.GetPath(r.Context(), userID, focus)
 	if err != nil {
 		writeLessonError(w, err)
 		return
@@ -122,4 +129,29 @@ func writeLessonError(w http.ResponseWriter, err error) {
 		log.Printf("lesson: unhandled error: %v", err)
 		response.Error(w, http.StatusInternalServerError, constants.ErrInternal, "internal error")
 	}
+}
+
+var topicSlug = regexp.MustCompile(`^[a-z0-9]+(-[a-z0-9]+)*$`)
+
+// parseFocus reads ?focus=a,b,c: up to 3 distinct topic slugs in priority order.
+// An empty value means no focus. Unknown slugs are harmless (they match no world).
+func parseFocus(raw string) ([]string, bool) {
+	if strings.TrimSpace(raw) == "" {
+		return nil, true
+	}
+	parts := strings.Split(raw, ",")
+	if len(parts) > 3 {
+		return nil, false
+	}
+	seen := map[string]bool{}
+	focus := make([]string, 0, len(parts))
+	for _, p := range parts {
+		p = strings.TrimSpace(p)
+		if !topicSlug.MatchString(p) || seen[p] {
+			return nil, false
+		}
+		seen[p] = true
+		focus = append(focus, p)
+	}
+	return focus, true
 }

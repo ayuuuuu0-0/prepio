@@ -78,6 +78,7 @@ type PathNode struct {
 	WorldName        string
 	WorldDescription string
 	WorldTheme       string
+	WorldTopic       string // topic slug, empty when the world names none
 	NodeID           string
 	NodeSlug         string
 	NodeLabel        string
@@ -182,13 +183,14 @@ func (s *LessonStore) ListSkills(ctx context.Context, lessonID string, version i
 // annotated with the user's attempt state.
 func (s *LessonStore) ListPath(ctx context.Context, userID string) ([]PathNode, error) {
 	const q = `
-		SELECT w.id, w.slug, w.name, w.description, w.theme,
+		SELECT w.id, w.slug, w.name, w.description, w.theme, COALESCE(t.slug, ''),
 		       n.id, n.slug, n.label, n.node_type,
 		       COALESCE((SELECT array_agg(p.requires_node_id::text) FROM node_prerequisites p WHERE p.node_id = n.id), '{}'),
 		       ` + lessonColumns + `,
 		       EXISTS (SELECT 1 FROM lesson_attempts a WHERE a.user_id = $1 AND a.lesson_id = l.id AND a.status = 'completed'),
 		       EXISTS (SELECT 1 FROM lesson_attempts a WHERE a.user_id = $1 AND a.lesson_id = l.id AND a.status = 'in_progress')
 		FROM worlds w
+		LEFT JOIN topics t ON t.id = w.topic_id
 		JOIN journey_nodes n ON n.world_id = w.id
 		JOIN lessons l ON l.node_id = n.id
 		WHERE w.status = 'published' AND n.status = 'published' AND l.status = 'published'
@@ -205,7 +207,7 @@ func (s *LessonStore) ListPath(ctx context.Context, userID string) ([]PathNode, 
 		var summary []byte
 		l := &pn.Lesson
 		if err := rows.Scan(
-			&pn.WorldID, &pn.WorldSlug, &pn.WorldName, &pn.WorldDescription, &pn.WorldTheme,
+			&pn.WorldID, &pn.WorldSlug, &pn.WorldName, &pn.WorldDescription, &pn.WorldTheme, &pn.WorldTopic,
 			&pn.NodeID, &pn.NodeSlug, &pn.NodeLabel, &pn.NodeType, &pn.Requires,
 			&l.ID, &l.Slug, &l.NodeID, &l.Title, &summary, &l.Kind, &l.Difficulty, &l.EstMinutes, &l.Status, &l.Version,
 			&pn.Completed, &pn.InProgress,

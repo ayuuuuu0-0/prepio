@@ -45,13 +45,12 @@ func main() {
 		}
 		defer pool.Close()
 		syncStore = store.NewContentSyncStore(pool)
-		skills, err := syncStore.SkillSlugs(ctx)
+		catalog, err = syncStore.Catalog(ctx)
 		if err != nil {
 			log.Fatalf("content-sync: %v", err)
 		}
-		catalog.Skills = skills
 	} else {
-		log.Println("content-sync: DATABASE_URL not set, skipping skill catalog checks")
+		log.Println("content-sync: DATABASE_URL not set, skipping skill and topic catalog checks")
 	}
 
 	if issues := lesson.Validate(content, catalog); len(issues) > 0 {

@@ -52,9 +52,12 @@ func NewContentSync(pool *pgxpool.Pool) *store.ContentSyncStore {
 	return store.NewContentSyncStore(pool)
 }
 
-// Validate validates content against the skill slugs in the database.
-func Validate(c *Content, skills map[string]bool) []string {
-	return lesson.Validate(c, lesson.Catalog{Skills: skills})
+// Catalog is the set of skill and topic slugs content may reference.
+type Catalog = lesson.Catalog
+
+// Validate validates content against the database catalog (skills and topics).
+func Validate(c *Content, catalog Catalog) []string {
+	return lesson.Validate(c, catalog)
 }
 
 // LoadContent loads the authored content directory.

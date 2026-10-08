@@ -178,9 +178,10 @@ export class ApiClient {
     return this.request<League>("/api/v1/league");
   }
 
-  /** getPath returns worlds and nodes with status, previews, and unlock hints. */
-  getPath() {
-    return this.request<PathData>("/api/v1/path");
+  /** getPath returns worlds and nodes with status, previews, and unlock hints; focus topics' worlds come first. */
+  getPath(focus: string[] = []) {
+    const q = focus.length > 0 ? `?focus=${encodeURIComponent(focus.join(","))}` : "";
+    return this.request<PathData>(`/api/v1/path${q}`);
   }
 
   /** startAttempt starts a lesson attempt, or resumes the one in progress. */

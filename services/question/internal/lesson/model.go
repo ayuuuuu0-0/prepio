@@ -132,8 +132,10 @@ type World struct {
 	Name        string `yaml:"name" json:"name"`
 	Description string `yaml:"description" json:"description"`
 	Theme       string `yaml:"theme" json:"theme"`
-	Order       int    `yaml:"order" json:"order"`
-	Nodes       []Node `yaml:"nodes" json:"nodes"`
+	// Topic is the topic slug this world builds (optional). Focus topics put their worlds first.
+	Topic string `yaml:"topic" json:"topic"`
+	Order int    `yaml:"order" json:"order"`
+	Nodes []Node `yaml:"nodes" json:"nodes"`
 }
 
 // Node is one milestone in a world. It binds exactly one lesson.

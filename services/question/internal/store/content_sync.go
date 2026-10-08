@@ -33,18 +33,30 @@ func NewContentSyncStore(pool *pgxpool.Pool) *ContentSyncStore {
 	return &ContentSyncStore{pool: pool}
 }
 
-// SkillSlugs returns every skill slug in the catalog (for validation).
-func (s *ContentSyncStore) SkillSlugs(ctx context.Context) (map[string]bool, error) {
-	rows, err := s.pool.Query(ctx, `SELECT slug FROM skills`)
+// Catalog returns the skill and topic slugs content may reference (for validation).
+func (s *ContentSyncStore) Catalog(ctx context.Context) (lesson.Catalog, error) {
+	skills, err := s.slugs(ctx, `SELECT slug FROM skills`)
 	if err != nil {
-		return nil, fmt.Errorf("list skills: %w", err)
+		return lesson.Catalog{}, fmt.Errorf("list skills: %w", err)
+	}
+	topics, err := s.slugs(ctx, `SELECT slug FROM topics`)
+	if err != nil {
+		return lesson.Catalog{}, fmt.Errorf("list topics: %w", err)
+	}
+	return lesson.Catalog{Skills: skills, Topics: topics}, nil
+}
+
+func (s *ContentSyncStore) slugs(ctx context.Context, q string) (map[string]bool, error) {
+	rows, err := s.pool.Query(ctx, q)
+	if err != nil {
+		return nil, err
 	}
 	defer rows.Close()
 	slugs := map[string]bool{}
 	for rows.Next() {
 		var slug string
 		if err := rows.Scan(&slug); err != nil {
-			return nil, fmt.Errorf("scan skill slug: %w", err)
+			return nil, err
 		}
 		slugs[slug] = true
 	}
@@ -109,15 +121,24 @@ func syncWorlds(ctx context.Context, tx pgx.Tx, c *lesson.Content, report *SyncR
 	nodeSlugs := []string{}
 
 	for _, w := range c.Worlds {
+		var topicID *string
+		if w.Topic != "" {
+			var id string
+			if err := tx.QueryRow(ctx, `SELECT id FROM topics WHERE slug = $1`, w.Topic).Scan(&id); err != nil {
+				return nil, fmt.Errorf("world %s: topic %q: %w", w.Slug, w.Topic, err)
+			}
+			topicID = &id
+		}
 		var worldID string
 		err := tx.QueryRow(ctx, `
-			INSERT INTO worlds (slug, name, description, theme, sort_order, status)
-			VALUES ($1, $2, $3, $4, $5, 'published')
+			INSERT INTO worlds (slug, name, description, theme, sort_order, status, topic_id)
+			VALUES ($1, $2, $3, $4, $5, 'published', $6)
 			ON CONFLICT (slug) DO UPDATE
 			SET name = EXCLUDED.name, description = EXCLUDED.description,
-			    theme = EXCLUDED.theme, sort_order = EXCLUDED.sort_order, status = 'published'
+			    theme = EXCLUDED.theme, sort_order = EXCLUDED.sort_order, status = 'published',
+			    topic_id = EXCLUDED.topic_id
 			RETURNING id`,
-			w.Slug, w.Name, w.Description, themeOrDefault(w.Theme), w.Order).Scan(&worldID)
+			w.Slug, w.Name, w.Description, themeOrDefault(w.Theme), w.Order, topicID).Scan(&worldID)
 		if err != nil {
 			return nil, fmt.Errorf("upsert world %s: %w", w.Slug, err)
 		}

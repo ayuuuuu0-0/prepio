@@ -2,6 +2,7 @@ slug: algorithm-gardens
 name: "Algorithm Gardens"
 description: "The structures and techniques you actually reach for, without the grind."
 theme: garden
+topic: dsa-refresher
 order: 4
 nodes:
   - slug: the-right-lookup

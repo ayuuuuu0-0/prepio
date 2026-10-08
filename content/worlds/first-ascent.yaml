@@ -2,6 +2,7 @@ slug: first-ascent
 name: "First Ascent"
 description: "Your first climb: how real systems stay fast under load."
 theme: summit
+topic: system-design
 order: 1
 nodes:
   - slug: why-caches-exist

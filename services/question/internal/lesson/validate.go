@@ -73,6 +73,8 @@ func validMediaURL(raw string) bool {
 // A nil Skills map skips skill resolution (offline validation).
 type Catalog struct {
 	Skills map[string]bool
+	// Topics, when non-nil, is the set of topic slugs a world may name.
+	Topics map[string]bool
 }
 
 // Validate checks all worlds and lessons and returns every problem found.
@@ -108,6 +110,13 @@ func (v *validator) worlds(c *Content) {
 		worldSlugs[w.Slug] = true
 		if strings.TrimSpace(w.Name) == "" {
 			v.addf(scope, "name is required")
+		}
+		if w.Topic != "" {
+			if !slugPattern.MatchString(w.Topic) {
+				v.addf(scope, "topic must be a lowercase kebab-case topic slug")
+			} else if v.catalog.Topics != nil && !v.catalog.Topics[w.Topic] {
+				v.addf(scope, "topic %q does not exist in the catalog", w.Topic)
+			}
 		}
 		if len(w.Nodes) == 0 {
 			v.addf(scope, "a world needs at least one node")

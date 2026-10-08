@@ -12,12 +12,16 @@ type PathResponse struct {
 
 // PathWorld is a world with its nodes in path order.
 type PathWorld struct {
-	ID          string     `json:"id"`
-	Slug        string     `json:"slug"`
-	Name        string     `json:"name"`
-	Description string     `json:"description"`
-	Theme       string     `json:"theme"`
-	Nodes       []PathNode `json:"nodes"`
+	ID          string `json:"id"`
+	Slug        string `json:"slug"`
+	Name        string `json:"name"`
+	Description string `json:"description"`
+	Theme       string `json:"theme"`
+	// Topic is the topic slug the world builds (empty if none). Focused is true when it is
+	// one of the learner's focus topics; focused worlds come first.
+	Topic   string     `json:"topic,omitempty"`
+	Focused bool       `json:"focused"`
+	Nodes   []PathNode `json:"nodes"`
 }
 
 // PathNode is one node with its lesson preview. Status is locked, current,

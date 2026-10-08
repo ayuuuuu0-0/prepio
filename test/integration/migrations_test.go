@@ -4,6 +4,8 @@ import (
 	"context"
 	"os"
 	"path/filepath"
+	"sort"
+	"strings"
 	"testing"
 
 	"github.com/prepio/prepio/test/testdb"
@@ -17,11 +19,23 @@ func TestLessonMigrationsRollBack(t *testing.T) {
 	testdb.Migrate(t, pool)
 	ctx := context.Background()
 
-	// Rolled back newest first, then re-applied oldest first. 000038 and 000039 sit on top of
-	// these (000039 references topics), so they are part of the cycle.
-	l2 := []string{
-		"000035_create_topics", "000036_create_lessons", "000037_create_mastery_ledger",
-		"000038_drop_legacy_question_loop", "000039_create_user_focus_topics",
+	// Every migration from 000035 (the lesson platform) up to the newest is rolled back newest
+	// first, then re-applied oldest first. Later migrations build on these (focus topics, leagues,
+	// world topics), so the list is read from the directory and grows with every new migration.
+	entries, err := os.ReadDir(filepath.Join("..", "..", "migrations"))
+	require.NoError(t, err)
+	var l2 []string
+	for _, e := range entries {
+		name := e.Name()
+		if strings.HasSuffix(name, ".up.sql") && name >= "000035" {
+			l2 = append(l2, strings.TrimSuffix(name, ".up.sql"))
+		}
+	}
+	sort.Strings(l2)
+	require.GreaterOrEqual(t, len(l2), 5)
+	reversed := make([]string, len(l2))
+	for i, name := range l2 {
+		reversed[len(l2)-1-i] = name
 	}
 	exec := func(suffix string, names []string) {
 		t.Helper()
@@ -43,7 +57,7 @@ func TestLessonMigrationsRollBack(t *testing.T) {
 		require.True(t, tableExists(table), table)
 	}
 
-	exec("down", []string{l2[4], l2[3], l2[2], l2[1], l2[0]})
+	exec("down", reversed)
 	for _, table := range []string{"topics", "lessons", "lesson_steps", "lesson_skills", "lesson_attempts",
 		"lesson_step_results", "node_prerequisites", "mastery_ledger", "lesson_rewards", "user_focus_topics"} {
 		require.False(t, tableExists(table), table)
