@@ -24,6 +24,7 @@ import { McqStep } from "@/components/lesson/McqStep";
 import { TrueFalseStep } from "@/components/lesson/TrueFalseStep";
 import { FillBlankStep } from "@/components/lesson/FillBlankStep";
 import { ArrangeStep } from "@/components/lesson/ArrangeStep";
+import { ProseStep } from "@/components/lesson/ProseStep";
 import { FeedbackTray } from "@/components/lesson/FeedbackTray";
 import { Celebration } from "@/components/lesson/Celebration";
 
@@ -208,6 +209,8 @@ function Player({
     const onKey = (e: KeyboardEvent) => {
       if (e.key !== "Enter" || confirmingExit || session.phase !== "answering" || !ready) return;
       const target = e.target as HTMLElement | null;
+      // In a written answer Enter adds a new line; Ctrl+Enter or Cmd+Enter checks.
+      if (target?.tagName === "TEXTAREA" && !(e.ctrlKey || e.metaKey)) return;
       const onOption = target?.getAttribute("role") === "radio";
       if (!onOption && target?.tagName === "BUTTON") return;
       e.preventDefault();
@@ -453,6 +456,17 @@ function ExerciseStep({
           result={result ? { correct: result.correct } : null}
           disabled={disabled}
           onChange={(slots) => onDraft({ type: "fill_blank", slots })}
+        />
+      ) : null;
+    case "prose":
+      return step.prose ? (
+        <ProseStep
+          prompt={step.prose.prompt}
+          minChars={step.prose.min_chars}
+          text={shownDraft.text}
+          result={result ? { correct: result.correct } : null}
+          disabled={disabled}
+          onChange={(text) => onDraft({ type: "prose", text })}
         />
       ) : null;
     case "arrange":

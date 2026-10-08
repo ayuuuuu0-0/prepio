@@ -11,10 +11,12 @@ export type Draft =
   /** slots[i] is the bank index placed in blank i+1, or null while empty. */
   | { type: "fill_blank"; slots: (number | null)[] }
   /** order lists item indexes in the order the learner tapped them. */
-  | { type: "arrange"; order: number[] };
+  | { type: "arrange"; order: number[] }
+  /** text is a written answer, graded by the server's rubric. */
+  | { type: "prose"; text: string };
 
 /** GRADABLE lists the step types the player can render and submit. */
-export const GRADABLE = ["mcq", "true_false", "fill_blank", "arrange"] as const;
+export const GRADABLE = ["mcq", "true_false", "fill_blank", "arrange", "prose"] as const;
 
 /** emptyDraft starts a draft for a step, or returns null if the player can't render the step. */
 export function emptyDraft(step: ClientStep): Draft | null {
@@ -27,6 +29,8 @@ export function emptyDraft(step: ClientStep): Draft | null {
       return step.fill_blank ? { type: "fill_blank", slots: Array(step.fill_blank.blanks).fill(null) } : null;
     case "arrange":
       return step.arrange ? { type: "arrange", order: [] } : null;
+    case "prose":
+      return step.prose ? { type: "prose", text: "" } : null;
     default:
       return null;
   }
@@ -44,6 +48,8 @@ export function isReady(step: ClientStep, d: Draft | null): boolean {
       return d.slots.length > 0 && d.slots.every((s) => s !== null);
     case "arrange":
       return d.order.length === (step.arrange?.items.length ?? -1);
+    case "prose":
+      return d.text.trim().length >= (step.prose?.min_chars ?? Infinity);
   }
 }
 
@@ -60,6 +66,8 @@ export function toAnswer(step: ClientStep, d: Draft): Answer {
     }
     case "arrange":
       return { order: [...d.order] };
+    case "prose":
+      return { text: d.text };
   }
 }
 
@@ -140,6 +148,8 @@ export function promptOf(step: ClientStep): string {
       return step.fill_blank ? `Fill in the blanks: ${step.fill_blank.code.replace(/___(\d+)___/g, "[$1]")}` : "";
     case "arrange":
       return step.arrange?.prompt ?? "";
+    case "prose":
+      return step.prose?.prompt ?? "";
     default:
       return "";
   }

@@ -28,6 +28,8 @@ export function FeedbackTray({
   }, []);
 
   const ok = result.correct;
+  // Written answers come back with a rubric score instead of a single correct option.
+  const prose = typeof result.score === "number";
   const tone = ok ? "#34D399" : "#F87171";
   const heading = ok ? "Nice, that's right" : "Not quite";
   const intro = ok
@@ -48,7 +50,7 @@ export function FeedbackTray({
       }}
     >
       <div className="mx-auto w-full max-w-2xl px-4 pb-6 pt-4">
-        <div role="status" aria-live="polite">
+        <div role="status" aria-live="polite" className="max-h-[55vh] overflow-y-auto">
           <p className="font-display flex items-center gap-2 text-lg font-extrabold" style={{ color: tone }}>
             <span
               aria-hidden
@@ -85,9 +87,48 @@ export function FeedbackTray({
             </p>
           )}
 
+          {prose && (
+            <div className="mt-3 text-sm leading-relaxed" style={{ color: "#C8CCDA" }}>
+              {result.feedback && <p>{result.feedback}</p>}
+              <p className="font-mono mt-2 text-[11px] font-bold uppercase tracking-widest" style={{ color: "#8B92A8" }}>
+                Rubric score {result.score} / 100
+              </p>
+              {(result.strengths?.length ?? 0) > 0 && (
+                <>
+                <p className="font-mono mt-2 text-[11px] font-bold uppercase tracking-widest" style={{ color: "#8B92A8" }}>
+                  You covered
+                </p>
+                <ul aria-label="What you covered">
+                  {result.strengths!.map((s) => (
+                    <li key={s}>
+                      <span aria-hidden style={{ color: "#34D399" }}>✓ </span>
+                                            {s}
+                    </li>
+                  ))}
+                </ul>
+                </>
+              )}
+              {(result.gaps?.length ?? 0) > 0 && (
+                <>
+                <p className="font-mono mt-2 text-[11px] font-bold uppercase tracking-widest" style={{ color: "#8B92A8" }}>
+                  Worth adding
+                </p>
+                <ul aria-label="Worth adding">
+                  {result.gaps!.map((g) => (
+                    <li key={g}>
+                      <span aria-hidden style={{ color: "#F5B942" }}>+ </span>
+                                            {g}
+                    </li>
+                  ))}
+                </ul>
+                </>
+              )}
+            </div>
+          )}
+
           {result.explanation && (
             <p className="mt-3 text-sm leading-relaxed" style={{ color: "#C8CCDA" }}>
-              {!ok && <span className="font-bold">Why it works: </span>}
+              {prose ? <span className="font-bold">A strong answer: </span> : !ok && <span className="font-bold">Why it works: </span>}
               {result.explanation}
             </p>
           )}

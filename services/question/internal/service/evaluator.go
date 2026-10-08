@@ -275,7 +275,7 @@ func summaryFor(score int, correct bool) string {
 	if score >= 40 {
 		return "You're on the right track — review the missed concepts and try again."
 	}
-	return "Keep going — focus on the approach, complexity, and tradeoffs."
+	return "Keep going: the ideas listed below are what a strong answer adds."
 }
 
 // FeedbackFor returns a short legacy feedback string.

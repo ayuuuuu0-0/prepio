@@ -11,7 +11,7 @@ Thirty-three lessons, one per day, across the four topics, so the path supports 
 * World → Node → Lesson → Step. A node binds exactly one lesson; node slug = lesson slug.
 * Lessons: ≤ 5 min (boss ≤ 8), `summary` 2–4 takeaways, one optional `intro` first, then 3–5 graded steps (boss 3–8). Skill weights sum to 1.0 and use **existing** skill slugs only (the catalog changes by migration, not here).
 * Intro: 2–4 beats, each 1.5–12 s, whole intro ≤ 45 s; `visual` only `bars`, `flow`, or `pulse`.
-* Exercise types the player renders: `mcq`, `true_false`, `fill_blank`, `arrange`. **No `prose`** until the player renders it.
+* Exercise types the player renders: `mcq`, `true_false`, `fill_blank`, `arrange`, and (since L6.1) `prose`. Prose stays rare (PRODUCT.MD) and needs a careful rubric: see the authoring standard.
 * `mcq`: 3–4 options, a "why not" for every wrong option. `arrange`: ≥ 3 items, authored scrambled. `fill_blank`: numbered blanks, the bank holds every answer plus distractors.
 * No company content. Professional tone: encouraging, never shaming; explanations say *why*, not just *what*.
 * The existing lesson `why-caches-exist` keeps its slug and node so learners keep their progress; its options are reordered only (see Plan review).
@@ -97,6 +97,7 @@ Skill slugs: `lld-oop`, `lld-patterns`, `lld-fundamentals`.
 * **Exercises:** 4 graded steps for a lesson (boss 7), using at least two types per lesson and every type across a world. Use `fill_blank` only where a short code or config line is natural; keep code to about 6 lines. A fill-in step has no prompt, so when the right answer depends on the goal, the first line is a comment stating it (without giving the answer away). `arrange` for ordered processes. Distractors must be plausible mistakes real engineers make, never jokes.
 * **No answer by position or pattern:** options are sent in authored order, so spread each world's correct `mcq` answers across positions (never three in a row at the same index) and don't make the correct option systematically the longest; keep `true_false` answers roughly half `false`.
 * **Plain text:** no markdown or backticks (the player renders text literally); an intro `emphasis` must match its beat text exactly, including case; each fill-in blank appears once.
+* **Prose (rare):** the rubric grader matches concepts by name and aliases, so list the real synonyms a correct answer would use (e.g. stale: "out of date", "outdated"), mark only the essential ideas `required`, and write the `explanation` as the worked answer the learner sees after grading. Try a weak and a strong sample answer against it before publishing.
 * **Explanations:** the correct explanation says why it works; each wrong-option explanation names the misconception kindly. Facts must be correct and current; avoid vendor-specific claims.
 * **Summary:** usually 3 takeaways (the docs allow 2–4), each one sentence, each answerable from the lesson.
 * **Option length:** the correct option must not be a tell: across a world it is the longest option in no more than about 45% of `mcq`s (chance is 33% with three options).
@@ -131,5 +132,5 @@ Skill slugs: `lld-oop`, `lld-patterns`, `lld-fundamentals`.
 ## Out of scope for L8 (follow-ups)
 
 * ~~Focus topics reordering the journey~~: done in L11 (worlds now name their `topic`).
-* `prose` exercises, until the player renders them.
+* ~~`prose` exercises in the player~~: done in L6.1. No lesson uses prose yet; adding a few to bosses is a content decision.
 * A second path for other audiences.
