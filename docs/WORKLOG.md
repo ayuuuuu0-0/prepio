@@ -54,7 +54,7 @@ Anything outside `.ai/EXECUTION.MD`'s scope goes through its Change Process and 
 
 ---
 
-### Task 2 · Self-host the web fonts — waiting for your OK
+### Task 2 · Self-host the web fonts — done after your OK (see below)
 
 **Why:** `next build` downloads the three Google Fonts (Sora, Manrope, IBM Plex Mono) at build time; once today it failed until retried. Shipping the font files in the repo (`next/font/local`) makes builds independent of Google.
 
@@ -141,3 +141,16 @@ Anything outside `.ai/EXECUTION.MD`'s scope goes through its Change Process and 
 * Sound preference saved on your account instead of per device.
 * An "achievements" first slice (PRODUCT.MD's Collection pillar); needs a Change Process entry first because it isn't in the current phase.
 * A second DSA world for strings, linked lists, heaps, greedy, and dynamic programming (content).
+
+---
+
+## Session: continuing (2026-10-08, later)
+
+### Task 2 (resumed) · Self-host the web fonts — done (`77f90f5`)
+
+**You said:** do the recommended option. **Recommended and done:** commit the font files and load them with `next/font/local`, rather than adding npm packages to the app.
+
+* Downloaded the three official `@fontsource` packages (5.3.0) into an isolated scratch folder, checked each file really is a WOFF2 font and that the license is the SIL Open Font License, then copied only the Latin files the site uses: Sora (variable), Manrope (variable), IBM Plex Mono 400/500/600. **About 104 KB total.** Licenses and a short README sit next to them in `web/src/fonts/`.
+* `layout.tsx` keeps the same three CSS variables, so no page or component changed.
+* **Proof:** a clean production build passes; the built site contains no reference to Google Fonts; the page preloads the five font files from itself; a screenshot shows the same typography as before.
+* Also fixed while there: the default page description still said "a career RPG where interview prep is the progression mechanic", which contradicts PRODUCT.MD ("not a company-specific interview-prep tool"). It now uses the product's own line.
