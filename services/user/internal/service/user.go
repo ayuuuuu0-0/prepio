@@ -3,6 +3,8 @@ package service
 import (
 	"context"
 
+	"github.com/google/uuid"
+
 	"github.com/prepio/prepio/services/user/internal/dto"
 	"github.com/prepio/prepio/services/user/internal/store"
 )
@@ -103,4 +105,30 @@ func toUserResponse(user *store.User) dto.UserResponse {
 		ActiveCharID: user.ActiveCharID,
 		ReminderTime: user.ReminderTime,
 	}
+}
+
+// MaxPublicCards caps one public-card lookup; a league cohort is the largest caller.
+const MaxPublicCards = 50
+
+// PublicCards returns public cards for up to MaxPublicCards user ids.
+func (s *UserService) PublicCards(ctx context.Context, ids []string) ([]dto.PublicCardResponse, error) {
+	if len(ids) > MaxPublicCards {
+		return nil, ErrInvalidRequest
+	}
+	for _, id := range ids {
+		if _, err := uuid.Parse(id); err != nil {
+			return nil, ErrInvalidRequest
+		}
+	}
+	cards, err := s.users.PublicCards(ctx, ids)
+	if err != nil {
+		return nil, err
+	}
+	resp := make([]dto.PublicCardResponse, 0, len(cards))
+	for _, c := range cards {
+		resp = append(resp, dto.PublicCardResponse{
+			ID: c.ID, Username: c.Username, CompanionName: c.CompanionName, CompanionSpecies: c.CompanionSpecies,
+		})
+	}
+	return resp, nil
 }

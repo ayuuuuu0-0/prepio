@@ -54,7 +54,7 @@ Ownership is absolute. **No service may mutate data owned by another service.**
 | **Companion** | Companions, evolution, dialogue, cosmetics | `user` service (today) |
 | **Content** | Skills, subskills, topics, lessons, steps and their payloads, authoring validation | `question` service |
 | **Journey** | Worlds, nodes, unlock rules, journey progress, **lesson attempts and step results**, grading | `question` service |
-| **Progress** | XP, levels, gems, skill mastery + mastery ledger, topic readiness, achievements, quest progress | `progress` service |
+| **Progress** | XP, levels, gems, skill mastery + mastery ledger, topic readiness, weekly leagues (cohorts, memberships, weekly XP), achievements, quest progress | `progress` service |
 | **Streak** | Streak state | `streak` service |
 | **Notification** | Dispatch | `notification` service |
 | **Analytics** | Events, reports, funnels (not built yet). Never owns business state. | n/a |
@@ -71,7 +71,7 @@ If ownership is unclear: do not implement. Ask.
 Answer a step ──▶ server grades (Journey) ──▶ step result stored
 Attempt completes (all graded steps correct) ──▶ node is done (Journey derives status from attempts)
                                              └─▶ `lesson.completed` fact
-`lesson.completed` ──▶ Progress: skill mastery + ledger, XP, gems
+`lesson.completed` ──▶ Progress: skill mastery + ledger, XP, gems, league XP (same transaction)
                    ├─▶ Streak: streak update
                    └─▶ (Progress emits) skill.progress.updated, readiness.updated, level.up
 ```
@@ -117,6 +117,8 @@ APIs expose capabilities, not tables:
 * `GET /progress/topics`: per-topic readiness with each skill's mastery (not started = null)
 * `GET /dashboard/home`: gateway aggregation of profile (focus topics, companion), XP/level, streak, topic readiness, and the path's current node as the Continue target. If any upstream fails the dashboard fails; it never shows partial or invented data
 * `POST /users/onboarding`: `{ focus_topics (1-3 distinct slugs, ordered), experience_level, companion_id }`; stored by the User domain, validated against the topic catalog
+* `GET /progress/league` (Progress): the learner's league this week: tier, the ladder, standings by user id with each rank's zone (`promote`, `stay`, `demote`), and how last week ended. Not joined until XP is earned that week.
+* `GET /league` (gateway): `/progress/league` with usernames and companions attached from the User domain (`POST /users/public-cards`, up to 50 ids). Fails closed: a standing without a public card fails the request.
 
 ---
 

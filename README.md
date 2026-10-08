@@ -69,7 +69,7 @@ make docker-down
 | user | 8081 | Authentication, profile, preferences, companion state |
 | question | 8082 | Content and journey: skills, lessons, attempts, grading (historical name) |
 | streak | 8083 | Daily check-ins and streak tracking |
-| progress | 8084 | XP, levels, skill mastery, topic readiness |
+| progress | 8084 | XP, levels, skill mastery, topic readiness, weekly leagues |
 | notification | 8085 | Event-driven notifications |
 
 Supporting infrastructure is Postgres, Redis, and Kafka.

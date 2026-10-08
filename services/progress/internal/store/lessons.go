@@ -104,6 +104,10 @@ func (s *LessonStore) ApplyLessonCompleted(ctx context.Context, event events.Les
 	if err := applyRewards(ctx, tx, event, out); err != nil {
 		return nil, false, err
 	}
+	// League XP counts in the week Progress grants it, so finished weeks never change.
+	if err := addLeagueXP(ctx, tx, event.UserID, out.XPAwarded, time.Now().UTC()); err != nil {
+		return nil, false, err
+	}
 
 	if err := tx.QueryRow(ctx, `
 		INSERT INTO lesson_rewards (attempt_id, user_id, lesson_id, first_completion, xp_awarded, gems_awarded)

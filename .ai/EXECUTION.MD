@@ -89,6 +89,13 @@ Topic picker (1–3) → experience → companion; `focus_topics` stored by the 
 * Removed: `GET /skills/readiness` and its analysis code, the unused `LedgerStore`, dead constants and errors, `XpProgressBar`, scaffold SVGs.
 * Known limit: rolling migrations back below 000034 fails at historical migration 000028 (`uuid LIKE`); rollbacks are supported down to 000033.
 
+**L9, Leagues and leaderboard**
+**Status: implemented** on branch `feat/l9-leagues-landing`, pending review. Pulled ahead of L6–L8 by the product owner on 2026-10-07 (change record below).
+Weekly leagues owned by Progress. A learner joins the current week's league the first time Progress grants them XP that week and is placed in the oldest cohort of their tier with room (`config.LeagueCohortSize`, 30). League XP is written in the same transaction that grants the XP, so it is counted exactly once, and it counts in the week it is granted. Standings rank by weekly XP, ties to whoever got there first. At week end (Monday 00:00 UTC) the top `LeaguePromoteCount` move up a tier and, only in cohorts larger than promote + demote, the bottom `LeagueDemoteCount` move down; there is no demotion from the lowest tier and none for weeks you skip (you keep the tier your last week earned). Results are derived from final standings when the learner next joins or views the league, so no job runs at the week boundary. Tiers, sizes, and counts live in `config/leagues.go`. `GET /progress/league` (Progress) serves standings; `GET /league` (gateway) attaches usernames and companions from the User domain (`POST /users/public-cards`) and fails closed. Web: `/league` (tier, ladder, countdown, standings with promotion and drop zones named in words, last week's result) and a League tab.
+*Done when:* rules are table-tested; store tests cover joining, ties, cohort overflow, promotion, and skipped weeks; gateway aggregation is tested including failure; gates pass; screenshots reviewed.
+
+**Change record (L9).** *Problem:* leagues were out of scope until after validation, but the product owner wants a weekly social reason to return. *Proposal:* the task above. *Benefits:* a weekly retention loop that rewards showing up (XP comes only from lessons). *Risks:* leagues can feel punishing, so demotion is limited (lowest tier exempt, small cohorts never demote, skipped weeks keep the tier, encouraging copy), and with few users cohorts are small (everyone near the top promotes). *Migration impact:* migration 000041 adds `league_cohorts` and `league_memberships`; no existing data changes. Quests stay out of scope.
+
 **L6, Exercise types:** `true_false`, `fill_blank` (tap-to-place), `arrange` (tap-to-order); validator rules and player support.
 
 **L7, Retention polish:** mistakes review, replay intro, sound toggle, keyboard and accessibility audit.
@@ -106,7 +113,7 @@ Topic picker (1–3) → experience → companion; `focus_topics` stored by the 
 
 ## OUT OF SCOPE (forbidden before launch)
 
-Arena · Multiplayer · Guilds · Voice interviews · AI interviewers · AI resume review · Recruiter marketplace · Season pass · Advanced recommendation engine · Community content · Complex social features · Company-specific prep · Hearts/lives · Code-execution sandbox · AI-generated lessons · Leagues and quests (until a later phase) · Mobile client updates · Additional audience paths · Marketing/landing page
+Arena · Multiplayer · Guilds · Voice interviews · AI interviewers · AI resume review · Recruiter marketplace · Season pass · Advanced recommendation engine · Community content · Complex social features · Company-specific prep · Hearts/lives · Code-execution sandbox · AI-generated lessons · Quests (until a later phase) · Mobile client updates · Additional audience paths · Marketing/landing page
 
 These solve scale or breadth, not validation.
 

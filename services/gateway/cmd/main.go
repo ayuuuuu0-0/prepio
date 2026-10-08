@@ -13,6 +13,7 @@ import (
 	chimw "github.com/go-chi/chi/v5/middleware"
 	"github.com/prepio/prepio/constants"
 	"github.com/prepio/prepio/services/gateway/internal/dashboard"
+	"github.com/prepio/prepio/services/gateway/internal/leagues"
 	"github.com/prepio/prepio/services/gateway/internal/lessons"
 	"github.com/prepio/prepio/shared/proxy"
 	"github.com/prepio/prepio/shared/jwt"
@@ -64,6 +65,10 @@ func main() {
 		envOrDefault("QUESTION_SERVICE_URL", "http://localhost:8082"),
 	)
 	dashboardHandler := dashboard.NewHandler(dashboardService)
+	leaguesHandler := leagues.NewHandler(leagues.NewService(
+		envOrDefault("PROGRESS_SERVICE_URL", "http://localhost:8084"),
+		envOrDefault("USER_SERVICE_URL", "http://localhost:8081"),
+	))
 	lessonsHandler := lessons.NewHandler(
 		envOrDefault("QUESTION_SERVICE_URL", "http://localhost:8082"),
 		envOrDefault("PROGRESS_SERVICE_URL", "http://localhost:8084"),
@@ -89,6 +94,7 @@ func main() {
 			r.Use(middleware.Auth(signer, redisClient))
 			r.Use(middleware.RateLimit(redisClient, constants.AuthenticatedRateLimitPerMinute, middleware.RateLimitKeyByUser))
 			r.Get("/dashboard/home", dashboardHandler.GetHome)
+			r.Get("/league", leaguesHandler.GetLeague)
 			r.Get("/path", questionProxy.ServeHTTP)
 			r.Get("/topics", questionProxy.ServeHTTP)
 			r.Post("/lessons/{id}/attempts", questionProxy.ServeHTTP)

@@ -211,3 +211,33 @@ func scanUser(row pgx.Row) (*User, error) {
 	}
 	return &u, nil
 }
+
+// PublicCard is the part of a user other learners may see (e.g. on a leaderboard).
+type PublicCard struct {
+	ID               string
+	Username         string
+	CompanionName    string
+	CompanionSpecies string
+}
+
+// PublicCards returns public cards for the given user ids; unknown ids are skipped.
+func (s *UserStore) PublicCards(ctx context.Context, ids []string) ([]PublicCard, error) {
+	rows, err := s.pool.Query(ctx, `
+		SELECT u.id, u.username, COALESCE(c.name, ''), COALESCE(c.species, '')
+		FROM users u
+		LEFT JOIN characters c ON c.id = u.active_char_id
+		WHERE u.id = ANY($1::uuid[])`, ids)
+	if err != nil {
+		return nil, fmt.Errorf("list public cards: %w", err)
+	}
+	defer rows.Close()
+	cards := make([]PublicCard, 0, len(ids))
+	for rows.Next() {
+		var c PublicCard
+		if err := rows.Scan(&c.ID, &c.Username, &c.CompanionName, &c.CompanionSpecies); err != nil {
+			return nil, fmt.Errorf("scan public card: %w", err)
+		}
+		cards = append(cards, c)
+	}
+	return cards, rows.Err()
+}

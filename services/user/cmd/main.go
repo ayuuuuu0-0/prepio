@@ -76,6 +76,7 @@ func main() {
 			r.Get("/users/me", userHandler.GetMe)
 			r.Get("/users/profile", onboardingHandler.GetProfile)
 			r.Post("/users/onboarding", onboardingHandler.CompleteOnboarding)
+			r.Post("/users/public-cards", userHandler.PublicCards)
 			r.Patch("/users/me", userHandler.UpdateMe)
 			r.Post("/users/me/devices", userHandler.RegisterDevice)
 			r.Delete("/users/me/devices/{deviceID}", userHandler.DeleteDevice)

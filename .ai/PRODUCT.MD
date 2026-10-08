@@ -51,6 +51,7 @@ User opens app → companion greets
 → Continue → journey path → (tap node → preview) → lesson
 → lesson: intro → exercises with instant feedback → celebration → summary
 → mastery updates (explained) → next node unlocks → companion reacts
+→ XP counts toward this week's league
 → user returns tomorrow
 ```
 
@@ -126,6 +127,12 @@ Do not copy Duolingo's colours or mascot. We want its engagement model, not its 
 
 Every action produces visible feedback: XP gained, mastery moved (and why), companion reacts, progress updates, an animation plays. Streaks reward showing up: completing one lesson keeps the streak.
 
+## Leagues
+
+A weekly reason to come back. Your first lesson of the week puts you on a leaderboard with up to 30 learners in your league tier; XP from lessons ranks you; when the week ends the top ranks move up a tier. Leagues are ranked by XP and never by mastery: they reward showing up, while mastery stays the honest measure of skill.
+
+Leagues must follow the Psychology rules below: demotion is limited (never from the lowest tier, never in small cohorts, never for a week you skipped), zones are named in words as well as colour, and copy frames a lower finish as a chance to win it back, never as failure. Rules and numbers live in config, not code (see EXECUTION.MD, L9).
+
 ## Psychology
 
 Create motivation, curiosity, momentum, achievement. Avoid fear, punishment, guilt, shame. Users should feel encouraged to return, not pressured.
@@ -139,7 +146,7 @@ Create motivation, curiosity, momentum, achievement. Avoid fear, punishment, gui
 * Punishment mechanics: hearts, lives, shaming, guilt copy
 * "Coming soon" placeholders in shipped UI
 * Hardcoded content or mock data in shipped paths
-* Feature creep: AI interviewers, voice, guilds, marketplaces, multiplayer (see EXECUTION.MD)
+* Feature creep: AI interviewers, voice, guilds, marketplaces, real-time multiplayer (see EXECUTION.MD). Weekly leagues are asynchronous leaderboards, not multiplayer.
 
 ## Success Metrics
 

@@ -173,6 +173,10 @@ export class ApiClient {
     return this.request<DashboardHome>("/api/v1/dashboard/home");
   }
 
+  /** getLeague returns this week's league: tier, standings with public cards, last result. */
+  getLeague() {
+    return this.request<League>("/api/v1/league");
+  }
 
   /** getPath returns worlds and nodes with status, previews, and unlock hints. */
   getPath() {
@@ -267,6 +271,43 @@ export type DashboardHome = {
   next_lesson: NextLesson | null;
   companion_message: string;
   onboarding_needed: boolean;
+};
+
+export type LeagueTier = { index: number; slug: string; name: string };
+
+/** LeagueZone is what a rank would earn if the week ended now (decided by the server). */
+export type LeagueZone = "promote" | "stay" | "demote";
+
+export type LeagueStanding = {
+  rank: number;
+  user_id: string;
+  weekly_xp: number;
+  zone: LeagueZone;
+  is_me: boolean;
+  username: string;
+  companion_name: string;
+  companion_species: string;
+};
+
+export type LeagueResult = {
+  week_start: string;
+  rank: number;
+  cohort_size: number;
+  outcome: "promoted" | "stayed" | "demoted";
+  from_tier: LeagueTier;
+  to_tier: LeagueTier;
+};
+
+/** League is this week's league. Until the learner earns XP this week, joined is false and standings are empty. */
+export type League = {
+  week_start: string;
+  ends_at: string;
+  joined: boolean;
+  tier: LeagueTier;
+  tiers: LeagueTier[];
+  my_rank: number;
+  standings: LeagueStanding[];
+  last_result: LeagueResult | null;
 };
 
 /** parseBody parses a JSON body; empty or non-JSON bodies (e.g. an HTML proxy error page) yield null. */

@@ -27,3 +27,16 @@ type DeviceResponse struct {
 	ID       string `json:"id"`
 	Platform string `json:"platform"`
 }
+
+// PublicCardsRequest is the body for POST /api/v1/users/public-cards.
+type PublicCardsRequest struct {
+	UserIDs []string `json:"user_ids"`
+}
+
+// PublicCardResponse is what other learners may see about a user.
+type PublicCardResponse struct {
+	ID               string `json:"id"`
+	Username         string `json:"username"`
+	CompanionName    string `json:"companion_name"`
+	CompanionSpecies string `json:"companion_species"`
+}

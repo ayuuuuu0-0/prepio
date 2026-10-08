@@ -100,3 +100,23 @@ func (h *UserHandler) DeleteDevice(w http.ResponseWriter, r *http.Request) {
 
 	response.Data(w, http.StatusOK, map[string]bool{"deleted": true})
 }
+
+// PublicCards handles POST /api/v1/users/public-cards: usernames and companions for a
+// list of users, so leaderboards can show who is who.
+func (h *UserHandler) PublicCards(w http.ResponseWriter, r *http.Request) {
+	if _, ok := middleware.UserIDFromContext(r.Context()); !ok {
+		response.Error(w, http.StatusUnauthorized, constants.ErrUnauthorized, "authorization required")
+		return
+	}
+	var req dto.PublicCardsRequest
+	if err := json.NewDecoder(http.MaxBytesReader(w, r.Body, 16<<10)).Decode(&req); err != nil {
+		response.Error(w, http.StatusBadRequest, constants.ErrInvalidRequest, "invalid request body")
+		return
+	}
+	cards, err := h.users.PublicCards(r.Context(), req.UserIDs)
+	if err != nil {
+		writeServiceError(w, err)
+		return
+	}
+	response.Data(w, http.StatusOK, cards)
+}

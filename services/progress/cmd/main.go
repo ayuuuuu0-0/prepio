@@ -49,6 +49,7 @@ func main() {
 	readinessStore := store.NewReadinessStore(pool)
 	readinessService := service.NewReadinessService(readinessStore)
 	lessonService := service.NewLessonService(store.NewLessonStore(pool), producer)
+	leagueService := service.NewLeagueService(store.NewLeagueStore(pool))
 
 	if !devSyncEnabled() {
 		brokers := strings.Split(envOrDefault("KAFKA_BROKERS", "localhost:9092"), ",")
@@ -96,6 +97,7 @@ func main() {
 	progressHandler := handler.NewProgressHandler(progressService, readinessService)
 	readinessHandler := handler.NewReadinessHandler(readinessService)
 	lessonHandler := handler.NewLessonHandler(lessonService)
+	leagueHandler := handler.NewLeagueHandler(leagueService)
 	r := chi.NewRouter()
 	r.Use(chimw.Recoverer)
 	r.Get("/internal/progress/{userID}/gems", progressHandler.InternalGetGems)
@@ -106,6 +108,7 @@ func main() {
 		r.Use(middleware.Auth(signer, redisClient))
 		r.Get("/progress/me", progressHandler.GetMe)
 		r.Get("/progress/topics", readinessHandler.GetTopicMastery)
+		r.Get("/progress/league", leagueHandler.GetLeague)
 		r.Get("/progress/attempts/{attemptID}/rewards", lessonHandler.GetAttemptRewards)
 	})
 
