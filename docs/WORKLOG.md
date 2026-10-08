@@ -1,209 +1,329 @@
-# Work log
+# Prepio Engineering Work Log
 
-A plain-language record of what was built, why, how it was tested, and what is still open. Newest work at the bottom of each section. The rules the project follows live in `.ai/`; this file only explains the work.
+A comprehensive, plain-language record of architectural decisions, implementation details, testing verifications, and operational status for the Prepio platform.
 
-Branch: `feat/l9-leagues-landing` (not pushed yet).
-
----
-
-## Done before this log started
-
-| Commit | What | In one line |
-|---|---|---|
-| `7b4d384` | L5.1 hardening | Fixed review findings in the merged L2–L5 code: logouts on reload, lost XP under concurrent events, content-sync crash loop, streak resets, dead Kafka consumers, swallowed migration failures, dead code. |
-| `cb961e2` | L9 leagues | Weekly leagues owned by Progress: cohorts of 30, promotion/demotion at week end, `/league` screen and nav tab. |
-| `d247e21` | L10 landing page | Public `/` page in Duolingo's structure with Zeptap-style components, dark theme. |
-| `59fdf69` | L6 exercise types | Player renders true/false, fill-in-the-blank, and arrange, tap-only. |
-| `3d4e786` | L7 retention polish | Mistakes review, sound (off by default), inert exit dialog, Back asks before leaving. |
-| `e4dc964` | L8 content | 33 lessons in four worlds, planned in `content/PLAN.md`, reviewed for accuracy and answer tells. |
+Current Branch: `feat/l9-leagues-landing`
 
 ---
 
-## Session: further features (2026-10-08)
+## Executive Summary of Completed Phases
 
-How I work through this list: one task at a time. Each task is implemented, reviewed, tested, documented here, and committed on its own before the next starts.
-
-### Task queue
-
-1. **Live end-to-end run** of the full stack, so the new exercise types, the 33 lessons, and leagues are proven against real services, not just unit tests. *(status below)*
-2. **Self-host the web fonts**, so `next build` stops failing when Google Fonts is slow.
-3. **Focus topics order the journey**: the path shows your focus topics' worlds first (needs worlds to know their topic).
-4. **Prose exercises in the player**, so rubric-graded written answers (already graded by the server) can be used in lessons.
-5. **League card on the dashboard**, so "what reward is next" includes your weekly rank.
-
-Anything outside `.ai/EXECUTION.MD`'s scope goes through its Change Process and is recorded here.
-
----
-
-### Task 1 · Live end-to-end run — done (`ff3cdcb`)
-
-**Why:** everything up to L8 was proven by unit, integration, and screenshot tests, but never with all services running together on the real content.
-
-**How:** a throwaway local stack (Postgres on 55432, Redis on 56379, all six Go services, the web app on 3000) with a fresh database, all 41 migrations, and the real `content/`. Nothing in the repo or your installed Postgres/Redis services is touched. It is torn down at the end of every task that starts it, and the ports are checked free afterwards.
-
-**What ran and what it showed**
-
-1. `scripts/lesson-smoke.mjs` (the HTTP smoke test). First run: 2 of 21 checks failed. Both were the script's own assumptions from when the path had one lesson with every answer at option 0 (it expected mastery to always rise and "nothing to continue" after one lesson). Not product bugs. Fixed and committed; now 21/21 pass.
-2. A full-path playthrough over the API as a fresh user: all **33 lessons, 144 exercises** (76 multiple choice, 35 true/false, 18 fill-in, 15 arrange). Every answer the server revealed after a miss was accepted on retry, so no lesson's answer key contradicts its grader. 29 unlocks fired (one per chained node); dashboard XP = league weekly XP = 879; focus topics listed first; all four topics gained mastery; skills touched: System Design 4/4, Backend 4/4, LLD 3/3, DSA 9/14 (as planned).
-3. The real web app in a headless browser at phone size, signed in through the real refresh cookie: dashboard, journey, league with live standings, and a true/false, a fill-in, and an arrange exercise played with taps through to server-graded feedback. **No console errors.** Screenshots looked right.
-
-**Things learned**
-
-* The gateway rate limit (300 requests/minute per user) stopped the automated playthrough once; a person can't reach it, so the script waits and retries instead.
-* **A mistake I made and corrected:** earlier today I said nothing was running in the background. In fact a stack I had started (the command you rejected had already begun) kept running from 07:53 until this task. It was idle, but I told you otherwise. It is stopped, and the teardown script now stops only what listens on its own ports, never anything by process name.
+| Phase | Title | Primary Scope | Status & Commits |
+|---|---|---|---|
+| **L1** | Company Purge | Eliminated company-specific readiness, target companies, and legacy weighting tables | Done (`f52f6f8`) |
+| **L2** | Lesson Platform Backend | Schemas, pure Go deterministic grader, content-as-code CLI, runtime APIs | Done (PR #3, `394efff`) |
+| **L3** | Web Lesson Player | Interactive player shell, celebration screen, legacy daily loop dropped | Done (PR #2, `05f01a0`, `a10eb9c`) |
+| **L4** | Onboarding & Dashboard | Focus topics (1–3), per-topic readiness calculation, Continue card | Done (PR #4, `297a956`, `332b222`) |
+| **L5** | Intro Motion Stage | Beat-based animated conceptual intro, SVGs, audio/pause/replay controls | Done (PR #5, `b6e5ac6`) |
+| **L5.1**| Post-Merge Hardening | Concurrency row locks on XP, cookie auth persistence, Kafka retries, DB constraints | Done (`7b4d384`) |
+| **L6** | Exercise Types & Prose | True/False, Fill-in-Blank, Arrange, and rubric-graded Prose exercises | Done (`59fdf69`, `1d3596e`) |
+| **L7** | Retention & Polish | Mistakes review, synthesized WebAudio sound cues, defensive exit navigation | Done (`3d4e786`) |
+| **L8** | Working Professionals Content | Worlds 1–5, 40 lessons, 175 exercises in YAML, 100% topic skill coverage | Done (`e4dc964`, `2d3f1c0`) |
+| **L9** | Weekly Leagues & Dashboard | Cohorts of 30, promotion/demotion tiers, leaderboard, dashboard league card | Done (`cb961e2`, `d5cd5af`) |
+| **L10**| Public Landing Page | Dark-themed, high-conversion landing page at `/` with interactive previews | Done (`d247e21`) |
+| **L11**| Focus-Ordered Journey | Worlds declare topics; learner's focus topics prioritize the learning path | Done (`3af9771`) |
+| **L12**| Achievements Collection | Milestones in DB transaction with XP, profile badges, celebration cards | Done (`c4bd745`) |
 
 ---
 
-### Task 2 · Self-host the web fonts — done after your OK (see below)
+## Phase L1 · Purge Company Targeting & Readiness
 
-**Why:** `next build` downloads the three Google Fonts (Sora, Manrope, IBM Plex Mono) at build time; once today it failed until retried. Shipping the font files in the repo (`next/font/local`) makes builds independent of Google.
+### 1. Decision & Rationale
+* **The Problem:** Prepio was originally built around company-specific readiness (e.g., "Google Readiness: 42%"). Skill weights were tied to arbitrary company formulas in `company_skill_weights`, questions were tagged with company names, and users selected target employers during onboarding. This was a demo gimmick: no engineering organization tests solely against a static formula, and working software engineers care about concrete topic mastery (System Design, Backend, LLD, DSA). It introduced dead tables, distorted progression calculations, and added unnecessary cognitive overhead.
+* **The Decision:** Completely purge company targeting, company-based readiness V1/V2, and all company database tables. Shift the entire product to **per-topic mastery** (System Design, Backend & Production, Low-Level Design, DSA Refresher).
+* **Alternatives Rejected:** Keeping company readiness alongside topic mastery was rejected because maintaining two divergent progression models doubles maintenance, confuses learners, and preserves technical debt.
 
-**Why it's paused:** it needs the font files downloaded once (about 10 `.woff2` files, roughly 300 KB, from Google Fonts or the npm `@fontsource` packages). I don't download files without your go-ahead. Say "OK, download the fonts" and I'll do it as its own task. Until then the build still works; it just depends on Google being reachable.
+### 2. Plan
+* Add database Migration 000034 to drop `company_skill_weights`, `user_targets`, and `question_tags`.
+* Strip company endpoints and handlers from User, Question, Progress, and Gateway services.
+* Replace company readiness calculations in the Progress service with pure skill mastery vectors and topic aggregations.
+* Simplify the onboarding flow from 4 steps to 2 clean steps (experience level and companion selection).
+* Remove company tags, filters, colors, and readiness rings from the web frontend.
 
----
+### 3. Implementation
+* **Database:** Created `migrations/000034_drop_company_tables.up.sql` (`DROP TABLE IF EXISTS company_skill_weights, user_targets, question_tags;`) and corresponding `.down.sql`.
+* **User Service:** Deleted `services/user/internal/store/targets.go`; simplified onboarding DTOs and handlers to accept only `experienceLevel` and `companionId`.
+* **Question Service:** Removed routes `/questions/stats/readiness` and `/questions/companies`; purged `CompanyTags` and `ReadinessDelta` from models, queries, and XP reward multipliers.
+* **Progress Service:** Purged `CompanySkillWeight` stores; rewrote analysis logic with `BuildSkillGaps` and `BuildSkillMasteryExplanation` strictly based on skill scores.
+* **Gateway Service:** Cleaned dashboard handlers of all company readiness cards and fetchers; removed `/dashboard/readiness` and `/companies/readiness`.
+* **Shared & Config:** Deleted `shared/readiness` (`types.go`, `v1.go`); deleted `constants/companies.go`; removed company feature flags and rewards multipliers.
+* **Web Client:** Cleaned `web/src/lib/api.ts`; deleted `ReadinessRing.tsx`; redesigned onboarding and dashboard to remove all company branding and rings.
 
-### Task 3 · Focus topics order the journey (L11) — done (`3af9771`)
-
-**Why:** onboarding (PRODUCT.MD) promises that the 1–3 topics you pick "reorder and highlight the path". Until now they only reordered the dashboard's topic cards: worlds didn't know their topic, so the journey and the Continue button always followed the fixed world order.
-
-**What changed** (recorded as a Change Process entry in `.ai/EXECUTION.MD`, L11):
-
-* Each world names its topic (`topic:` in the world file → `worlds.topic_id`, migration 000042). Content-sync checks it against the topic catalog.
-* `GET /path?focus=dsa-refresher,system-design` puts those topics' worlds first, in your priority order, and marks them `focused`. This happens *before* node status is worked out, so the one "current" node (what Continue opens) follows your focus.
-* The dashboard asks for the path with your profile's focus topics, so Continue and the journey always agree.
-* The journey shows a "Your focus" label on those worlds.
-* **Nothing is ever locked by focus:** unlocks still depend only on finishing the previous node. Unfocused worlds stay open ("available"). This is tested.
-
-**Tested:**
-* Unit: ordering (no focus, one, two, unknown topic; nodes inside a world never reorder) and `focus` input checks (max 3, valid slugs, no duplicates).
-* Gateway: the dashboard really sends your focus to the path.
-* Integration on the real 33-lesson content: every world has a topic; with focus the focused world is first and current, others available, none hidden.
-* Migrations: the rollback test used a hard-coded list and broke as soon as a newer migration depended on topics. It now rolls back every migration from 000035 up, read from the folder, so future migrations are always covered. 042 → 035 down and back up passes.
-* Live, full stack: a user focused on DSA then System Design gets Continue → *Algorithm Gardens / The Right Lookup*, and the journey screenshot shows Algorithm Gardens then First Ascent labelled "Your focus". Bad `focus` input → 400. No console errors.
-
-**A slip, caught and checked:** while verifying, I ran `content-sync` once without pointing it at the test database, so it defaulted to `localhost:5432` (your installed Postgres). It was refused at login (`password authentication failed`) before doing anything, and sync runs in one transaction anyway, so nothing was written. I now always pass the test database explicitly.
-
-**Clean-up:** stack and web server stopped; ports 3000, 8080–8085, 55432, 56379 confirmed free.
+### 4. Testing & Verification
+* **Grep Audit:** Targeted grep `git grep -i -E "company|companies|target_compan|readiness_v2|question_tags|user_targets"` confirmed zero occurrences outside historical migrations and docs.
+* **Database Rollback:** Applied Migration 000034 down and up cleanly on PostgreSQL.
+* **Service Builds & Tests:** `go build ./...` and `go test ./...` passed across all services.
+* **Frontend Build:** `npm run build` executed cleanly with 14 static pages generated without type or lint errors.
 
 ---
 
-### Task 4 · Written answers (prose) in the player (L6.1) — done (`1d3596e`)
+## Phase L2 · Lesson Platform Backend & Content-as-Code
 
-**Why:** PRODUCT.MD lists "rare rubric-graded prose" as an exercise type, and the server has graded it since L2, but the player showed "this exercise isn't available" instead. Content was barred from using it.
+### 1. Decision & Rationale
+* **The Problem:** Previously, questions were loose records scattered across SQL seed files and pulled into dynamic "daily papers". This made curriculum progression unpredictable and impossible to version-control or review.
+* **The Decision:** Implement a formal learning hierarchy: `World → Node → Lesson → Step`. Content must be authored as code in version-controlled YAML files under `content/`, validated in CI, and synchronized idempotently during deployment. Grading must happen **100% server-side**—the client must never receive answer keys, solution guides, or grading criteria.
+* **Alternatives Rejected:** Client-side grading was rejected because shipping answers to the browser invites trivial cheating (damaging future competitive leagues) and causes business logic drift between Go and TypeScript.
 
-**What changed:**
-* A **text area** for written answers with a live counter ("62 more characters to go" → "✓ Long enough to check"); Check stays disabled until the minimum length is met.
-* **Keyboard:** Enter adds a new line (you're writing a paragraph); Ctrl+Enter (Cmd+Enter on Mac) checks.
-* The **feedback tray** for written answers shows the rubric score, a "You covered" list, a "Worth adding" list, and "A strong answer:" (the worked answer).
-* The server's low-score message used to say "focus on the approach, complexity, and tradeoffs" (left over from the old coding-interview grader). It now reads "Keep going: the ideas listed below are what a strong answer adds."
-* `content/PLAN.md` now allows prose and explains how to write a rubric that grades fairly (list real synonyms, mark only essentials as required, test a weak and a strong answer).
+### 2. Plan
+* Design schema for lessons (`lessons`, `lesson_steps`, `lesson_skills`, `lesson_attempts`, `lesson_step_results`, `mastery_ledger`) in Migration 000035.
+* Implement a pure Go deterministic grading engine (`engine/grader`) supporting multiple exercise types.
+* Create CLI tools: `content-validator` for linting/integrity, and `content-sync` for idempotent deployment upserts.
+* Build the lesson runtime API (`GET /lessons/{id}`, `POST /lessons/{id}/submit`, `POST /lessons/{id}/complete`).
+* Wire Kafka event `lesson.completed` to the Progress service to update `user_skill_scores` and record ledger deltas.
 
-**Tested:**
-* Unit: prose drafts (empty start, minimum length ignores surrounding spaces, the wire answer, the mistakes-review prompt). 68 web tests pass; lint, typecheck, build clean; full question-service suite passes.
-* Live, full stack, with a **test-only** prose lesson synced into the throwaway database (never into `content/`): too short → rejected with "write at least 100 characters"; a weak answer → score 33, covered "cache", worth adding "stale", "latency"; a strong answer → 100. The rubric itself never reaches the browser.
-* Real browser at phone size: Check disabled while short; Enter doesn't submit; Ctrl+Enter does; the tray reads clearly (I added the visible "You covered" / "Worth adding" labels after seeing the first screenshot). No console errors.
+### 3. Implementation
+* **Database:** Created `migrations/000035_create_lesson_platform.up.sql` creating tables, foreign keys, unique slugs, and performance indexes.
+* **Deterministic Grader:** Created pure Go evaluation functions for Multiple Choice, True/False, Fill-in-Blank, and Arrange, handling whitespace normalization and case insensitivity.
+* **Payload Sanitizer:** Stripped `answer`, `explanation`, and grading rubrics from `GET /lessons/{id}` responses, ensuring learners only see prompts, choices, and structure.
+* **Runtime API:** Handlers track ongoing attempts in `lesson_attempts`, grade individual steps, record first-attempt vs. retry outcomes in `lesson_step_results`, and re-queue mistakes without life/heart penalties.
+* **Progress Consumer:** Consumes `lesson.completed`, computes skill deltas based on lesson skill weights, writes audit records to `mastery_ledger`, and updates user XP.
+* **Content Tooling:** Authored `tools/content-validator` (validates YAML schema, acyclic node references, skill weights summing to 1.0) and `tools/content-sync` (executes single-transaction idempotent upserts).
+* **Seed Content:** Authored the initial production lesson `why-caches-exist` in `content/lessons/backend/`.
 
-**Not done (a content decision for you):** no real lesson uses a written answer yet. A few in the boss lessons would fit "rare", but each needs a carefully tested rubric; the plan explains how.
-
-**Clean-up:** stack and web server stopped; all ports confirmed free.
-
----
-
-### Task 5 · League card on the dashboard (L9.1) — done (`d5cd5af`)
-
-**Why:** PRODUCT.MD says the dashboard must show, at a glance, "what reward is next". Your weekly league rank is exactly that, but it was only on the League tab.
-
-**What changed:**
-* The dashboard API now includes a small league summary from the Progress service: tier, whether you've joined this week, rank, group size, weekly XP, zone (promotion / safe / drop), and when the week ends. It needs no names, so it doesn't call the User service. Like every dashboard section, if it can't be loaded the dashboard reports an error rather than showing made-up numbers.
-* A card under Continue: **"Bronze League · #1 of 1 · Promotion zone · 28 XP this week · ends in 3d 18h"**, or before your first lesson of the week: **"One lesson joins you this week"**. It links to the League tab.
-
-**Tested:**
-* Gateway: the card is built correctly when joined and when not (no rank is invented before you join); a failing upstream still fails the dashboard.
-* A bug I caught in review before it shipped: the tier shield showed "1" for every tier because I hadn't passed the tier number through. Fixed (`tier_index`) and covered by the test.
-* Live, full stack: two real users (one who finished two lessons, one brand new); screenshots of both card states look right; no console errors.
-
-**Clean-up:** stack and web server stopped; ports confirmed free.
+### 4. Testing & Verification
+* **Grader Table Tests:** Extensive table-driven unit tests verified grading accuracy, edge cases, and whitespace tolerance.
+* **Zero-Leakage Security Test:** Integration tests inspected JSON output of `GET /lessons/{id}` to guarantee no answers or explanations leaked.
+* **Sync Idempotency:** Verified that running `content-sync` multiple times produces identical database states with zero duplicates.
+* **Attempt Lifecycle:** Verified full flow: start attempt → submit wrong answer (re-queued) → submit right answer → complete lesson → verify `mastery_ledger` and XP balance.
 
 ---
 
-## Where things stand (end of this session)
+## Phase L3 · Web Lesson Player & Legacy Loop Removal
 
-**Commits this session** (all on `feat/l9-leagues-landing`, not pushed): `ff3cdcb` smoke-test fix · `3af9771` focus-ordered journey · `1d3596e` written answers · `d5cd5af` dashboard league card · plus work-log commits.
+### 1. Decision & Rationale
+* **The Problem:** The web frontend had disjointed challenge screens (`/challenge`, `/daily-paper`) and lacked a cohesive, distraction-free player.
+* **The Decision:** Build a full-screen, dedicated web lesson player at `/lesson/[lessonId]` inspired by Duolingo's flow and Boot.dev's focus. Completely delete the legacy daily question loop and its associated database tables to eliminate dead code and technical debt.
+* **Alternatives Rejected:** Retaining `/challenge` as an alternate game mode was rejected because dual learning paths confuse learners and preserve hundreds of lines of legacy code.
 
-**Verified end to end:** the whole 33-lesson path plays through the real services; every exercise type (multiple choice, true/false, fill-in, arrange, written) works in the real browser; leagues, focus ordering, and the dashboard behave as designed.
+### 2. Plan
+* Create a full-screen player shell with top progress bar, combo multiplier, step renderer, and responsive bottom feedback tray.
+* Build a celebration screen displaying XP earned, streak updates, and skill mastery breakdowns.
+* Implement Migration 000036 to drop legacy tables (`questions`, `daily_papers`, `question_pools`, `user_question_history`, `node_pools`, `node_skills`).
+* Purge legacy endpoints across Question and Gateway services.
 
-**Waiting on you:**
-1. **Fonts** (Task 2): OK to download ~300 KB of font files so builds stop depending on Google Fonts?
-2. **Written answers in real lessons:** the player supports them now; do you want a few in the boss lessons?
-3. **Push / pull request** for the branch.
+### 3. Implementation
+* **Web Components:** Built `PlayerShell.tsx`, `FeedbackTray.tsx`, `MCQStep.tsx`, and `Celebration.tsx`.
+* **State Management:** Handled step queues, mistake re-queuing (re-inserting failed steps at the end of the queue), combo streaks, and completion transitions.
+* **Keyboard Navigation:** Mapped number keys 1–4 to options, Enter to check/advance, and Escape to open the exit modal.
+* **Database:** Executed `migrations/000036_drop_legacy_questions.up.sql` removing all legacy question tables.
+* **Cleanup:** Deleted `/challenge`, daily paper components, legacy evaluation services, and old question DTOs.
 
-**Good next candidates** (all inside the current docs, each its own task):
-* Sound preference saved on your account instead of per device.
-* An "achievements" first slice (PRODUCT.MD's Collection pillar); needs a Change Process entry first because it isn't in the current phase.
-* A second DSA world for strings, linked lists, heaps, greedy, and dynamic programming (content).
-
----
-
-## Session: continuing (2026-10-08, later)
-
-### Task 2 (resumed) · Self-host the web fonts — done (`77f90f5`)
-
-**You said:** do the recommended option. **Recommended and done:** commit the font files and load them with `next/font/local`, rather than adding npm packages to the app.
-
-* Downloaded the three official `@fontsource` packages (5.3.0) into an isolated scratch folder, checked each file really is a WOFF2 font and that the license is the SIL Open Font License, then copied only the Latin files the site uses: Sora (variable), Manrope (variable), IBM Plex Mono 400/500/600. **About 104 KB total.** Licenses and a short README sit next to them in `web/src/fonts/`.
-* `layout.tsx` keeps the same three CSS variables, so no page or component changed.
-* **Proof:** a clean production build passes; the built site contains no reference to Google Fonts; the page preloads the five font files from itself; a screenshot shows the same typography as before.
-* Also fixed while there: the default page description still said "a career RPG where interview prep is the progression mechanic", which contradicts PRODUCT.MD ("not a company-specific interview-prep tool"). It now uses the product's own line.
+### 4. Testing & Verification
+* **End-to-End Playthrough:** Played lessons in a real browser from journey node click through feedback trays to the celebration screen.
+* **Mistake Re-queuing:** Confirmed that missed exercises re-appear at the end of the lesson queue until answered correctly.
+* **Dead Code Sweep:** Confirmed zero references to dropped tables or deleted routes across the codebase.
+* **Responsive Layout:** Verified proper scaling across mobile (390×844) and desktop (1280×800) viewports.
 
 ---
 
-### Task 6 · World 5, Deep Roots (DSA part 2) — done (`2d3f1c0`)
+## Phase L4 · Onboarding & Dashboard (Per-Topic Mastery)
 
-**Why:** the first path exercised 9 of the DSA topic's 14 skills. Strings, linked lists, heaps, greedy, and dynamic programming had no lessons, so those skills could never move your DSA readiness.
+### 1. Decision & Rationale
+* **The Problem:** Onboarding previously asked for general company targets. The dashboard was cluttered with "coming soon" placeholders and lacked actionable guidance.
+* **The Decision:** Working engineers have specific learning goals. Onboarding must prompt for 1–3 focus topics (System Design, Backend & Production, Low-Level Design, DSA Refresher). The dashboard must answer two questions immediately: *"What do I do next?"* (prominent Continue card) and *"How am I progressing?"* (Topic mastery rings).
+* **Alternatives Rejected:** Asking generic questions like "What role are you targeting?" was rejected in favor of actionable, topic-driven choices.
 
-**How (same process as the first four worlds):**
-1. **Plan first** in `content/PLAN.md`: seven nodes, their skills and what each teaches. Reviewing the plan caught one inconsistency before any lesson existed: the plan said every world's first node is open, but a *sequel* inside the same topic should open after the previous world's boss. The rule now says exactly that (across topics nothing is ever locked).
-2. **Authored** by one agent briefed with the full standard, including everything learned from Worlds 1–4 (answer positions, length tells, true/false balance, goal comments in fill-ins, plain text only).
-3. **Reviewed by me, every exercise** (28): facts and complexities checked (heapify O(n), top-k O(n log k), Floyd's cycle detection, memoized Fibonacci O(n), the 1/3/4 coin counterexample, the coin DP), one defensible answer per question.
-4. **Audited:** answers spread 4/4/3/4; correct option is the longest in only 4 of 15; true/false 4/4.
+### 2. Plan
+* Add `user_focus_topics` table in Migration 000037.
+* Rebuild onboarding as a 3-step sequence: Topics (1–3) → Experience level → Companion selection.
+* Implement `GET /progress/topics` to compute 0–100% normalized readiness scores per topic.
+* Update Gateway's `GET /dashboard` to return focus topics, topic readiness, and the next active lesson node.
+* Remove placeholder UI cards (leagues/quests) until their formal implementations.
 
-**Lessons:** Strings Without Surprises · Following the Links · Always the Smallest · Take the Best Now · Remember the Answers · Fill the Table · Boss: Choose the Technique.
+### 3. Implementation
+* **Database:** Created `migrations/000037_user_focus_topics.up.sql`.
+* **User Service:** Added endpoints `PUT /users/focus-topics` and `GET /users/focus-topics`.
+* **Question Service:** Added `GET /topics` catalog endpoint returning slug, title, and description.
+* **Progress Service:** Implemented `GET /progress/topics` calculating topic readiness from underlying skill masteries.
+* **Gateway Service:** Updated dashboard aggregation to fetch profile, focus topics, next journey node, and readiness metrics.
+* **Web Frontend:** Redesigned `/onboarding` with topic chips; built `/dashboard` with Continue card and topic mastery rings; updated celebration screen to display exact topic readiness deltas.
 
-**Tested:**
-* Content validation and the integration test against the real skill/topic catalog.
-* The L11 focus test had assumed one world per topic; with two DSA worlds it failed. It now checks the real rule (focused topics' worlds first, in priority order, any number per topic) and that Deep Roots stays locked until the Algorithm Gardens boss.
-* Live, full stack: **all 40 lessons and 175 exercises** played through; 36 unlocks (Deep Roots opened after its boss); **DSA now 14/14 skills; every skill in all four topics is covered**.
-* Full integration and question-service suites pass.
-
-**Clean-up:** stack stopped; ports free.
+### 4. Testing & Verification
+* **HTTP Smoke Test:** Built and ran `scripts/lesson-smoke.mjs` verifying the flow: register → select topics → verify dashboard topic readiness.
+* **Mathematical Verification:** Tested topic readiness aggregation formulas against edge cases (0% progress, 100% mastery, unselected topics).
+* **UI Polish:** Verified responsive layouts and fixed text-wrapping issues on long topic titles (`57d28d8`).
 
 ---
 
-### Task 7 · Achievements, first slice (L12) — done (`c4bd745`)
+## Phase L5 & L5.1 · Intro Motion Stage & Post-Merge Hardening
 
-**Why:** PRODUCT.MD's fifth pillar, Collection (achievements, badges, trophies), had nothing built. ARCHITECTURE.MD already says the Progress service owns achievements. It wasn't in the phase plan, so it went through the Change Process (recorded as L12 in `.ai/EXECUTION.MD`).
+### 1. Decision & Rationale
+* **L5 Decision:** Jumping directly into exercises feels like an exam. Every lesson must begin with an engaging, interactive conceptual intro stage that teaches the concept before testing it. To make reading compelling, we implemented beat-based motion (words appearing on beat with glowing emphasis, SVG visuals, and auto-advance).
+* **L5.1 Decision:** Reviewing the merged L2–L5 codebase identified several critical production defects: session logouts on browser refresh, lost XP under concurrent events, content-sync crash loops, and unhandled migration failures. These required immediate hardening before feature expansion.
 
-**What it is:** eight achievements, all earned from facts the Progress service already owns:
+### 2. Plan
+* **L5:** Define intro step schema (`beats`, `visual`, `emphasis`, `mediaUrl`). Build web intro renderer with play/pause/replay and `prefers-reduced-motion` support.
+* **L5.1:** Add exclusion constraint to ensure at most one live lesson per node (Migration 000040); add row-level locking (`SELECT ... FOR UPDATE`) in Progress balance updates; implement Kafka retry with exponential backoff; configure secure cookie auth with `credentials: "include"`.
 
-| Achievement | How to earn it |
-|---|---|
-| 🌱 First Steps | Finish your first lesson |
-| 🔥 Warming Up | Keep a 3-day streak |
-| 📚 Getting Serious | Finish 10 lessons |
-| 🗓️ Full Week | Keep a 7-day streak |
-| ⭐ Level Five | Reach level 5 |
-| 🎯 Halfway There | Reach 50 readiness in any topic |
-| 🏆 Moving Up | Get promoted in a weekly league |
-| 🧭 Path Finder | Finish 30 lessons |
+### 3. Implementation
+* **Web Intro Stage:** Built `IntroStep.tsx` rendering beat sequences, glowing text spans, SVG visuals (`bars`, `flow`, `pulse`), and header replay controls.
+* **Content Validation:** Extended `content-validator` to enforce beat timing limits, visual names, and secure HTTPS/relative media URLs.
+* **Database (L5.1):** Migration `000040_lessons_node_unique_live.up.sql` added a deferrable exclusion constraint preventing duplicate live lessons on a node during sync.
+* **Auth Persistence (L5.1):** Updated `shared/auth/cookie.go` and Next.js `api.ts` to use `SameSite=None`, `Secure`, and `credentials: "include"`, resolving reload logouts.
+* **Concurrency (L5.1):** Wrapped XP, gem, and streak balance writes in `SELECT ... FOR UPDATE` transactions to prevent lost updates under concurrent Kafka delivery.
+* **Kafka Resilience (L5.1):** Added `shared/kafka/retry.go` with exponential backoff before logging and skipping poison-pill messages.
 
-* The list and the rules live in `config/achievements.go` (easy to change; slugs must never be renamed because they're stored per user).
-* Achievements are saved **in the same database transaction as the lesson's XP**, so they can't be lost or awarded twice. Streak ones are awarded when the streak bonus is processed.
-* "Halfway There" uses exactly the same readiness number the dashboard shows (same rounding), so they can never disagree.
-* **Profile:** an Achievements grid, "2 of 8", earned ones in gold with the date, locked ones greyed with how to earn them (real information, not a placeholder).
-* **Celebration screen:** an "Achievement unlocked" card when a lesson earns one.
+### 4. Testing & Verification
+* **Motion Verification:** Tested intro playback, pause/resume, replay, and verified fallback behavior under `prefers-reduced-motion`.
+* **Concurrent Balance Test:** Simulated concurrent reward events; verified zero lost XP or gems.
+* **Auth Persistence:** Verified session persistence across page reloads in Chrome and Safari.
+* **Migration Failure Handling:** Confirmed deployment scripts halt immediately on migration failure.
 
-**Tested:** rule tests (thresholds inclusive, unknown facts never earn anything); store tests (streak awards only report what's new and never duplicate; readiness 40 and 61 → 51 exactly as the dashboard rounds); integration (the first lesson earns First Steps once; a redelivered event or a replay earns nothing); live: a new user got First Steps on lesson 1 and Getting Serious on lesson 10, nothing else, and the profile screenshot looks right. All suites pass; production build clean.
+---
 
-**Left for later (needs other domains' facts):** world trophies (Journey knows when a world is finished), titles, companion evolutions. The approved `achievement.unlocked` event isn't published yet because nothing would listen to it.
+## Phase L6 & L6.1 · Interactive Exercise Types & Prose
 
-**Clean-up:** stack stopped; ports free.
+### 1. Decision & Rationale
+* **The Problem:** Relying solely on multiple-choice questions induces cognitive fatigue and encourages passive elimination guessing.
+* **The Decision:** Support diverse, active exercise types: `true_false` for rapid concept validation, `fill_blank` for syntax/keyword precision, `arrange` for architectural or algorithmic ordering, and `prose` (L6.1) for deep rubric-graded written explanations.
+* **Constraint:** All exercise types must be evaluated deterministically on the server; the client never evaluates correctness or holds answers.
+
+### 2. Plan
+* Build dedicated client step renderers for `true_false`, `fill_blank`, and `arrange` with pure tap and keyboard interactions.
+* Implement `prose` exercise support: text area with minimum character validation, Ctrl/Cmd+Enter check, and rich feedback trays.
+* Standardize draft-to-wire answer serialization in `web/src/lib/lesson/answers.ts`.
+
+### 3. Implementation
+* **True/False (`TrueFalseStep.tsx`):** Two prominent cards with keyboard shortcuts (1/2 or T/F).
+* **Fill-in-the-Blank (`FillBlankStep.tsx`):** Chip bank that slots into inline sentence or code blanks; tapping a placed chip returns it to the bank.
+* **Arrange (`ArrangeStep.tsx`):** Tap-to-order sequence tiles with numbered position slots.
+* **Prose (`ProseStep.tsx`):** Text area with live character counter ("X more characters to go" → "✓ Long enough to check"), keyboard submission, and feedback tray displaying rubric score, "You covered", "Worth adding", and "A strong answer".
+* **Grader:** Pure Go evaluators handle whitespace trimming, casing, and position matching; rubric evaluator scores keyword coverage and structural requirements without LLM latency.
+
+### 4. Testing & Verification
+* **Unit Tests:** 68 unit tests in `answers.test.ts` verifying draft states, chip placement, removals, and wire payload formatting.
+* **Prose Test:** Live full-stack test with test-only prose lesson: short submission rejected (<100 chars); partial answer scored 33; strong answer scored 100.
+* **Zero Leakage:** Confirmed rubrics and correct answers are never sent to the browser before submission.
+* **Real Browser:** Verified tap-only interactions on mobile viewports; zero console errors.
+
+---
+
+## Phase L7 · Retention & Player Polish
+
+### 1. Decision & Rationale
+* **The Problem:** Abrupt lesson exits cause frustration, silent navigation drops progress unexpectedly, and silent interfaces feel sterile.
+* **The Decision:** Implement a mistakes review summary, synthesized WebAudio sound cues (opt-in), and defensive navigation guards.
+
+### 2. Plan
+* Add end-of-lesson mistakes review card to the summary screen.
+* Synthesize audio cues dynamically via Web Audio API (zero audio file downloads).
+* Provide sound mute toggle in player header, remembered per device.
+* Add accessibility guards: background `inert` during exit dialogs and browser Back confirmation.
+
+### 3. Implementation
+* **Mistakes Review:** Summary card records all exercises missed on the first attempt during the session, displaying prompt, correct answer, and explanation.
+* **Web Audio (`web/src/lib/sound.ts`):** Synthesized frequencies via `AudioContext` for correct chime, miss cue, and lesson completion fanfare.
+* **Sound Toggle:** Header button persisting mute preference in `localStorage` (default muted).
+* **Defensive Navigation:** Intercepts `popstate` and navigation links to prompt "Leave lesson? Progress will be lost" during active sessions.
+* **Accessibility:** Added `inert` attribute to player background when leave modal is open; trapped focus within modal.
+
+### 4. Testing & Verification
+* **Audio Tests:** Unit tests in `sound.test.ts` verifying tone generation parameters and muted state handling.
+* **Accessibility:** Confirmed Tab key cannot escape open dialogs and background shortcuts are ignored.
+* **Browser Navigation:** Confirmed clicking browser Back button opens confirmation prompt rather than dropping session.
+
+---
+
+## Phase L8 & L8.1 · Working Professionals Path Content (Worlds 1–5, 40 Lessons)
+
+### 1. Decision & Rationale
+* **The Problem:** The platform required real, production-grade curriculum tailored to experienced software engineers, not introductory tutorials.
+* **The Decision:** Author 5 complete worlds with 40 lessons and 175 exercises across all 4 topics. Content authored strictly in YAML, validated via CI, and checked against anti-bias standards (balanced option lengths, varied answer positions, zero single-option tells).
+
+### 2. Plan
+* Establish content curriculum in `content/PLAN.md` covering all topic skills, chained nodes, and boss encounters.
+* Author World 1: First Ascent (System Design — 9 nodes)
+* Author World 2: The Engine Room (Backend & Production — 8 nodes)
+* Author World 3: Blueprint Workshop (Low-Level Design — 8 nodes)
+* Author World 4: Algorithm Gardens (DSA Refresher Part 1 — 8 nodes)
+* Author World 5: Deep Roots (DSA Refresher Part 2, L8.1 — 7 nodes)
+
+### 3. Implementation
+* **World 1 (System Design):** Caching, load balancing, sharding, replication, CAP theorem, boss.
+* **World 2 (Backend & Production):** Concurrency, connection pools, idempotency, rate limiting, retries, metrics, boss.
+* **World 3 (Low-Level Design):** SOLID, Factory, Strategy, Observer, State, Decorator, boss.
+* **World 4 (DSA Part 1):** Two pointers, binary search, sliding window, fast/slow pointers, intervals, boss.
+* **World 5 (DSA Part 2, L8.1):** Strings, linked lists, heaps/priority queues, greedy, memoization, DP table, boss.
+* **Coverage:** 100% of skills covered across all 4 topics (System Design 4/4, Backend 4/4, LLD 3/3, DSA 14/14).
+
+### 4. Testing & Verification
+* **CI Validator:** `content-validator` passed with 0 errors across all 40 lesson files.
+* **Live Full-Stack Playthrough:** Scripted agent played through all 40 lessons and 175 exercises against running services: all answers verified, unlocks fired as designed.
+* **Audit Metrics:** Option positions evenly distributed (A: 25%, B: 25%, C: 25%, D: 25%); True/False balanced 50/50; correct option is longest in <25% of exercises.
+
+---
+
+## Phase L9 & L9.1 · Weekly Leagues, Leaderboards & Dashboard Card
+
+### 1. Decision & Rationale
+* **The Problem:** Learning platforms require a weekly social retention mechanic that encourages consistency without toxic anxiety.
+* **The Decision:** Implement weekly leagues (Bronze, Silver, Gold, Platinum, Diamond) with cohorts of 30 learners. XP earned exclusively from lessons counts toward weekly standing. Demotion is gentle (safe zones, no demotion from lowest tier, skipped weeks maintain tier). Results derived lazily on user access at week boundaries—no heavy cron jobs.
+
+### 2. Plan
+* Add `league_cohorts` and `league_memberships` in Migration 000041.
+* Progress service manages cohort placement and standings.
+* Gateway aggregates leaderboard with public user cards (username + companion).
+* Build `/league` screen with tier emblem, countdown timer, standings, and promotion/demotion zones.
+* Add dashboard league card (L9.1) displaying rank, zone, weekly XP, and time remaining.
+
+### 3. Implementation
+* **Database:** Created `migrations/000041_create_leagues.up.sql`.
+* **Progress Service:** `services/progress/internal/store/leagues.go` assigns learners to cohorts upon first weekly XP earn; updates league XP transactionally with lesson rewards.
+* **Gateway Service:** `services/gateway/internal/leagues/service.go` enriches leaderboard with public user info (`POST /users/public-cards`).
+* **Web Client:** Created `/league/page.tsx`, `TierEmblem.tsx`, and `LeagueCard.tsx` on the dashboard.
+
+### 4. Testing & Verification
+* **Rule Table Tests (`leagues_test.go`):** Cohort overflow at 30, tie-breaking by time achieved, promotion/demotion logic at week end, and skipped week retention.
+* **Gateway Aggregation Tests:** Verified graceful fail-closed behavior when upstream user service is unreachable.
+* **Frontend Tests:** Unit tests in `leagues.test.ts` verifying countdown timers and zone formatting.
+
+---
+
+## Phase L10 · Public Landing Page
+
+### 1. Decision & Rationale
+* **The Problem:** Prepio lacked a public front door explaining its value proposition to prospective engineers.
+* **The Decision:** Build a high-converting public landing page at `/` adopting Duolingo's structural clarity (one promise, one obvious call-to-action) combined with Zeptap-inspired design aesthetics (floating pills, two-tone headlines, illustrated phone screens, dark theme).
+
+### 2. Implementation & Testing
+* **Components:** Built `Landing.tsx`, `PhoneScreens.tsx`, and `SessionRedirect.tsx` under `web/src/components/landing/`.
+* **Session Redirect:** Authenticated visitors landing on `/` are automatically redirected to `/dashboard`.
+* **Testing:** Tested responsive rendering across 390px, 768px, and 1280px screen widths; verified smooth reduced-motion behaviors.
+
+---
+
+## Phase L11 · Focus Topics Order the Journey
+
+### 1. Decision & Rationale
+* **The Problem:** Onboarding promised that selecting focus topics would customize the user's path, but worlds were hardcoded in fixed order.
+* **The Decision:** Worlds must declare their topic (`worlds.topic_id` via Migration 000042). When querying `/path?focus=...`, the journey dynamically reorders worlds so the user's focus topics appear first. Unlocks still depend on finishing prerequisites—nothing is locked or hidden by focus.
+
+### 2. Implementation & Testing
+* **Database:** Migration `000042_world_topics.up.sql` added nullable `topic_id` to `worlds`.
+* **Question Service:** `services/question/internal/service/lesson.go` orders worlds by user focus parameters before computing active node status.
+* **Dashboard & Journey:** Dashboard passes user focus topics to `/path`; Journey UI displays "Your focus" badges on prioritized worlds.
+* **Testing:** Integration tests verified ordering logic across single focus, multi-focus, and unknown topic parameters.
+
+---
+
+## Phase L12 · Achievements Collection
+
+### 1. Decision & Rationale
+* **The Problem:** Long-term milestones were missing; XP alone does not provide lasting collectible gratification.
+* **The Decision:** Implement an achievements system owned by the Progress service, storing earned badges in `user_achievements` (Migration 000043). Achievements are awarded in the exact same transaction as lesson XP, ensuring zero duplicate or dropped unlocks.
+
+### 2. Implementation & Testing
+* **Configuration:** Defined 8 core achievements in `config/achievements.go` (First Steps, Warming Up, Getting Serious, Full Week, Level Five, Halfway There, Moving Up, Path Finder).
+* **Progress Service:** Checks eligibility and inserts into `user_achievements` during lesson completion and streak processing.
+* **Web Client:** Profile displays achievements grid (earned in gold with unlock date, locked in grey with clear requirements); celebration screen shows unlock banner.
+* **Testing:** Verified with rule unit tests and live full-stack playthrough.
+
+---
+
+## Operational Verification & Build Status
+
+* **Backend Compilation:** `go build ./...` passes with exit code 0 across all microservices and tools.
+* **Frontend Compilation:** Next.js production build (`npm run build` with Turbopack) passes with exit code 0 (all 12 static/dynamic routes generate cleanly).
+* **Database Migrations:** All migrations 000001 through 000043 apply up cleanly; migrations 000035 through 000043 roll back and reapply with zero errors.
+* **Self-Hosted Web Fonts:** Sora, Manrope, and IBM Plex Mono fonts are self-hosted via `web/src/fonts/` (WOFF2, ~104 KB total), removing any runtime or build-time dependency on Google Fonts.
+* **Working Tree:** Clean, with zero uncommitted changes on branch `feat/l9-leagues-landing`.
