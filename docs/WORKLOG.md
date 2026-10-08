@@ -106,3 +106,38 @@ Anything outside `.ai/EXECUTION.MD`'s scope goes through its Change Process and 
 **Not done (a content decision for you):** no real lesson uses a written answer yet. A few in the boss lessons would fit "rare", but each needs a carefully tested rubric; the plan explains how.
 
 **Clean-up:** stack and web server stopped; all ports confirmed free.
+
+---
+
+### Task 5 · League card on the dashboard (L9.1) — done (`d5cd5af`)
+
+**Why:** PRODUCT.MD says the dashboard must show, at a glance, "what reward is next". Your weekly league rank is exactly that, but it was only on the League tab.
+
+**What changed:**
+* The dashboard API now includes a small league summary from the Progress service: tier, whether you've joined this week, rank, group size, weekly XP, zone (promotion / safe / drop), and when the week ends. It needs no names, so it doesn't call the User service. Like every dashboard section, if it can't be loaded the dashboard reports an error rather than showing made-up numbers.
+* A card under Continue: **"Bronze League · #1 of 1 · Promotion zone · 28 XP this week · ends in 3d 18h"**, or before your first lesson of the week: **"One lesson joins you this week"**. It links to the League tab.
+
+**Tested:**
+* Gateway: the card is built correctly when joined and when not (no rank is invented before you join); a failing upstream still fails the dashboard.
+* A bug I caught in review before it shipped: the tier shield showed "1" for every tier because I hadn't passed the tier number through. Fixed (`tier_index`) and covered by the test.
+* Live, full stack: two real users (one who finished two lessons, one brand new); screenshots of both card states look right; no console errors.
+
+**Clean-up:** stack and web server stopped; ports confirmed free.
+
+---
+
+## Where things stand (end of this session)
+
+**Commits this session** (all on `feat/l9-leagues-landing`, not pushed): `ff3cdcb` smoke-test fix · `3af9771` focus-ordered journey · `1d3596e` written answers · `d5cd5af` dashboard league card · plus work-log commits.
+
+**Verified end to end:** the whole 33-lesson path plays through the real services; every exercise type (multiple choice, true/false, fill-in, arrange, written) works in the real browser; leagues, focus ordering, and the dashboard behave as designed.
+
+**Waiting on you:**
+1. **Fonts** (Task 2): OK to download ~300 KB of font files so builds stop depending on Google Fonts?
+2. **Written answers in real lessons:** the player supports them now; do you want a few in the boss lessons?
+3. **Push / pull request** for the branch.
+
+**Good next candidates** (all inside the current docs, each its own task):
+* Sound preference saved on your account instead of per device.
+* An "achievements" first slice (PRODUCT.MD's Collection pillar); needs a Change Process entry first because it isn't in the current phase.
+* A second DSA world for strings, linked lists, heaps, greedy, and dynamic programming (content).
