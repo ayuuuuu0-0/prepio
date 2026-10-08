@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"errors"
 	"time"
 
 	"github.com/google/uuid"
@@ -19,39 +20,29 @@ type EventPublisher interface {
 // ProgressService owns XP, gems, and level state.
 type ProgressService struct {
 	progress  *store.ProgressStore
-	ledger    *store.LedgerStore
 	publisher EventPublisher
 }
 
 // NewProgressService creates a ProgressService.
-func NewProgressService(progress *store.ProgressStore, ledger *store.LedgerStore, publisher EventPublisher) *ProgressService {
-	return &ProgressService{progress: progress, ledger: ledger, publisher: publisher}
+func NewProgressService(progress *store.ProgressStore, publisher EventPublisher) *ProgressService {
+	return &ProgressService{progress: progress, publisher: publisher}
 }
 
-// ProcessStreakUpdated awards streak bonus gems when a streak increments.
+// ProcessStreakUpdated awards streak bonus gems when a streak increments. Redelivery is safe.
 func (s *ProgressService) ProcessStreakUpdated(ctx context.Context, event events.StreakUpdated) error {
 	if event.StreakBroken || event.CurrentStreak <= event.PreviousStreak {
 		return nil
 	}
+	if !validIDs(event.EventID, event.UserID) {
+		return ErrInvalidRequest
+	}
 
 	gems := config.StreakIncrementGemBonus
-	state, err := s.progress.Get(ctx, event.UserID)
-	if err != nil {
+	state, applied, err := s.progress.AwardGems(ctx, event.UserID, gems, "streak_increment", event.EventID)
+	if err != nil || !applied {
 		return err
 	}
-
-	levelBefore := config.CurrentLevel(state.TotalXP)
-	state.GemBalance += gems
-	state.CurrentLevel = config.CurrentLevel(state.TotalXP)
-
-	if err := s.progress.Upsert(ctx, *state); err != nil {
-		return err
-	}
-	if err := s.ledger.InsertGem(ctx, event.UserID, gems, "streak_increment", event.EventID); err != nil {
-		return err
-	}
-
-	return s.emitUpdated(ctx, event.UserID, 0, gems, state, levelBefore)
+	return s.emitUpdated(ctx, event.UserID, 0, gems, state, config.CurrentLevel(state.TotalXP))
 }
 
 // GetMe returns the authenticated user's progress summary.
@@ -79,34 +70,14 @@ func (s *ProgressService) GetGems(ctx context.Context, userID string) (int, erro
 
 // DeductGems deducts gems for transactional operations like streak freeze purchase.
 func (s *ProgressService) DeductGems(ctx context.Context, userID string, amount int, reason string) (int, error) {
-	if amount <= 0 {
+	if amount <= 0 || !validIDs(userID) {
 		return 0, ErrInvalidRequest
 	}
-
-	state, err := s.progress.Get(ctx, userID)
-	if err != nil {
-		return 0, err
+	balance, err := s.progress.DeductGems(ctx, userID, amount, reason)
+	if errors.Is(err, store.ErrInsufficientGems) {
+		return 0, ErrInsufficientGems
 	}
-	if state.GemBalance < amount {
-		// ensure row exists before deduct attempt
-		if err := s.progress.Upsert(ctx, *state); err != nil {
-			return 0, err
-		}
-	}
-
-	balance, err := s.progress.DeductGems(ctx, userID, amount)
-	if err != nil {
-		if err == store.ErrInsufficientGems {
-			return 0, ErrInsufficientGems
-		}
-		return 0, err
-	}
-
-	eventID := uuid.NewString()
-	if err := s.ledger.InsertGem(ctx, userID, -amount, reason, eventID); err != nil {
-		return 0, err
-	}
-	return balance, nil
+	return balance, err
 }
 
 func (s *ProgressService) emitUpdated(ctx context.Context, userID string, xp, gems int, state *store.ProgressState, levelBefore int) error {

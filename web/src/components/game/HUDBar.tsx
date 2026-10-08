@@ -6,11 +6,15 @@ import { LEVEL_THRESHOLDS } from "@/lib/design/tokens";
 /** HUDBar combines companion badge, streak, gems, and XP progress in one row. */
 export function HUDBar({ home }: { home: DashboardHome }) {
   const { streak, progress, companion } = home;
+  // The level end comes from the server (total + xp_to_next_level). The server does not send where the
+  // current level started, so that one bound is read from LEVEL_THRESHOLDS (mirrors config/levels.go).
   const levelStart = LEVEL_THRESHOLDS[progress.current_level - 1] ?? 0;
-  const levelEnd = LEVEL_THRESHOLDS[progress.current_level] ?? levelStart + 1000;
-  const xpInLevel = progress.total_xp - levelStart;
+  const levelEnd = progress.total_xp + progress.xp_to_next_level;
   const xpForLevel = levelEnd - levelStart;
-  const xpPct = xpForLevel > 0 ? Math.min(100, Math.round((xpInLevel / xpForLevel) * 100)) : 100;
+  const xpPct =
+    progress.xp_to_next_level <= 0 || xpForLevel <= 0
+      ? 100
+      : Math.max(0, Math.min(100, Math.round(((progress.total_xp - levelStart) / xpForLevel) * 100)));
 
   return (
     <div

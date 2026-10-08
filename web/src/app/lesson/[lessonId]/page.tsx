@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from "react";
 import { api, ApiRequestError, Profile } from "@/lib/api";
@@ -73,6 +72,7 @@ export default function LessonPlayerPage() {
 }
 
 function LoadError({ error, onRetry }: { error: { code: string; message: string }; onRetry: () => void }) {
+  const router = useRouter();
   const locked = error.code === "lesson_locked";
   const missing = error.code === "lesson_not_found";
   const title = locked ? "This lesson is still locked" : missing ? "We can't find that lesson" : "Something went wrong";
@@ -99,11 +99,9 @@ function LoadError({ error, onRetry }: { error: { code: string; message: string 
             Try again
           </GameButton>
         )}
-        <Link href="/journey">
-          <GameButton type="button" variant={locked || missing ? "primary" : "ghost"}>
-            Back to journey
-          </GameButton>
-        </Link>
+        <GameButton type="button" variant={locked || missing ? "primary" : "ghost"} onClick={() => router.push("/journey")}>
+          Back to journey
+        </GameButton>
       </div>
     </div>
   );
@@ -170,17 +168,20 @@ function Player({
     dispatch({ type: "continue" });
   }, []);
 
-  // Enter checks the selected answer. (On the feedback tray, Enter presses its focused Continue button.)
+  // Enter checks the selected answer, also when focus sits on an option after a click or Tab.
+  // Other focused buttons (Check, exit, intro; the feedback tray's Continue) keep their own Enter.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key !== "Enter" || confirmingExit) return;
+      if (e.key !== "Enter" || confirmingExit || session.phase !== "answering" || selected === null) return;
       const target = e.target as HTMLElement | null;
-      if (target?.getAttribute("role") === "radio" || target?.tagName === "BUTTON") return;
-      if (session.phase === "answering") check();
+      const onOption = target?.getAttribute("role") === "radio";
+      if (!onOption && target?.tagName === "BUTTON") return;
+      e.preventDefault();
+      check();
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [check, session.phase, confirmingExit]);
+  }, [check, session.phase, confirmingExit, selected]);
 
   // When every graded step is solved, complete the attempt; the server decides if it really is complete.
   useEffect(() => {
@@ -221,7 +222,17 @@ function Player({
       .catch(() => setStreak(null));
   }, [completion?.attempt_id]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const backToJourney = () => router.push(completion ? `/journey?done=${completion.node_id}` : "/journey");
+  // Tell the journey which node was finished and which nodes the server reports as newly unlocked.
+  const backToJourney = () => {
+    if (!completion) {
+      router.push("/journey");
+      return;
+    }
+    const q = new URLSearchParams({ done: completion.node_id });
+    const unlocked = completion.unlocked_nodes.map((n) => n.id);
+    if (unlocked.length > 0) q.set("unlocked", unlocked.join(","));
+    router.push(`/journey?${q.toString()}`);
+  };
 
   // Finished: celebration and summary.
   if (session.phase === "finished") {
@@ -286,7 +297,9 @@ function Player({
       onCancelExit={() => setConfirmingExit(false)}
       onConfirmExit={() => router.push("/journey")}
       tray={tray}
-      onReplayIntro={session.hasIntro && session.phase === "answering" ? () => dispatch({ type: "replayIntro" }) : undefined}
+      onReplayIntro={
+        session.hasIntro && session.phase === "answering" && !submitting ? () => dispatch({ type: "replayIntro" }) : undefined
+      }
       companion={<CompanionHero name={companionName} species={companionSpecies} size="sm" reaction={reaction} />}
     >
       {session.phase === "intro" && intro?.intro ? (

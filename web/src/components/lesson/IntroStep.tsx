@@ -19,10 +19,16 @@ function pieces(beat: Beat): Piece[] {
 }
 
 function Media({ url }: { url: string }) {
+  const reduced = useReducedMotion();
   const [failed, setFailed] = useState(false);
   const kind = mediaKind(url);
   if (!kind || failed) return null;
   const cls = "max-h-48 w-auto max-w-full rounded-2xl object-contain";
+  if (kind === "video" && reduced) {
+    // Reduced motion: no autoplay or loop, just the still first frame. (No controls: the media sits
+    // inside the intro's tap-to-advance button, where interactive content is not allowed.)
+    return <video src={url} className={cls} muted playsInline preload="auto" aria-hidden onError={() => setFailed(true)} />;
+  }
   return kind === "video" ? (
     <video src={url} className={cls} autoPlay muted loop playsInline aria-hidden onError={() => setFailed(true)} />
   ) : (

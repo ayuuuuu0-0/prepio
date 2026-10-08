@@ -3,6 +3,7 @@ package kafka
 import (
 	"context"
 	"fmt"
+	"log"
 
 	"github.com/segmentio/kafka-go"
 )
@@ -82,8 +83,14 @@ func (c *Consumer) Run(ctx context.Context, handler MessageHandler) error {
 			return fmt.Errorf("fetch message: %w", err)
 		}
 
-		if err := handler(ctx, msg.Key, msg.Value); err != nil {
-			return fmt.Errorf("handle message: %w", err)
+		// A failing handler is retried with backoff; if it still fails, the message
+		// is logged and committed so one poison event cannot stall the partition.
+		if err := handleWithRetry(ctx, defaultRetryPolicy, handler, msg.Key, msg.Value); err != nil {
+			if ctx.Err() != nil {
+				return ctx.Err()
+			}
+			log.Printf("kafka: skipping message topic=%s partition=%d offset=%d after %d attempts: %v",
+				msg.Topic, msg.Partition, msg.Offset, defaultRetryPolicy.attempts, err)
 		}
 
 		if err := c.reader.CommitMessages(ctx, msg); err != nil {

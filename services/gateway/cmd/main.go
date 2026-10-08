@@ -94,7 +94,6 @@ func main() {
 			r.Post("/lessons/{id}/attempts", questionProxy.ServeHTTP)
 			r.Post("/attempts/{id}/steps/{stepId}/answer", questionProxy.ServeHTTP)
 			r.Post("/attempts/{id}/complete", lessonsHandler.Complete)
-			r.Get("/skills/readiness", progressProxy.ServeHTTP)
 			r.Handle("/skills/*", questionProxy)
 			r.Get("/skills", questionProxy.ServeHTTP)
 			r.Post("/auth/logout", userProxy.ServeHTTP)

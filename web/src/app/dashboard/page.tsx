@@ -130,8 +130,8 @@ export default function DashboardPage() {
         </section>
 
         <button
-          onClick={() => {
-            api.setAuthTokens(null, null);
+          onClick={async () => {
+            await api.logout();
             router.push("/login");
           }}
           className="mt-10 w-full text-center font-mono text-xs font-semibold transition-colors"

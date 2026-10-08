@@ -10,7 +10,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestReadinessStoreUpsertAndList(t *testing.T) {
+func TestReadinessStoreListTopicSkills(t *testing.T) {
 	pool, _ := testdb.Start(t)
 	testdb.Migrate(t, pool)
 
@@ -23,16 +23,25 @@ func TestReadinessStoreUpsertAndList(t *testing.T) {
 		VALUES ('r@test.com', 'ruser', 'hash') RETURNING id`).Scan(&userID))
 
 	skillID := "b2000001-0000-4000-8000-000000000002"
-	practicedAt := time.Now().UTC()
 	_, err := pool.Exec(ctx, `
 		INSERT INTO user_skill_scores (user_id, skill_id, mastery, attempts, last_practiced_at, source)
-		VALUES ($1, $2, 72, 3, $3, 'live')`, userID, skillID, practicedAt)
+		VALUES ($1, $2, 72, 3, $3, 'live')`, userID, skillID, time.Now().UTC())
 	require.NoError(t, err)
 
-	scores, err := readinessStore.ListUserSkillScores(ctx, userID)
+	rows, err := readinessStore.ListTopicSkills(ctx, userID)
 	require.NoError(t, err)
-	require.Len(t, scores, 1)
-	require.Equal(t, "arrays", scores[0].SkillSlug)
-	require.Equal(t, 72, scores[0].Mastery)
-	require.Equal(t, 3, scores[0].Attempts)
+	require.NotEmpty(t, rows)
+
+	var practiced *store.TopicSkillRow
+	for i := range rows {
+		if rows[i].SkillSlug == "arrays" {
+			practiced = &rows[i]
+		} else {
+			require.Nil(t, rows[i].Mastery, rows[i].SkillSlug)
+		}
+	}
+	require.NotNil(t, practiced, "arrays skill should belong to a topic")
+	require.NotNil(t, practiced.Mastery)
+	require.Equal(t, 72, *practiced.Mastery)
+	require.Equal(t, 3, practiced.Attempts)
 }

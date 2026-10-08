@@ -30,7 +30,7 @@ done
 
 echo "Applying migrations if needed..."
 if command -v migrate >/dev/null 2>&1; then
-  migrate -path migrations -database "$DATABASE_URL" up 2>/dev/null || true
+  migrate -path migrations -database "$DATABASE_URL" up
 else
   applied=$(docker compose exec -T postgres psql -U prepio -d prepio -tAc "SELECT COUNT(*) FROM schema_migrations" 2>/dev/null || echo "0")
   if [ "${applied:-0}" = "0" ]; then

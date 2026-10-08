@@ -30,7 +30,7 @@ export default function RegisterPage() {
     setError("");
     try {
       const res = await api.register(email, username, password);
-      api.setAuthTokens(res.access_token, res.refresh_token);
+      api.setAuthTokens(res.access_token);
       router.push("/onboarding");
     } catch (err) {
       setError(err instanceof Error ? err.message : "registration failed");

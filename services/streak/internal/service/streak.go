@@ -195,7 +195,9 @@ func applyActivity(state *store.StreakState, activityDate time.Time, freezeCount
 	consumedFreeze := false
 	changed := false
 
-	if state.LastActivityDate != nil && calendarDateFromDB(*state.LastActivityDate).Equal(activityDate) {
+	// Activity on or before the last recorded day changes nothing: a late or
+	// redelivered event must never reset the streak or move the date backwards.
+	if state.LastActivityDate != nil && !activityDate.After(calendarDateFromDB(*state.LastActivityDate)) {
 		return updated, false, false
 	}
 

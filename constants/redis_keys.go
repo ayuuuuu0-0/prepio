@@ -12,11 +12,6 @@ func StreakKey(userID string) string {
 	return fmt.Sprintf("streak:%s", userID)
 }
 
-// GemsKey returns the Redis read cache key for a user's gem balance.
-func GemsKey(userID string) string {
-	return fmt.Sprintf("gems:%s", userID)
-}
-
 // NotifCapKey returns the Redis key for daily notification count.
 func NotifCapKey(userID, dateYYYYMMDD string) string {
 	return fmt.Sprintf("notif_cap:%s:%s", userID, dateYYYYMMDD)

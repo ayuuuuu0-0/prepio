@@ -2,6 +2,7 @@ package integration_test
 
 import (
 	"context"
+	"os"
 	"path/filepath"
 	"testing"
 
@@ -45,4 +46,100 @@ func TestAuthoredContent(t *testing.T) {
 	require.NoError(t, err)
 	require.NotEmpty(t, path.Worlds)
 	require.Equal(t, "current", path.Worlds[0].Nodes[0].Status)
+}
+
+// TestContentSyncReplacesLessonOnNode proves a lesson can be replaced on its node:
+// the removed lesson is deprecated (never deleted) and the new one serves the path.
+// It also proves two lessons can swap nodes in one sync.
+func TestContentSyncReplacesLessonOnNode(t *testing.T) {
+	pool, _ := testdb.Start(t)
+	testdb.Migrate(t, pool)
+	ctx := context.Background()
+
+	sync := questiontest.NewContentSync(pool)
+	lessons := questiontest.NewLessonService(pool, &fakes.KafkaProducer{})
+	skills, err := sync.SkillSlugs(ctx)
+	require.NoError(t, err)
+	userID := newUser(t, pool, "replacer")
+
+	content := testContent()
+	_, err = sync.Sync(ctx, content)
+	require.NoError(t, err)
+
+	lessonStatus := func(slug string) (id, status string) {
+		t.Helper()
+		require.NoError(t, pool.QueryRow(ctx, `SELECT id, status FROM lessons WHERE slug = $1`, slug).Scan(&id, &status))
+		return id, status
+	}
+	pathLessons := func() []string {
+		t.Helper()
+		path, err := lessons.GetPath(ctx, userID)
+		require.NoError(t, err)
+		require.Len(t, path.Worlds, 1)
+		ids := []string{}
+		for _, n := range path.Worlds[0].Nodes {
+			ids = append(ids, n.LessonID)
+		}
+		return ids
+	}
+
+	// Replace lesson-one by lesson-three on the same node.
+	replaced := testContent()
+	replaced.Lessons[0].Slug = "lesson-three"
+	replaced.Lessons[0].Title = "Lesson Three"
+	require.Empty(t, questiontest.Validate(replaced, skills))
+	report, err := sync.Sync(ctx, replaced)
+	require.NoError(t, err)
+	require.Equal(t, 1, report.LessonsCreated)
+	require.Equal(t, 1, report.LessonsDeprecated)
+
+	oneID, oneStatus := lessonStatus("lesson-one")
+	threeID, threeStatus := lessonStatus("lesson-three")
+	twoID, _ := lessonStatus("lesson-two")
+	require.Equal(t, "deprecated", oneStatus)
+	require.Equal(t, "published", threeStatus)
+	require.Equal(t, []string{threeID, twoID}, pathLessons(), "the path serves the replacement, never both")
+	require.NotContains(t, pathLessons(), oneID)
+
+	// Swap the two live lessons between their nodes in one sync.
+	swapped := testContent()
+	swapped.Lessons[0].Slug, swapped.Lessons[0].Title = "lesson-three", "Lesson Three"
+	swapped.Lessons[0].Node, swapped.Lessons[1].Node = "n-next", "n-start"
+	require.Empty(t, questiontest.Validate(swapped, skills))
+	_, err = sync.Sync(ctx, swapped)
+	require.NoError(t, err)
+	require.Equal(t, []string{twoID, threeID}, pathLessons())
+
+	// Two live lessons on one node are still rejected (checked at commit).
+	_, err = pool.Exec(ctx, `UPDATE lessons SET status = 'published' WHERE id = $1`, oneID)
+	require.Error(t, err, "a node binds at most one live lesson")
+}
+
+// TestLessonNodeUniqueMigrationRollsBack proves 000040 rolls back and re-applies.
+func TestLessonNodeUniqueMigrationRollsBack(t *testing.T) {
+	pool, _ := testdb.Start(t)
+	testdb.Migrate(t, pool)
+	ctx := context.Background()
+
+	run := func(suffix string) {
+		t.Helper()
+		raw, err := os.ReadFile(filepath.Join("..", "..", "migrations", "000040_lessons_node_unique_live."+suffix+".sql"))
+		require.NoError(t, err)
+		_, err = pool.Exec(ctx, string(raw))
+		require.NoError(t, err, suffix)
+	}
+	constraint := func(name string) bool {
+		var ok bool
+		require.NoError(t, pool.QueryRow(ctx,
+			`SELECT EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid = 'lessons'::regclass AND conname = $1)`, name).Scan(&ok))
+		return ok
+	}
+
+	require.True(t, constraint("lessons_node_id_live_excl"))
+	require.False(t, constraint("lessons_node_id_key"))
+	run("down")
+	require.False(t, constraint("lessons_node_id_live_excl"))
+	require.True(t, constraint("lessons_node_id_key"))
+	run("up")
+	require.True(t, constraint("lessons_node_id_live_excl"))
 }

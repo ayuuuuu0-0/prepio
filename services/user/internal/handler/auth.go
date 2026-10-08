@@ -37,7 +37,7 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	auth.SetRefreshTokenCookie(w, resp.RefreshToken)
+	auth.SetRefreshTokenCookie(w, r, resp.RefreshToken)
 	response.Data(w, http.StatusCreated, resp)
 }
 
@@ -55,7 +55,7 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	auth.SetRefreshTokenCookie(w, resp.RefreshToken)
+	auth.SetRefreshTokenCookie(w, r, resp.RefreshToken)
 	response.Data(w, http.StatusOK, resp)
 }
 
@@ -77,7 +77,7 @@ func (h *AuthHandler) Refresh(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	auth.SetRefreshTokenCookie(w, resp.RefreshToken)
+	auth.SetRefreshTokenCookie(w, r, resp.RefreshToken)
 	response.Data(w, http.StatusOK, resp)
 }
 
@@ -94,7 +94,7 @@ func (h *AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	auth.ClearRefreshTokenCookie(w)
+	auth.ClearRefreshTokenCookie(w, r)
 	response.Data(w, http.StatusOK, map[string]bool{"logged_out": true})
 }
 

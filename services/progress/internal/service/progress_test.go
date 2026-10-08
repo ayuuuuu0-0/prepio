@@ -20,7 +20,7 @@ func setupProgress(t *testing.T) (*service.ProgressService, *fakes.KafkaProducer
 	pool, _ := testdb.Start(t)
 	testdb.Migrate(t, pool)
 	publisher := &fakes.KafkaProducer{}
-	svc := service.NewProgressService(store.NewProgressStore(pool), store.NewLedgerStore(pool), publisher)
+	svc := service.NewProgressService(store.NewProgressStore(pool), publisher)
 
 	ctx := context.Background()
 	var userID string

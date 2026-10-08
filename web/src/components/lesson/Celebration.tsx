@@ -147,12 +147,9 @@ export function Celebration({
                     animationDelay: "0.55s",
                   }}
                 >
-                  <p className="font-display flex items-center justify-between text-base font-extrabold" style={{ color: "#E8EAED" }}>
-                    <span>
-                      <span aria-hidden className="mr-2">{theme.icon}</span>
-                      {group.topicName}
-                    </span>
-                    <span style={{ color: theme.tint }}>{formatDelta(group.total)}</span>
+                  <p className="font-display text-base font-extrabold" style={{ color: "#E8EAED" }}>
+                    <span aria-hidden className="mr-2">{theme.icon}</span>
+                    {group.topicName}
                   </p>
                   <ul className="mt-2 flex flex-wrap gap-2">
                     {group.skills.map((skill) => (

@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import { api } from "@/lib/api";
@@ -62,6 +61,9 @@ function JourneyContent() {
   const router = useRouter();
   const params = useSearchParams();
   const doneNodeId = params.get("done");
+  // Only nodes the server reported as newly unlocked by that completion (passed by the lesson page).
+  const unlockedParam = params.get("unlocked") ?? "";
+  const unlockedIds = useMemo(() => new Set(unlockedParam.split(",").filter(Boolean)), [unlockedParam]);
 
   const [path, setPath] = useState<PathData | null>(null);
   const [error, setError] = useState("");
@@ -102,11 +104,12 @@ function JourneyContent() {
   const allNodes = useMemo(() => path?.worlds.flatMap((w) => w.nodes) ?? [], [path]);
   const next = allNodes.find((n) => n.status === "current");
   const justDone = doneNodeId ? allNodes.find((n) => n.id === doneNodeId) : undefined;
+  const justUnlocked = doneNodeId ? allNodes.filter((n) => unlockedIds.has(n.id)) : [];
 
   const animationFor = (node: PathNode): "complete" | "unlock" | null => {
     if (!doneNodeId) return null;
     if (node.id === doneNodeId) return "complete";
-    if (node.status === "current" || node.status === "available") return node === next ? "unlock" : null;
+    if (unlockedIds.has(node.id) && node.status !== "locked") return "unlock";
     return null;
   };
 
@@ -151,9 +154,9 @@ function JourneyContent() {
                 <p className="font-display text-sm font-extrabold" style={{ color: "#34D399" }}>
                   {justDone.label} complete
                 </p>
-                {next && (
+                {justUnlocked.length > 0 && (
                   <p className="mt-0.5 text-xs font-semibold" style={{ color: "#C8CCDA" }}>
-                    Unlocked: {next.label}
+                    Unlocked: {justUnlocked.map((n) => n.label).join(" · ")}
                   </p>
                 )}
               </div>
@@ -194,9 +197,9 @@ function JourneyContent() {
             {next && (
               <div className="fixed bottom-20 left-0 right-0 z-40 px-4">
                 <div className="mx-auto max-w-lg">
-                  <Link href={`/lesson/${next.lesson_id}`}>
-                    <GameButton type="button">{next.in_progress ? "Continue" : "Start"}: {next.title}</GameButton>
-                  </Link>
+                  <GameButton type="button" onClick={() => router.push(`/lesson/${next.lesson_id}`)}>
+                    {next.in_progress ? "Continue" : "Start"}: {next.title}
+                  </GameButton>
                 </div>
               </div>
             )}

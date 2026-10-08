@@ -41,13 +41,13 @@ export function coverageText(started: number, total: number): string {
 export type MasteryGroup = {
   topicSlug: string;
   topicName: string;
-  total: number;
   skills: { slug: string; name: string; delta: number }[];
 };
 
 /**
- * groupMasteryChanges explains a mastery change by topic, so "System Design +3" is always
- * accompanied by the skills that moved it. Skills that did not move are left out.
+ * groupMasteryChanges files the server-reported skill deltas under their topic name, e.g.
+ * "System Design · Caching +1 · Load Balancing +1". It deliberately produces no topic-level
+ * number: topic readiness is computed by the server, never summed here. Unmoved skills are left out.
  */
 export function groupMasteryChanges(changes: MasteryChange[]): MasteryGroup[] {
   const groups: MasteryGroup[] = [];
@@ -56,10 +56,9 @@ export function groupMasteryChanges(changes: MasteryChange[]): MasteryGroup[] {
     const slug = c.topic_slug || "other";
     let group = groups.find((g) => g.topicSlug === slug);
     if (!group) {
-      group = { topicSlug: slug, topicName: c.topic_name || "Other skills", total: 0, skills: [] };
+      group = { topicSlug: slug, topicName: c.topic_name || "Other skills", skills: [] };
       groups.push(group);
     }
-    group.total += c.delta;
     group.skills.push({ slug: c.skill_slug, name: c.skill_name, delta: c.delta });
   }
   return groups;

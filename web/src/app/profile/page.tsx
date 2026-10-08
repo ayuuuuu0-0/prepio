@@ -89,8 +89,8 @@ export default function ProfilePage() {
         )}
 
         <button
-          onClick={() => {
-            api.setAuthTokens(null, null);
+          onClick={async () => {
+            await api.logout();
             router.push("/login");
           }}
           className="mt-8 w-full text-center font-mono text-sm font-semibold transition-colors"

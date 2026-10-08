@@ -44,7 +44,6 @@ func main() {
 
 	progressService := service.NewProgressService(
 		store.NewProgressStore(pool),
-		store.NewLedgerStore(pool),
 		producer,
 	)
 	readinessStore := store.NewReadinessStore(pool)
@@ -106,7 +105,6 @@ func main() {
 	r.Route("/api/v1", func(r chi.Router) {
 		r.Use(middleware.Auth(signer, redisClient))
 		r.Get("/progress/me", progressHandler.GetMe)
-		r.Get("/skills/readiness", readinessHandler.GetSkillReadiness)
 		r.Get("/progress/topics", readinessHandler.GetTopicMastery)
 		r.Get("/progress/attempts/{attemptID}/rewards", lessonHandler.GetAttemptRewards)
 	})

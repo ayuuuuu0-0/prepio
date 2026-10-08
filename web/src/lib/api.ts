@@ -7,7 +7,6 @@ import type {
 } from "@/lib/lesson/types";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080";
-const REFRESH_KEY = "prepio_refresh_token"; // mobile fallback only
 
 export type ApiError = { code: string; message: string };
 
@@ -30,31 +29,28 @@ export class ApiClient {
   private accessToken: string | null = null;
   private refreshPromise: Promise<boolean> | null = null;
 
-  /** setAuthTokens stores access token in memory; refresh token lives in httpOnly cookie (set by server). */
-  setAuthTokens(accessToken: string | null, refreshToken: string | null = null) {
-    void refreshToken;
+  /** setAuthTokens stores the access token in memory; the refresh token lives in an httpOnly cookie set by the server. */
+  setAuthTokens(accessToken: string | null) {
     this.accessToken = accessToken;
     if (typeof window !== "undefined") {
-      sessionStorage.removeItem(REFRESH_KEY);
       localStorage.removeItem("prepio_access_token");
     }
   }
 
-  /** setToken clears or sets access token only (legacy). */
-  setToken(token: string | null) {
-    this.accessToken = token;
-    if (!token && typeof window !== "undefined") {
-      sessionStorage.removeItem(REFRESH_KEY);
-      localStorage.removeItem("prepio_access_token");
+  /** logout revokes the session server-side (clearing the refresh cookie) and forgets the access token. */
+  async logout(): Promise<void> {
+    try {
+      if (this.accessToken) {
+        await this.request<unknown>("/api/v1/auth/logout", { method: "POST" }, false);
+      }
+    } catch {
+      // Best effort: the local session is dropped regardless.
+    } finally {
+      this.setAuthTokens(null);
     }
   }
 
-  /** loadToken returns the in-memory access token. */
-  loadToken() {
-    return this.accessToken;
-  }
-
-  /** ensureSession bootstraps access token via refresh token on page load. */
+  /** ensureSession bootstraps the access token from the refresh cookie on page load. */
   async ensureSession(): Promise<boolean> {
     if (this.accessToken) return true;
     if (typeof window === "undefined") return false;
@@ -76,14 +72,15 @@ export class ApiClient {
       try {
         const res = await fetch(`${API_URL}/api/v1/auth/refresh`, {
           method: "POST",
+          credentials: "include",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ refresh_token: "" }),
         });
-        const body = await res.json();
         if (!res.ok) return false;
-
-        const data = (body as Envelope<AuthResponse>).data;
-        this.accessToken = data.access_token;
+        const body = parseBody(await res.text()) as Envelope<AuthResponse> | null;
+        const token = body?.data?.access_token;
+        if (!token) return false;
+        this.accessToken = token;
         return true;
       } catch {
         return false;
@@ -104,19 +101,32 @@ export class ApiClient {
       headers.Authorization = `Bearer ${this.accessToken}`;
     }
 
-    const res = await fetch(`${API_URL}${path}`, { ...init, headers });
-    const body = await res.json();
+    const res = await fetch(`${API_URL}${path}`, { ...init, headers, credentials: "include" });
 
     if (res.status === 401 && retry) {
       const refreshed = await this.refreshAccessToken();
       if (refreshed) return this.request<T>(path, init, false);
-      this.setAuthTokens(null, null);
+      this.setAuthTokens(null);
       throw new ApiRequestError("session expired — please log in again", 401, "unauthorized");
     }
 
+    let text = "";
+    try {
+      text = await res.text();
+    } catch {
+      // An unreadable body is treated like an empty one.
+    }
+    const body = parseBody(text);
+
     if (!res.ok) {
-      const err = (body as ErrorEnvelope).error;
-      throw new ApiRequestError(err?.message ?? "request failed", res.status, err?.code ?? "unknown");
+      const err = (body as Partial<ErrorEnvelope> | null)?.error;
+      const fallback = res.statusText
+        ? `request failed (${res.status} ${res.statusText})`
+        : `request failed (${res.status})`;
+      throw new ApiRequestError(err?.message ?? fallback, res.status, err?.code ?? "unknown");
+    }
+    if (body === null || typeof body !== "object" || !("data" in body)) {
+      throw new ApiRequestError("unexpected response from server", res.status, "bad_response");
     }
     return (body as Envelope<T>).data;
   }
@@ -162,6 +172,7 @@ export class ApiClient {
   getDashboardHome() {
     return this.request<DashboardHome>("/api/v1/dashboard/home");
   }
+
 
   /** getPath returns worlds and nodes with status, previews, and unlock hints. */
   getPath() {
@@ -257,6 +268,16 @@ export type DashboardHome = {
   companion_message: string;
   onboarding_needed: boolean;
 };
+
+/** parseBody parses a JSON body; empty or non-JSON bodies (e.g. an HTML proxy error page) yield null. */
+function parseBody(text: string): unknown {
+  if (!text) return null;
+  try {
+    return JSON.parse(text);
+  } catch {
+    return null;
+  }
+}
 
 export const api = new ApiClient();
 

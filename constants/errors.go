@@ -2,64 +2,44 @@ package constants
 
 // API error codes returned in the error envelope.
 const (
-	ErrInvalidRequest          = "invalid_request"
-	ErrUnauthorized            = "unauthorized"
-	ErrForbidden               = "forbidden"
-	ErrNotFound                = "not_found"
-	ErrConflict                = "conflict"
-	ErrInternal                = "internal_error"
-	ErrRateLimited             = "rate_limited"
+	ErrInvalidRequest = "invalid_request"
+	ErrUnauthorized   = "unauthorized"
+	ErrForbidden      = "forbidden"
+	ErrNotFound       = "not_found"
+	ErrConflict       = "conflict"
+	ErrInternal       = "internal_error"
+	ErrRateLimited    = "rate_limited"
 
 	// Auth
-	ErrInvalidCredentials      = "invalid_credentials"
-	ErrEmailTaken              = "email_taken"
-	ErrUsernameTaken           = "username_taken"
-	ErrInvalidToken            = "invalid_token"
-	ErrTokenExpired            = "token_expired"
-	ErrTokenRevoked            = "token_revoked"
-	ErrRefreshTokenInvalid     = "refresh_token_invalid"
-	ErrRefreshTokenExpired     = "refresh_token_expired"
+	ErrInvalidCredentials  = "invalid_credentials"
+	ErrEmailTaken          = "email_taken"
+	ErrUsernameTaken       = "username_taken"
+	ErrInvalidToken        = "invalid_token"
+	ErrTokenRevoked        = "token_revoked"
+	ErrRefreshTokenInvalid = "refresh_token_invalid"
 
 	// Users
-	ErrUserNotFound            = "user_not_found"
-	ErrCharacterNotFound       = "character_not_found"
-	ErrCharacterAlreadyUnlocked = "character_already_unlocked"
-	ErrCharacterNotUnlocked    = "character_not_unlocked"
-	ErrInsufficientGems        = "insufficient_gems"
-	ErrDeviceNotFound          = "device_not_found"
+	ErrUserNotFound     = "user_not_found"
+	ErrInsufficientGems = "insufficient_gems"
+	ErrDeviceNotFound   = "device_not_found"
 
 	// Skills
-	ErrSkillNotFound           = "skill_not_found"
-
-	// Journey
-	ErrJourneyNodeNotFound     = "journey_node_not_found"
+	ErrSkillNotFound = "skill_not_found"
 
 	// Lessons
-	ErrLessonNotFound          = "lesson_not_found"
-	ErrLessonLocked            = "lesson_locked"
-	ErrAttemptNotFound         = "attempt_not_found"
-	ErrStepNotFound            = "step_not_found"
-	ErrAttemptNotInProgress    = "attempt_not_in_progress"
-	ErrAttemptIncomplete       = "attempt_incomplete"
-	ErrInvalidAnswer           = "invalid_answer"
-	ErrInvalidTry              = "invalid_try"
-
-	// Questions
-	ErrQuestionNotFound        = "question_not_found"
-	ErrQuestionNotInSession    = "question_not_in_session"
-	ErrSessionNotFound         = "session_not_found"
-	ErrSessionExpired          = "session_expired"
-	ErrDailyPaperUnavailable   = "daily_paper_unavailable"
-	ErrAnswerAlreadySubmitted  = "answer_already_submitted"
+	ErrLessonNotFound       = "lesson_not_found"
+	ErrLessonLocked         = "lesson_locked"
+	ErrAttemptNotFound      = "attempt_not_found"
+	ErrStepNotFound         = "step_not_found"
+	ErrAttemptNotInProgress = "attempt_not_in_progress"
+	ErrAttemptIncomplete    = "attempt_incomplete"
+	ErrInvalidAnswer        = "invalid_answer"
+	ErrInvalidTry           = "invalid_try"
 
 	// Streaks
-	ErrStreakNotFound          = "streak_not_found"
-	ErrStreakFreezeMaxHeld     = "streak_freeze_max_held"
+	ErrStreakFreezeMaxHeld          = "streak_freeze_max_held"
 	ErrStreakFreezeInsufficientGems = "streak_freeze_insufficient_gems"
 
 	// Progress
-	ErrProgressNotFound        = "progress_not_found"
-
-	// Leaderboard
-	ErrLeaderboardUnavailable  = "leaderboard_unavailable"
+	ErrProgressNotFound = "progress_not_found"
 )

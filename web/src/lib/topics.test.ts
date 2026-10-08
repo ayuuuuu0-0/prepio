@@ -38,16 +38,25 @@ describe("coverageText", () => {
 });
 
 describe("groupMasteryChanges", () => {
-  it("groups skills under their topic and sums the movement", () => {
+  it("groups skills under their topic without inventing a topic number", () => {
     const groups = groupMasteryChanges([
       change({ skill_slug: "caching", skill_name: "Caching", delta: 2 }),
       change({ skill_slug: "lb", skill_name: "Load Balancing", delta: 1 }),
       change({ skill_slug: "api", skill_name: "API Design", topic_slug: "backend-production", topic_name: "Backend & Production", delta: 3 }),
     ]);
     expect(groups).toHaveLength(2);
-    expect(groups[0]).toMatchObject({ topicName: "System Design", total: 3 });
+    expect(groups[0]).toEqual({
+      topicSlug: "system-design",
+      topicName: "System Design",
+      skills: [
+        { slug: "caching", name: "Caching", delta: 2 },
+        { slug: "lb", name: "Load Balancing", delta: 1 },
+      ],
+    });
+    expect(groups[0]).not.toHaveProperty("total");
     expect(groups[0].skills.map((s) => s.name)).toEqual(["Caching", "Load Balancing"]);
-    expect(groups[1]).toMatchObject({ topicName: "Backend & Production", total: 3 });
+    expect(groups[1]).toMatchObject({ topicName: "Backend & Production" });
+    expect(groups[1].skills).toEqual([{ slug: "api", name: "API Design", delta: 3 }]);
   });
 
   it("leaves out skills that did not move and handles skills with no topic", () => {
@@ -56,7 +65,8 @@ describe("groupMasteryChanges", () => {
       change({ skill_slug: "loose", skill_name: "Loose", topic_slug: undefined, topic_name: undefined, delta: 2 }),
     ]);
     expect(groups).toHaveLength(1);
-    expect(groups[0]).toMatchObject({ topicName: "Other skills", total: 2 });
+    expect(groups[0]).toMatchObject({ topicSlug: "other", topicName: "Other skills" });
+    expect(groups[0].skills).toEqual([{ slug: "loose", name: "Loose", delta: 2 }]);
   });
 
   it("returns nothing when nothing moved", () => {

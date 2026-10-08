@@ -35,7 +35,7 @@ export default function LoginPage() {
     setError("");
     try {
       const res = await api.login(email, password);
-      api.setAuthTokens(res.access_token, res.refresh_token);
+      api.setAuthTokens(res.access_token);
       const profile = await api.getProfile();
       router.push(profile.onboarding_completed ? "/dashboard" : "/onboarding");
     } catch (err) {

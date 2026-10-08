@@ -188,10 +188,23 @@ func syncPrerequisites(ctx context.Context, tx pgx.Tx, c *lesson.Content, nodeID
 	return nil
 }
 
+// syncLessons deprecates lessons removed from content first, then upserts the
+// authored ones. Deprecating first frees the nodes the removed lessons held, so a
+// replacement lesson can bind to the same node. A node holds at most one live
+// (non-deprecated) lesson; that constraint is checked at commit, so lessons may
+// also swap nodes within one sync.
 func syncLessons(ctx context.Context, tx pgx.Tx, c *lesson.Content, nodeIDs, skillIDs map[string]string, report *SyncReport) error {
 	slugs := make([]string, 0, len(c.Lessons))
 	for _, l := range c.Lessons {
 		slugs = append(slugs, l.Slug)
+	}
+	tag, err := tx.Exec(ctx, `UPDATE lessons SET status = 'deprecated' WHERE status <> 'deprecated' AND slug <> ALL($1)`, slugs)
+	if err != nil {
+		return fmt.Errorf("deprecate lessons: %w", err)
+	}
+	report.LessonsDeprecated = int(tag.RowsAffected())
+
+	for _, l := range c.Lessons {
 		hash, err := l.Hash()
 		if err != nil {
 			return err
@@ -249,12 +262,6 @@ func syncLessons(ctx context.Context, tx pgx.Tx, c *lesson.Content, nodeIDs, ski
 			report.LessonsUnchanged++
 		}
 	}
-
-	tag, err := tx.Exec(ctx, `UPDATE lessons SET status = 'deprecated' WHERE status <> 'deprecated' AND slug <> ALL($1)`, slugs)
-	if err != nil {
-		return fmt.Errorf("deprecate lessons: %w", err)
-	}
-	report.LessonsDeprecated = int(tag.RowsAffected())
 	return nil
 }
 

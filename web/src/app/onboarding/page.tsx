@@ -32,16 +32,26 @@ export default function OnboardingPage() {
   const selectedCompanion = companions.find((c) => c.id === companionId);
 
   useEffect(() => {
-    if (!api.loadToken()) {
-      router.replace("/login");
-      return;
-    }
-    Promise.all([api.getCompanions(), api.getTopics()])
-      .then(([c, t]) => {
+    let cancelled = false;
+    (async () => {
+      const ok = await api.ensureSession();
+      if (cancelled) return;
+      if (!ok) {
+        router.replace("/login");
+        return;
+      }
+      try {
+        const [c, t] = await Promise.all([api.getCompanions(), api.getTopics()]);
+        if (cancelled) return;
         setCompanions(c);
         setTopics(t);
-      })
-      .catch((err) => setError(err instanceof Error ? err.message : "Failed to load onboarding"));
+      } catch (err) {
+        if (!cancelled) setError(err instanceof Error ? err.message : "Failed to load onboarding");
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, [router]);
 
   function toggleTopic(slug: string) {

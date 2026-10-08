@@ -10,7 +10,6 @@ import (
 func NewService(pool *pgxpool.Pool, publisher service.EventPublisher) *service.ProgressService {
 	return service.NewProgressService(
 		store.NewProgressStore(pool),
-		store.NewLedgerStore(pool),
 		publisher,
 	)
 }

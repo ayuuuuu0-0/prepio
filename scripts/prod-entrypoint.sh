@@ -17,9 +17,8 @@ echo "PostgreSQL is ready and accepting connections."
 
 # Execute database migrations
 echo "Executing database migrations..."
-migrate -path /app/migrations -database "$DATABASE_URL" up || {
-  echo "Migration failed or already up to date."
-}
+# A failed migration must stop the deploy (migrate exits 0 when there is nothing to apply).
+migrate -path /app/migrations -database "$DATABASE_URL" up
 
 # Load authored worlds and lessons (idempotent). Invalid content must stop the deploy.
 echo "Syncing lesson content..."

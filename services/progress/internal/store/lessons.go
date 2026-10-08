@@ -163,12 +163,11 @@ func applyMastery(ctx context.Context, tx pgx.Tx, event events.LessonCompleted, 
 }
 
 func applyRewards(ctx context.Context, tx pgx.Tx, event events.LessonCompleted, out *LessonOutcome) error {
-	var totalXP, gems int
-	err := tx.QueryRow(ctx,
-		`SELECT total_xp, gem_balance FROM user_progress WHERE user_id = $1 FOR UPDATE`, event.UserID).Scan(&totalXP, &gems)
-	if err != nil && !errors.Is(err, pgx.ErrNoRows) {
-		return fmt.Errorf("lock user progress: %w", err)
+	state, err := lockProgress(ctx, tx, event.UserID)
+	if err != nil {
+		return err
 	}
+	totalXP, gems := state.TotalXP, state.GemBalance
 
 	out.LevelBefore = config.CurrentLevel(totalXP)
 	totalXP += out.XPAwarded
@@ -181,15 +180,10 @@ func applyRewards(ctx context.Context, tx pgx.Tx, event events.LessonCompleted, 
 		return nil
 	}
 
-	if _, err := tx.Exec(ctx, `
-		INSERT INTO user_progress (user_id, total_xp, current_level, gem_balance)
-		VALUES ($1, $2, $3, $4)
-		ON CONFLICT (user_id) DO UPDATE SET
-			total_xp = EXCLUDED.total_xp,
-			current_level = EXCLUDED.current_level,
-			gem_balance = EXCLUDED.gem_balance`,
+	if _, err := tx.Exec(ctx,
+		`UPDATE user_progress SET total_xp = $2, current_level = $3, gem_balance = $4 WHERE user_id = $1`,
 		event.UserID, totalXP, out.LevelAfter, gems); err != nil {
-		return fmt.Errorf("upsert user progress: %w", err)
+		return fmt.Errorf("update user progress: %w", err)
 	}
 	if out.XPAwarded > 0 {
 		if _, err := tx.Exec(ctx,
