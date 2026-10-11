@@ -1,0 +1,36 @@
+# Environment files
+.env
+.env*.local
+.env.production
+.env.development
+!.env.example
+
+# Dependencies
+node_modules/
+vendor/
+
+# Build outputs
+/bin/
+/dist/
+/out/
+*.exe
+*.test
+*.prof
+
+# OS & IDE
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Web build artifacts
+web/.next/
+web/out/
+web/build/
+web/*.tsbuildinfo
+
+# Test and coverage
+coverage/
+*.out
