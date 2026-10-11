@@ -12,60 +12,132 @@ export const hero = {
   secondaryCta: "I already have an account",
 };
 
-/** Skills and lesson themes that scroll past in the chip strip. */
+/**
+ * Benefit-first phrases for the scrolling chip marquee.
+ * Two rows scroll in opposite directions.
+ */
 export const chipRows: string[][] = [
   [
-    "why caches exist",
-    "consistent hashing",
-    "rate limiting",
-    "idempotent APIs",
-    "database indexes",
-    "load balancing",
-    "message queues",
-    "read replicas",
+    "5-minute lessons",
+    "instant feedback",
+    "no lives lost",
+    "server-graded",
+    "system design",
+    "weekly leagues",
+    "zero guesswork",
+    "master backend",
+    "earn XP",
+    "streak streaks",
   ],
   [
-    "the outbox pattern",
-    "isolation levels",
-    "backpressure",
-    "SOLID, for real",
-    "observability basics",
-    "two pointers",
-    "graph traversal",
-    "connection pools",
+    "DSA refresher",
+    "LLD patterns",
+    "mistakes come back",
+    "mastery rings",
+    "beat-based intros",
+    "topic mastery",
+    "unlock nodes",
+    "beat the ladder",
+    "idempotent APIs",
+    "level up",
   ],
 ];
 
+/** The four features shown in the sticky scroll showcase section. */
+export const stickyFeatures = [
+  {
+    id: "lesson",
+    eyebrow: "The lesson",
+    title: "Learn, then",
+    titleAccent: "prove it.",
+    body: "Every lesson starts with a beat-by-beat animated concept intro, followed by focused interactive challenges — multiple choice, fill-in-the-blank, arrange, and true/false.",
+    log: [
+      { step: "intro stage", detail: "concept explained" },
+      { step: "step verification", detail: "server graded" },
+      { step: "combo multiplier", detail: "combo ×2" },
+    ],
+    tint: "#7C6EF5",
+  },
+  {
+    id: "grading",
+    eyebrow: "Instant feedback",
+    title: "Wrong? Find out",
+    titleAccent: "why, right now.",
+    body: "Every answer is graded on the server in under 100ms. You see the verdict, the reasoning, and the concept reinforced — not just a red flash.",
+    log: [
+      { step: "answer submitted", detail: "POST /lessons/{id}/submit" },
+      { step: "graded server-side", detail: "94ms" },
+      { step: "explanation returned", detail: "answer key never sent" },
+    ],
+    tint: "#34D399",
+  },
+  {
+    id: "mistakes",
+    eyebrow: "No penalties",
+    title: "Mistakes come",
+    titleAccent: "back. That's it.",
+    body: "Get something wrong and it re-queues at the end of the lesson. No hearts, no lives, no penalty streaks. Just another chance to get it right before the lesson closes.",
+    log: [
+      { step: "wrong answer", detail: "re-queued" },
+      { step: "lesson continues", detail: "no XP deducted" },
+      { step: "retry at the end", detail: "correct ✓" },
+    ],
+    tint: "#FF6B35",
+  },
+  {
+    id: "mastery",
+    eyebrow: "Real progress",
+    title: "Mastery, not",
+    titleAccent: "points.",
+    body: "Each topic has a 0–100 mastery score backed by the skills in each lesson. The celebration screen tells you exactly which skills moved and why — never just 'good job'.",
+    log: [
+      { step: "lesson complete", detail: "lesson.completed event" },
+      { step: "skill deltas computed", detail: "mastery_ledger written" },
+      { step: "System Design", detail: "+3 mastery → 72%" },
+    ],
+    tint: "#60A5FA",
+  },
+] as const;
+
+/** The four topics shown in the alternating rows section. */
 export const topics = [
   {
     slug: "system-design",
     name: "System Design",
     blurb: "Caching, scaling, queues, and the trade-offs you'll defend in design reviews.",
+    detail: "From caching basics to real-world high-throughput architectures",
     demoMastery: 72,
+    companion: "🐱",
   },
   {
     slug: "backend-production",
     name: "Backend & Production",
     blurb: "APIs, transactions, concurrency, and keeping things alive at 3 a.m.",
+    detail: "Idempotency, rate limits, retries, and production observability",
     demoMastery: 58,
+    companion: "🐶",
   },
   {
     slug: "low-level-design",
     name: "Low-Level Design",
     blurb: "Classes, boundaries, and patterns that survive the next feature request.",
+    detail: "SOLID design, Factory, Strategy, Observer, and Decorator patterns",
     demoMastery: 41,
+    companion: "🐰",
   },
   {
     slug: "dsa-refresher",
     name: "DSA Refresher",
     blurb: "The data structures and algorithms you actually need, without the grind.",
+    detail: "From two pointers and sliding windows to dynamic programming",
     demoMastery: 64,
+    companion: "🐹",
   },
 ] as const;
 
 export const steps = [
   { title: "Pick what to sharpen", body: "Choose one to three topics. They shape your path; nothing gets locked away." },
-  { title: "Play a five-minute lesson", body: "A short intro, then a few exercises with instant feedback. Misses come back at the end." },
+  { title: "Play a five-minute lesson", body: "A short intro, then interactive challenges with instant feedback. Misses come back at the end." },
   { title: "Watch your mastery move", body: "Every lesson explains exactly which skills grew, and the next node unlocks." },
 ];
 
