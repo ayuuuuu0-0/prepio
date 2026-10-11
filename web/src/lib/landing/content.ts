@@ -12,14 +12,6 @@ export const hero = {
   secondaryCta: "I already have an account",
 };
 
-/** Stats that appear below the hero canvas. */
-export const stats = [
-  { value: "40", label: "lessons" },
-  { value: "175", label: "exercises" },
-  { value: "4", label: "topics" },
-  { value: "5", label: "exercise types" },
-] as const;
-
 /**
  * Benefit-first phrases for the scrolling chip marquee.
  * Two rows scroll in opposite directions.
@@ -58,11 +50,11 @@ export const stickyFeatures = [
     eyebrow: "The lesson",
     title: "Learn, then",
     titleAccent: "prove it.",
-    body: "Every lesson starts with a beat-by-beat animated concept intro. Then exercises — multiple choice, fill-in-the-blank, arrange, true/false — one at a time, in focus mode.",
+    body: "Every lesson starts with a beat-by-beat animated concept intro, followed by focused interactive challenges — multiple choice, fill-in-the-blank, arrange, and true/false.",
     log: [
       { step: "intro stage", detail: "concept explained" },
-      { step: "exercise 1 / 5", detail: "server graded" },
-      { step: "exercise 2 / 5", detail: "combo ×2" },
+      { step: "step verification", detail: "server graded" },
+      { step: "combo multiplier", detail: "combo ×2" },
     ],
     tint: "#7C6EF5",
   },
@@ -84,7 +76,7 @@ export const stickyFeatures = [
     eyebrow: "No penalties",
     title: "Mistakes come",
     titleAccent: "back. That's it.",
-    body: "Miss an exercise and it re-queues at the end of the lesson. No hearts, no lives, no penalty streaks. Just another chance to get it right before the lesson closes.",
+    body: "Get something wrong and it re-queues at the end of the lesson. No hearts, no lives, no penalty streaks. Just another chance to get it right before the lesson closes.",
     log: [
       { step: "wrong answer", detail: "re-queued" },
       { step: "lesson continues", detail: "no XP deducted" },
@@ -113,39 +105,39 @@ export const topics = [
     slug: "system-design",
     name: "System Design",
     blurb: "Caching, scaling, queues, and the trade-offs you'll defend in design reviews.",
-    detail: "9 nodes · 14 exercises · from caching basics to the boss challenge",
+    detail: "From caching basics to real-world high-throughput architectures",
     demoMastery: 72,
-    companion: "🦉",
+    companion: "🐱",
   },
   {
     slug: "backend-production",
     name: "Backend & Production",
     blurb: "APIs, transactions, concurrency, and keeping things alive at 3 a.m.",
-    detail: "8 nodes · idempotency, rate limits, retries, observability",
+    detail: "Idempotency, rate limits, retries, and production observability",
     demoMastery: 58,
-    companion: "🦫",
+    companion: "🐶",
   },
   {
     slug: "low-level-design",
     name: "Low-Level Design",
     blurb: "Classes, boundaries, and patterns that survive the next feature request.",
-    detail: "8 nodes · SOLID, Factory, Strategy, Observer, Decorator",
+    detail: "SOLID design, Factory, Strategy, Observer, and Decorator patterns",
     demoMastery: 41,
-    companion: "🦝",
+    companion: "🐰",
   },
   {
     slug: "dsa-refresher",
     name: "DSA Refresher",
     blurb: "The data structures and algorithms you actually need, without the grind.",
-    detail: "15 nodes · two pointers to dynamic programming — 14 skills covered",
+    detail: "From two pointers and sliding windows to dynamic programming",
     demoMastery: 64,
-    companion: "🦎",
+    companion: "🐹",
   },
 ] as const;
 
 export const steps = [
   { title: "Pick what to sharpen", body: "Choose one to three topics. They shape your path; nothing gets locked away." },
-  { title: "Play a five-minute lesson", body: "A short intro, then a few exercises with instant feedback. Misses come back at the end." },
+  { title: "Play a five-minute lesson", body: "A short intro, then interactive challenges with instant feedback. Misses come back at the end." },
   { title: "Watch your mastery move", body: "Every lesson explains exactly which skills grew, and the next node unlocks." },
 ];
 

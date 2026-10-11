@@ -10,7 +10,6 @@ import {
   faqs,
   finalCta,
   hero,
-  stats,
   stickyFeatures,
   steps,
   topics,
@@ -168,7 +167,7 @@ type Sticker = { emoji: string; label: string; className: string; tilt: string; 
 const heroStickers: Sticker[] = [
   { emoji: "🔥", label: "streak", className: "left-[5%] top-[200px]", tilt: "-10deg", delay: "0s", bg: "#FF6B35" },
   { emoji: "💎", label: "gems", className: "right-[6%] top-[170px]", tilt: "8deg", delay: "1.2s", bg: "#34D399" },
-  { emoji: companionVisual("pip").emoji, label: "companion", className: "left-[7%] top-[440px]", tilt: "6deg", delay: "0.6s", bg: "#FF6B35" },
+  { emoji: companionVisual("milo").emoji, label: "companion", className: "left-[7%] top-[440px]", tilt: "6deg", delay: "0.6s", bg: "#F59E0B" },
   { emoji: "🏆", label: "league trophy", className: "right-[8%] top-[470px]", tilt: "-7deg", delay: "1.8s", bg: "#F5B942" },
 ];
 
@@ -265,25 +264,6 @@ function Hero() {
                 </Phone>
               </div>
             </div>
-          </div>
-        </RevealOnScroll>
-
-        {/* Stats Strip */}
-        <RevealOnScroll delay={150}>
-          <div
-            className="mt-8 flex flex-wrap items-center justify-around gap-6 rounded-2xl p-6 sm:p-7"
-            style={{ background: "#151821", border: "1px solid #232736" }}
-          >
-            {stats.map((st) => (
-              <div key={st.label} className="flex flex-col items-center px-4">
-                <span className={`font-display text-2xl sm:text-3xl font-extrabold text-white ${s.statNum}`}>
-                  {st.value}
-                </span>
-                <span className="font-mono mt-1 text-xs uppercase tracking-wider" style={{ color: "#8B92A8" }}>
-                  {st.label}
-                </span>
-              </div>
-            ))}
           </div>
         </RevealOnScroll>
       </div>
@@ -529,10 +509,10 @@ function FeatureCard({
 }
 
 const leagueRows = [
-  { name: "mira.dev", species: "axolotl", xp: 340 },
-  { name: "you", species: "red_panda", xp: 285, me: true },
-  { name: "kenji_b", species: "owl", xp: 260 },
-  { name: "sam.ops", species: "capybara", xp: 190 },
+  { name: "mira.dev", species: "rabbit", xp: 340 },
+  { name: "you", species: "cat", xp: 285, me: true },
+  { name: "kenji_b", species: "dog", xp: 260 },
+  { name: "sam.ops", species: "hamster", xp: 190 },
 ];
 
 function Features() {
@@ -638,11 +618,11 @@ function Features() {
 /** Duolingo-style companion avatars showcase */
 function CompanionPillars() {
   const companionsList = [
-    { id: "pip", name: "Pip", species: "red_panda", trait: "Cheery & Persistent" },
-    { id: "rocky", name: "Rocky", species: "capybara", trait: "Calm Under Pressure" },
-    { id: "atlas", name: "Atlas", species: "pangolin", trait: "Deep Thinker" },
-    { id: "echo", name: "Echo", species: "axolotl", trait: "Curious Explorer" },
-    { id: "sage", name: "Sage", species: "owl", trait: "Architect Eye" },
+    { id: "milo", name: "Milo", species: "cat", trait: "Playful & Curious" },
+    { id: "buster", name: "Buster", species: "dog", trait: "Loyal & Encouraging" },
+    { id: "luna", name: "Luna", species: "rabbit", trait: "Quiet & Focused" },
+    { id: "mochi", name: "Mochi", species: "hamster", trait: "Energetic & Quick" },
+    { id: "peanut", name: "Peanut", species: "corgi", trait: "Cheerful Companion" },
   ];
 
   return (

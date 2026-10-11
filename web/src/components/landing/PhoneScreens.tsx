@@ -163,7 +163,7 @@ export function CelebrationScreen() {
   const sd = topicTheme("system-design");
   return (
     <div className="flex h-full flex-col items-center px-3 pt-5 text-center">
-      <CompanionHero name="Pip" size="sm" reaction="correct" />
+      <CompanionHero name="Milo" species="cat" size="sm" reaction="correct" />
       <p className="font-display mt-2 text-[15px] font-extrabold" style={{ color: "#E8EAED" }}>
         Lesson complete!
       </p>
@@ -347,7 +347,7 @@ export function MasteryPhoneScreen() {
   const theme = topicTheme("system-design");
   return (
     <div className="flex h-full flex-col items-center px-3 pt-4 text-center">
-      <CompanionHero name="Pip" size="sm" reaction="correct" />
+      <CompanionHero name="Milo" species="cat" size="sm" reaction="correct" />
       <p className="font-display mt-1 text-[14px] font-extrabold" style={{ color: "#E8EAED" }}>Lesson complete!</p>
       <div className="mt-2 flex gap-1.5">
         {["+20 XP", "💎 +10", "🔥 6"].map((b, i) => (

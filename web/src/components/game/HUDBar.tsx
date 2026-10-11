@@ -87,6 +87,11 @@ function getCompanionEmoji(species?: string): string {
     axolotl: "🦎",
     snow_leopard: "🐆",
     owl: "🦉",
+    cat: "🐱",
+    dog: "🐶",
+    rabbit: "🐰",
+    hamster: "🐹",
+    corgi: "🐕",
   };
-  return map[species ?? ""] ?? "🦫";
+  return map[species?.toLowerCase() ?? ""] ?? "🐱";
 }
