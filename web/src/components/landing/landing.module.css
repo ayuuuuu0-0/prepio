@@ -144,27 +144,27 @@
   animation: ringFill 5s cubic-bezier(0.22, 1, 0.36, 1) infinite;
 }
 
-/* ─── Section scroll reveal ────────────────────────────────────── */
+/* ─── Scroll Reveal (Zeptap-style on-scroll reveal) ─────────────── */
 
-@keyframes fadeSlideUp {
-  from { opacity: 0; transform: translateY(28px); }
-  to   { opacity: 1; transform: translateY(0); }
+.revealItem {
+  opacity: 0;
+  transform: translateY(32px);
+  transition: opacity 0.75s cubic-bezier(0.16, 1, 0.3, 1), transform 0.75s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: opacity, transform;
 }
-.reveal {
-  animation: fadeSlideUp 0.65s cubic-bezier(0.22, 1, 0.36, 1) both;
-  animation-play-state: paused;
-}
-.reveal.inView {
-  animation-play-state: running;
+
+.revealed {
+  opacity: 1 !important;
+  transform: translateY(0) !important;
 }
 
 /* ─── Cards ────────────────────────────────────────────────────── */
 
 .card {
-  transition: transform 0.25s ease, border-color 0.25s ease;
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.3s ease, box-shadow 0.3s ease;
 }
 .card:hover {
-  transform: translateY(-3px);
+  transform: translateY(-4px);
 }
 
 /* ─── Sticky feature section ───────────────────────────────────── */
@@ -176,21 +176,6 @@
 }
 .logRow {
   animation: logIn 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
-}
-
-/* Active sticky-feature panel */
-.featureActive {
-  opacity: 1;
-  transform: translateY(0);
-  transition: opacity 0.4s ease, transform 0.4s cubic-bezier(0.22, 1, 0.36, 1);
-}
-.featureInactive {
-  opacity: 0;
-  transform: translateY(12px);
-  pointer-events: none;
-  position: absolute;
-  inset: 0;
-  transition: opacity 0.3s ease, transform 0.3s ease;
 }
 
 /* ─── Stats strip ──────────────────────────────────────────────── */
