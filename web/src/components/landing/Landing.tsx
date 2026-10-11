@@ -1,12 +1,33 @@
+"use client";
+
 import Image from "next/image";
 import Link from "next/link";
-import type { CSSProperties, ReactNode } from "react";
+import { useState, type CSSProperties, type ReactNode } from "react";
 import { MasteryRing } from "@/components/dashboard/MasteryRing";
 import { TierEmblem } from "@/components/league/TierEmblem";
-import { chipRows, faqs, finalCta, hero, steps, topics } from "@/lib/landing/content";
+import {
+  chipRows,
+  faqs,
+  finalCta,
+  hero,
+  stats,
+  stickyFeatures,
+  steps,
+  topics,
+} from "@/lib/landing/content";
 import { companionVisual } from "@/lib/design/companions";
 import { topicTheme } from "@/lib/topics";
-import { CelebrationScreen, JourneyScreen, LessonScreen, Phone } from "./PhoneScreens";
+import {
+  CelebrationScreen,
+  GradingPhoneScreen,
+  IntroPhoneScreen,
+  JourneyScreen,
+  LessonScreen,
+  MasteryPhoneScreen,
+  MistakePhoneScreen,
+  Phone,
+  PhoneFrame,
+} from "./PhoneScreens";
 import s from "./landing.module.css";
 
 /** Landing is the public marketing page: one promise, real product screens, one call to action. */
@@ -23,8 +44,10 @@ export function Landing() {
       <main id="main">
         <Hero />
         <Chips />
-        <Topics />
+        <StickyShowcase />
+        <AlternatingTopics />
         <Features />
+        <CompanionPillars />
         <HowItWorks />
         <Faq />
         <FinalCta />
@@ -36,6 +59,7 @@ export function Landing() {
 
 function Nav() {
   const links = [
+    { href: "#experience", label: "Experience" },
     { href: "#topics", label: "Topics" },
     { href: "#features", label: "Features" },
     { href: "#how", label: "How it works" },
@@ -80,7 +104,7 @@ function CtaLink({ href, children, small = false }: { href: string; children: Re
   return (
     <Link
       href={href}
-      className={`game-btn font-display inline-flex items-center justify-center rounded-full font-extrabold text-white ${
+      className={`game-btn font-display inline-flex items-center justify-center rounded-full font-extrabold text-white transition-transform active:scale-95 ${
         small ? "px-4 py-2 text-sm" : "px-7 py-3.5 text-base"
       }`}
       style={{ background: "linear-gradient(135deg, #7C6EF5, #9D8FF7)" }}
@@ -157,6 +181,7 @@ function Hero() {
         </div>
       </div>
 
+      {/* Mac Window Phone Canvas */}
       <div className="relative mx-auto mt-16 max-w-5xl">
         <div
           className="overflow-hidden rounded-[1.75rem]"
@@ -167,7 +192,7 @@ function Hero() {
             <span className="h-3 w-3 rounded-full" style={{ background: "#FEBC2E" }} />
             <span className="h-3 w-3 rounded-full" style={{ background: "#28C840" }} />
             <span className="font-mono ml-3 text-[11px]" style={{ color: "#6F7690" }}>
-              prepio · one lesson, start to finish
+              prepio · live phone canvas
             </span>
           </div>
           <div
@@ -175,21 +200,38 @@ function Hero() {
             style={{ backgroundImage: "radial-gradient(#232736 1px, transparent 1px)", backgroundSize: "18px 18px" }}
           >
             <div className="snap-center">
-              <Phone label="The journey" status="Next node unlocked">
+              <Phone label="The Journey" status="Next node unlocked">
                 <JourneyScreen />
               </Phone>
             </div>
             <div className="snap-center">
-              <Phone label="A lesson" status="Graded instantly">
+              <Phone label="The Lesson" status="Server graded">
                 <LessonScreen />
               </Phone>
             </div>
             <div className="snap-center">
-              <Phone label="The payoff" status="Mastery moved">
+              <Phone label="The Payoff" status="Mastery moved">
                 <CelebrationScreen />
               </Phone>
             </div>
           </div>
+        </div>
+
+        {/* Stats Strip */}
+        <div
+          className="mt-6 flex flex-wrap items-center justify-around gap-4 rounded-2xl p-4 sm:p-5"
+          style={{ background: "#151821", border: "1px solid #232736" }}
+        >
+          {stats.map((st) => (
+            <div key={st.label} className="flex flex-col items-center px-4">
+              <span className={`font-display text-2xl sm:text-3xl font-extrabold text-white ${s.statNum}`}>
+                {st.value}
+              </span>
+              <span className="font-mono mt-0.5 text-xs uppercase tracking-wider" style={{ color: "#8B92A8" }}>
+                {st.label}
+              </span>
+            </div>
+          ))}
         </div>
       </div>
     </section>
@@ -200,7 +242,7 @@ function Chips() {
   return (
     <section aria-label="What you'll practice" className="py-14">
       <p className="font-mono text-center text-[11px] font-bold uppercase tracking-[0.22em]" style={{ color: "#6F7690" }}>
-        Skills engineers sharpen on Prepio
+        Proven engineering skills · Five minutes at a time
       </p>
       <div className={`mt-6 flex flex-col gap-3 overflow-hidden ${s.marquee}`}>
         {chipRows.map((row, i) => (
@@ -209,7 +251,7 @@ function Chips() {
               <span
                 key={`${chip}-${j}`}
                 aria-hidden={j >= row.length}
-                className="mx-1.5 flex items-center gap-2 whitespace-nowrap rounded-full px-4 py-2.5 text-sm font-semibold"
+                className="mx-1.5 flex items-center gap-2 whitespace-nowrap rounded-full px-4 py-2 text-sm font-semibold"
                 style={{ background: "#1A1D27", border: "1px solid #2E3347", color: "#D5DAE6" }}
               >
                 <span aria-hidden style={{ color: "#7C6EF5" }}>
@@ -236,35 +278,144 @@ function SectionHeading({ id, title, muted }: { id: string; title: string; muted
   );
 }
 
-function Topics() {
+/** Sticky interactive showcase (Zeptap-style): Tabbed features switching live phone preview */
+function StickyShowcase() {
+  const [activeTab, setActiveTab] = useState<string>(stickyFeatures[0].id);
+
   return (
-    <section id="topics" aria-labelledby="topics-title" className="scroll-mt-24 px-4 py-20">
-      <SectionHeading id="topics-title" title="Four topics." muted="One mastery score each." />
-      <p className="mx-auto mt-5 max-w-xl text-center" style={{ color: "#B9C0D0" }}>
-        Mastery is per topic, from 0 to 100, and it always tells you why it moved. Never from XP, never from streaks.
+    <section id="experience" aria-labelledby="experience-title" className="scroll-mt-24 px-4 py-20">
+      <SectionHeading id="experience-title" title="The lesson loop." muted="Step by step." />
+      <p className="mx-auto mt-4 max-w-xl text-center text-sm sm:text-base leading-relaxed" style={{ color: "#B9C0D0" }}>
+        Inspired by the fastest feedback loops in software. No passive video watching.
       </p>
-      <div className="mx-auto mt-12 grid max-w-5xl gap-4 sm:grid-cols-2">
-        {topics.map((t) => {
+
+      <div className="mx-auto mt-12 grid max-w-5xl gap-8 lg:grid-cols-12 lg:items-center">
+        {/* Left Side: Selectable Feature Cards with Step Logs */}
+        <div className="flex flex-col gap-3 lg:col-span-7">
+          {stickyFeatures.map((feat) => {
+            const isActive = activeTab === feat.id;
+            return (
+              <div
+                key={feat.id}
+                onClick={() => setActiveTab(feat.id)}
+                className={`cursor-pointer rounded-[1.5rem] p-6 transition-all duration-300 ${s.card}`}
+                style={{
+                  background: isActive ? `linear-gradient(135deg, ${feat.tint}18, #1A1D27)` : "#141720",
+                  border: `1.5px solid ${isActive ? feat.tint : "#242838"}`,
+                  boxShadow: isActive ? `0 12px 30px ${feat.tint}1A` : "none",
+                }}
+              >
+                <div className="flex items-center justify-between">
+                  <span className="font-mono text-[11px] font-bold uppercase tracking-wider" style={{ color: feat.tint }}>
+                    {feat.eyebrow}
+                  </span>
+                  {isActive && (
+                    <span className="font-mono text-xs font-semibold px-2 py-0.5 rounded-full" style={{ background: `${feat.tint}25`, color: feat.tint }}>
+                      Active Preview
+                    </span>
+                  )}
+                </div>
+                <h3 className="font-display mt-2 text-xl sm:text-2xl font-extrabold text-white">
+                  {feat.title} <span style={{ color: feat.tint }}>{feat.titleAccent}</span>
+                </h3>
+                <p className="mt-2 text-sm leading-relaxed" style={{ color: "#A8B0C4" }}>
+                  {feat.body}
+                </p>
+
+                {/* Zeptap-Style Step Log */}
+                {isActive && (
+                  <div className="mt-4 rounded-xl p-3" style={{ background: "#0F1117", border: "1px solid #232736" }}>
+                    <div className="flex flex-col gap-1.5">
+                      {feat.log.map((entry, idx) => (
+                        <div key={idx} className={`flex items-center justify-between font-mono text-[11px] ${s.logRow}`}>
+                          <span className="flex items-center gap-1.5" style={{ color: "#E8EAED" }}>
+                            <span className="h-1.5 w-1.5 rounded-full" style={{ background: feat.tint }} />
+                            {entry.step}
+                          </span>
+                          <span style={{ color: "#7F889E" }}>{entry.detail}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Right Side: Responsive Phone Preview */}
+        <div className="flex justify-center lg:col-span-5">
+          <div
+            className="rounded-[2.5rem] p-4"
+            style={{
+              background: "radial-gradient(circle at center, rgba(124,110,245,0.15) 0%, transparent 70%)",
+            }}
+          >
+            <PhoneFrame>
+              {activeTab === "lesson" && <IntroPhoneScreen />}
+              {activeTab === "grading" && <GradingPhoneScreen />}
+              {activeTab === "mistakes" && <MistakePhoneScreen />}
+              {activeTab === "mastery" && <MasteryPhoneScreen />}
+            </PhoneFrame>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/** Duolingo-style alternating topic rows */
+function AlternatingTopics() {
+  return (
+    <section id="topics" aria-labelledby="topics-title" className="scroll-mt-24 px-4 py-20" style={{ background: "#12141C" }}>
+      <SectionHeading id="topics-title" title="Four core topics." muted="One mastery score each." />
+      <p className="mx-auto mt-4 max-w-xl text-center text-sm sm:text-base leading-relaxed" style={{ color: "#B9C0D0" }}>
+        Mastery is computed 0 to 100 based on verified lesson steps. No fluffy badges.
+      </p>
+
+      <div className="mx-auto mt-14 flex max-w-5xl flex-col gap-6">
+        {topics.map((t, i) => {
           const theme = topicTheme(t.slug);
+          const isEven = i % 2 === 0;
+
           return (
             <article
               key={t.slug}
-              className={`flex items-center gap-5 rounded-[1.75rem] p-6 ${s.card}`}
+              className={`flex flex-col md:flex-row items-center justify-between gap-8 rounded-[2rem] p-8 ${s.card}`}
               style={{
-                background: `linear-gradient(140deg, ${theme.tint}26 0%, #1A1D27 55%)`,
+                background: `linear-gradient(135deg, ${theme.tint}18, #181B24 60%)`,
                 border: `1px solid ${theme.tint}33`,
               }}
             >
-              <div className="min-w-0 flex-1">
-                <p className="text-2xl" aria-hidden>
-                  {theme.icon}
-                </p>
-                <h3 className="font-display mt-2 text-xl font-extrabold tracking-tight">{t.name}</h3>
-                <p className="mt-1.5 text-sm leading-relaxed" style={{ color: "#B9C0D0" }}>
+              <div className={`flex flex-1 flex-col ${isEven ? "md:order-1" : "md:order-2"}`}>
+                <div className="flex items-center gap-3">
+                  <span className="text-3xl" aria-hidden>{t.companion}</span>
+                  <span className="font-mono text-xs font-bold uppercase tracking-wider" style={{ color: theme.tint }}>
+                    {theme.icon} {t.name}
+                  </span>
+                </div>
+                <h3 className="font-display mt-3 text-2xl sm:text-3xl font-extrabold text-white">
+                  {t.name}
+                </h3>
+                <p className="mt-2 text-base leading-relaxed" style={{ color: "#C0C7D6" }}>
                   {t.blurb}
                 </p>
+                <div className="mt-4 flex items-center gap-2 font-mono text-xs" style={{ color: "#8E97AE" }}>
+                  <span className="h-1.5 w-1.5 rounded-full" style={{ background: theme.tint }} />
+                  {t.detail}
+                </div>
               </div>
-              <MasteryRing mastery={t.demoMastery} tint={theme.tint} size={92} />
+
+              <div className={`flex items-center justify-center p-4 ${isEven ? "md:order-2" : "md:order-1"}`}>
+                <div
+                  className="rounded-full p-4"
+                  style={{
+                    background: `radial-gradient(circle, ${theme.tint}22 0%, transparent 70%)`,
+                  }}
+                >
+                  <MasteryRing mastery={t.demoMastery} tint={theme.tint} size={110} />
+                </div>
+              </div>
             </article>
           );
         })}
@@ -324,11 +475,11 @@ const leagueRows = [
 function Features() {
   return (
     <section id="features" aria-labelledby="features-title" className="scroll-mt-24 px-4 py-20">
-      <SectionHeading id="features-title" title="Built like a game." muted="Graded like an engineer." />
+      <SectionHeading id="features-title" title="Built like a game." muted="Graded like production." />
       <div className="mx-auto mt-12 grid max-w-5xl gap-4 md:grid-cols-2">
         <FeatureCard
           wide
-          eyebrow="Instant feedback"
+          eyebrow="Server-side grading"
           title="Every answer graded."
           muted="Every miss explained."
           body="Pick, check, and see why right away. Get one wrong and you'll see the right answer and the reasoning, then it comes back at the end of the lesson. No hearts. No lives. No penalties."
@@ -348,9 +499,9 @@ function Features() {
         </FeatureCard>
 
         <FeatureCard
-          eyebrow="Leagues"
+          eyebrow="Weekly Leagues"
           title="Climb the ladder."
-          muted="Every week."
+          muted="Every Monday reset."
           body="Your first lesson each week puts you on a leaderboard with up to 30 learners. The top ranks move up a league on Monday."
           tint="#F5B942"
         >
@@ -382,10 +533,10 @@ function Features() {
         </FeatureCard>
 
         <FeatureCard
-          eyebrow="Streaks"
-          title="Show up."
-          muted="That's the whole rule."
-          body="One lesson keeps your streak alive. Life happens, so a streak freeze covers a missed day."
+          eyebrow="Daily Streaks"
+          title="Show up daily."
+          muted="Consistency over intensity."
+          body="One lesson keeps your streak alive. Life happens, so a streak freeze covers a missed day without guilt."
           tint="#FF6B35"
         >
           <div className="flex items-end gap-2" aria-hidden>
@@ -408,30 +559,66 @@ function Features() {
             ))}
           </div>
         </FeatureCard>
+      </div>
+    </section>
+  );
+}
 
-        <FeatureCard
-          wide
-          eyebrow="Companions"
-          title="Someone in your corner."
-          muted="Who notices."
-          body="Pick a companion at the start. It cheers your wins, shrugs off your misses, and grows with you."
-          tint="#A78BFA"
-        >
-          <div className="flex items-center gap-3 text-4xl" aria-hidden>
-            {["capybara", "red_panda", "pangolin", "axolotl", "owl"].map((sp) => {
-              const v = companionVisual(undefined, sp);
-              return (
-                <span
-                  key={sp}
-                  className="flex h-14 w-14 items-center justify-center rounded-full text-3xl"
-                  style={{ background: `linear-gradient(135deg, ${v.glow}40, #1A1D27)`, border: "1px solid #2E3347", boxShadow: `0 0 20px ${v.glow}33` }}
+/** Duolingo-style companion avatars showcase */
+function CompanionPillars() {
+  const companionsList = [
+    { id: "pip", name: "Pip", species: "red_panda", trait: "Cheery & Persistent" },
+    { id: "rocky", name: "Rocky", species: "capybara", trait: "Calm Under Pressure" },
+    { id: "atlas", name: "Atlas", species: "pangolin", trait: "Deep Thinker" },
+    { id: "echo", name: "Echo", species: "axolotl", trait: "Curious Explorer" },
+    { id: "sage", name: "Sage", species: "owl", trait: "Architect Eye" },
+  ];
+
+  return (
+    <section className="px-4 py-16" style={{ background: "#11141D" }}>
+      <div className="mx-auto max-w-5xl">
+        <div className="text-center">
+          <p className="font-mono text-xs font-bold uppercase tracking-widest text-[#7C6EF5]">
+            Companion System
+          </p>
+          <h2 className="font-display mt-2 text-3xl sm:text-4xl font-extrabold text-white">
+            Choose someone for your corner.
+          </h2>
+          <p className="mt-2 text-sm sm:text-base text-[#9FA8BC]">
+            Companions react to your wins, shrug off your misses, and celebrate your mastery deltas.
+          </p>
+        </div>
+
+        <div className="mt-10 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
+          {companionsList.map((c) => {
+            const v = companionVisual(c.id, c.species);
+            return (
+              <div
+                key={c.id}
+                className={`flex flex-col items-center rounded-2xl p-5 text-center transition-all ${s.card}`}
+                style={{
+                  background: "#161922",
+                  border: `1px solid #232738`,
+                }}
+              >
+                <div
+                  className="flex h-16 w-16 items-center justify-center rounded-full text-3xl shadow-lg"
+                  style={{
+                    background: `linear-gradient(135deg, ${v.glow}30, #1A1D27)`,
+                    border: `1.5px solid ${v.glow}55`,
+                    boxShadow: `0 0 20px ${v.glow}22`,
+                  }}
                 >
                   {v.emoji}
-                </span>
-              );
-            })}
-          </div>
-        </FeatureCard>
+                </div>
+                <h3 className="font-display mt-3 text-base font-bold text-white">{c.name}</h3>
+                <p className="font-mono mt-1 text-[11px]" style={{ color: "#8E97AE" }}>
+                  {c.trait}
+                </p>
+              </div>
+            );
+          })}
+        </div>
       </div>
     </section>
   );
