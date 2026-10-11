@@ -8,8 +8,8 @@ import s from "./landing.module.css";
 export function Phone({ label, status, children }: { label: string; status: string; children: ReactNode }) {
   return (
     <figure className="flex shrink-0 flex-col items-center">
-      <figcaption className="mb-3 text-center">
-        <span className="font-display block text-sm font-bold" style={{ color: "#E8EAED" }}>
+      <figcaption className="mb-3.5 text-center">
+        <span className="font-display block text-sm font-bold tracking-tight" style={{ color: "#E8EAED" }}>
           {label}
         </span>
         <span className="font-mono mt-0.5 flex items-center justify-center gap-1.5 text-[10px]" style={{ color: "#8B92A8" }}>
@@ -23,15 +23,18 @@ export function Phone({ label, status, children }: { label: string; status: stri
 }
 
 /** PhoneFrame is the bare device frame, usable without a label. */
-export function PhoneFrame({ children }: { children: ReactNode }) {
+export function PhoneFrame({ children, className = "" }: { children: ReactNode; className?: string }) {
   return (
     <div
       aria-hidden
-      className="relative h-[430px] w-[212px] overflow-hidden rounded-[2.2rem] p-[7px]"
-      style={{ background: "linear-gradient(160deg, #3a3f55, #1a1d27)", boxShadow: "0 30px 60px rgba(0,0,0,0.5)" }}
+      className={`relative h-[475px] w-[238px] sm:h-[495px] sm:w-[248px] md:h-[515px] md:w-[258px] overflow-hidden rounded-[2.5rem] p-[8px] transition-transform duration-300 hover:scale-[1.02] ${className}`}
+      style={{
+        background: "linear-gradient(160deg, #3f445c, #1a1d27)",
+        boxShadow: "0 30px 70px -15px rgba(0,0,0,0.65), 0 0 40px rgba(124,110,245,0.18)",
+      }}
     >
-      <div className="relative h-full w-full overflow-hidden rounded-[1.75rem]" style={{ background: "#0F1117" }}>
-        <div className="absolute left-1/2 top-2 z-10 h-[18px] w-[66px] -translate-x-1/2 rounded-full bg-black" />
+      <div className="relative h-full w-full overflow-hidden rounded-[2rem]" style={{ background: "#0F1117" }}>
+        <div className="absolute left-1/2 top-2 z-10 h-[18px] w-[70px] -translate-x-1/2 rounded-full bg-black" />
         <div className="font-mono flex justify-between px-5 pt-2.5 text-[9px] font-semibold" style={{ color: "#E8EAED" }}>
           <span>9:41</span>
           <span>●●● ▮</span>
