@@ -229,40 +229,84 @@ function Hero() {
         </div>
       </div>
 
-      {/* Mac Window Phone Canvas */}
-      <div className="relative mx-auto mt-20 max-w-5xl">
+      {/* Mac Window Phone Canvas (Screen-sized, Zeptap-inspired responsive layout) */}
+      <div className="relative mx-auto mt-16 sm:mt-24 w-full max-w-7xl px-0 sm:px-2 md:px-4">
         <RevealOnScroll>
           <div
-            className="overflow-hidden rounded-[1.75rem]"
-            style={{ background: "#16181F", border: "1px solid #2A2E3D", boxShadow: "0 40px 120px rgba(124,110,245,0.22)" }}
+            className="overflow-hidden rounded-2xl sm:rounded-[2.2rem]"
+            style={{
+              background: "#141620",
+              border: "1px solid rgba(255,255,255,0.08)",
+              boxShadow: "0 40px 120px -20px rgba(0,0,0,0.85), 0 0 90px -20px rgba(124,110,245,0.25)",
+            }}
           >
-            <div className="flex items-center gap-2 px-5 py-3.5" style={{ borderBottom: "1px solid #232736" }}>
-              <span className="h-3 w-3 rounded-full" style={{ background: "#FF5F57" }} />
-              <span className="h-3 w-3 rounded-full" style={{ background: "#FEBC2E" }} />
-              <span className="h-3 w-3 rounded-full" style={{ background: "#28C840" }} />
-              <span className="font-mono ml-3 text-[11px]" style={{ color: "#6F7690" }}>
-                prepio · live phone canvas
-              </span>
-            </div>
+            {/* Window title bar */}
             <div
-              className="flex snap-x snap-mandatory gap-10 overflow-x-auto px-6 py-12 md:justify-center md:gap-14"
-              style={{ backgroundImage: "radial-gradient(#232736 1px, transparent 1px)", backgroundSize: "18px 18px" }}
+              className="flex items-center justify-between px-4 sm:px-6 py-3.5"
+              style={{
+                borderBottom: "1px solid rgba(255,255,255,0.06)",
+                background: "rgba(18,20,29,0.85)",
+                backdropFilter: "blur(12px)",
+              }}
             >
-              <div className="snap-center">
+              <div className="flex items-center gap-2">
+                <span className="h-3 w-3 rounded-full" style={{ background: "#FF5F57" }} />
+                <span className="h-3 w-3 rounded-full" style={{ background: "#FEBC2E" }} />
+                <span className="h-3 w-3 rounded-full" style={{ background: "#28C840" }} />
+                <span className="font-mono ml-2 sm:ml-3 text-[11px] font-medium" style={{ color: "#8B92A8" }}>
+                  prepio · live interactive canvas
+                </span>
+              </div>
+              <div className="hidden sm:flex items-center gap-2">
+                <span
+                  className="font-mono text-[10px] rounded-full px-2.5 py-0.5 font-semibold"
+                  style={{
+                    background: "rgba(52,211,153,0.12)",
+                    color: "#34D399",
+                    border: "1px solid rgba(52,211,153,0.25)",
+                  }}
+                >
+                  ● 3 live phones
+                </span>
+              </div>
+            </div>
+
+            {/* Screen-sized Canvas Body with dot matrix & responsive snap scroll */}
+            <div
+              className="relative flex snap-x snap-mandatory gap-6 sm:gap-10 lg:gap-16 overflow-x-auto px-4 py-8 sm:px-8 sm:py-14 md:py-16 justify-start md:justify-center scroll-smooth"
+              style={{
+                backgroundImage: "radial-gradient(#252a3b 1.25px, transparent 1.25px)",
+                backgroundSize: "22px 22px",
+              }}
+            >
+              {/* Radial center glow */}
+              <div
+                aria-hidden
+                className="pointer-events-none absolute left-1/2 top-1/2 h-[380px] w-[650px] -translate-x-1/2 -translate-y-1/2 rounded-full opacity-35 blur-3xl"
+                style={{ background: "radial-gradient(circle, rgba(124,110,245,0.3) 0%, transparent 70%)" }}
+              />
+              <div className="snap-center shrink-0">
                 <Phone label="The Journey" status="Next node unlocked">
                   <JourneyScreen />
                 </Phone>
               </div>
-              <div className="snap-center">
+              <div className="snap-center shrink-0">
                 <Phone label="The Lesson" status="Server graded">
                   <LessonScreen />
                 </Phone>
               </div>
-              <div className="snap-center">
+              <div className="snap-center shrink-0">
                 <Phone label="The Payoff" status="Mastery moved">
                   <CelebrationScreen />
                 </Phone>
               </div>
+            </div>
+
+            {/* Mobile swipe hint */}
+            <div className="flex md:hidden items-center justify-center gap-2 pb-5 pt-1">
+              <span className="font-mono text-[10px] tracking-wide" style={{ color: "#7F889E" }}>
+                ← Swipe to explore screens →
+              </span>
             </div>
           </div>
         </RevealOnScroll>
