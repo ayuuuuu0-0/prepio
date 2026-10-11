@@ -38,6 +38,7 @@ const byName: Record<string, CompanionVisual> = {
   luna: bySpecies.rabbit,
   buster: bySpecies.dog,
   mochi: bySpecies.hamster,
+  pipi: bySpecies.duck,
   peanut: bySpecies.corgi,
   clover: bySpecies.rabbit,
 };

@@ -622,7 +622,7 @@ function CompanionPillars() {
     { id: "buster", name: "Buster", species: "dog", trait: "Loyal & Encouraging" },
     { id: "luna", name: "Luna", species: "rabbit", trait: "Quiet & Focused" },
     { id: "mochi", name: "Mochi", species: "hamster", trait: "Energetic & Quick" },
-    { id: "peanut", name: "Peanut", species: "corgi", trait: "Cheerful Companion" },
+    { id: "pipi", name: "Pipi", species: "duck", trait: "Optimistic & Cheerful" },
   ];
 
   return (

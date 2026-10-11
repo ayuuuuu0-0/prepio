@@ -91,6 +91,7 @@ function getCompanionEmoji(species?: string): string {
     dog: "🐶",
     rabbit: "🐰",
     hamster: "🐹",
+    duck: "🐥",
     corgi: "🐕",
   };
   return map[species?.toLowerCase() ?? ""] ?? "🐱";
