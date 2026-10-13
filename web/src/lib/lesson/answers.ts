@@ -13,10 +13,12 @@ export type Draft =
   /** order lists item indexes in the order the learner tapped them. */
   | { type: "arrange"; order: number[] }
   /** text is a written answer, graded by the server's rubric. */
-  | { type: "prose"; text: string };
+  | { type: "prose"; text: string }
+  /** code is the learner's modified code snippet. */
+  | { type: "code_snippet"; code: string };
 
 /** GRADABLE lists the step types the player can render and submit. */
-export const GRADABLE = ["mcq", "true_false", "fill_blank", "arrange", "prose"] as const;
+export const GRADABLE = ["mcq", "true_false", "fill_blank", "arrange", "prose", "code_snippet"] as const;
 
 /** emptyDraft starts a draft for a step, or returns null if the player can't render the step. */
 export function emptyDraft(step: ClientStep): Draft | null {
@@ -31,6 +33,8 @@ export function emptyDraft(step: ClientStep): Draft | null {
       return step.arrange ? { type: "arrange", order: [] } : null;
     case "prose":
       return step.prose ? { type: "prose", text: "" } : null;
+    case "code_snippet":
+      return step.code_snippet ? { type: "code_snippet", code: step.code_snippet.starter } : null;
     default:
       return null;
   }
@@ -50,6 +54,8 @@ export function isReady(step: ClientStep, d: Draft | null): boolean {
       return d.order.length === (step.arrange?.items.length ?? -1);
     case "prose":
       return d.text.trim().length >= (step.prose?.min_chars ?? Infinity);
+    case "code_snippet":
+      return d.code.trim().length > 0 && d.code.trim() !== (step.code_snippet?.starter.trim() ?? "");
   }
 }
 
@@ -68,6 +74,8 @@ export function toAnswer(step: ClientStep, d: Draft): Answer {
       return { order: [...d.order] };
     case "prose":
       return { text: d.text };
+    case "code_snippet":
+      return { code: d.code };
   }
 }
 
@@ -150,6 +158,8 @@ export function promptOf(step: ClientStep): string {
       return step.arrange?.prompt ?? "";
     case "prose":
       return step.prose?.prompt ?? "";
+    case "code_snippet":
+      return step.code_snippet?.prompt ?? "";
     default:
       return "";
   }

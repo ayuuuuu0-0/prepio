@@ -23,12 +23,42 @@ steps:
     statement: "Binary search gives correct results on any array you can index, whether or not it is sorted."
     answer: false
     explanation: "Discarding half the range is only safe when order tells you the target cannot be in that half. On unsorted data binary search can miss values that are present."
-  - id: lower-bound
-    type: fill_blank
-    code: "# first index i with nums[i] >= target (nums is sorted)\nlo, hi = 0, len(nums)\nwhile lo < hi:\n    mid = (lo + hi) // 2\n    if nums[mid] < target: lo = ___1___\n    else: hi = ___2___"
-    bank: ["mid + 1", "mid", "mid - 1", "lo + 1"]
-    answers: ["mid + 1", "mid"]
-    explanation: "Starting from lo = 0 and hi = len(nums), this finds the first index whose value is at least target. A too-small mid can be discarded, so lo = mid + 1; a large-enough mid might be the answer, so hi = mid keeps it in range."
+  - id: binary-search-bound
+    type: code_snippet
+    prompt: "Complete the binary search lower-bound implementation: calculate `mid = (lo + hi) // 2`, advance `lo = mid + 1` when `nums[mid] < target`, and shrink `hi = mid` otherwise."
+    language: python
+    starter: |
+      def lower_bound(nums: list[int], target: int) -> int:
+          lo, hi = 0, len(nums)
+          while lo < hi:
+              # TODO: compute mid with floor division
+              mid = 0
+              if nums[mid] < target:
+                  # TODO: advance lower bound
+                  pass
+              else:
+                  # TODO: shrink upper bound
+                  pass
+          return lo
+    tests:
+      - name: "Computes mid with floor division"
+        type: pattern
+        value: "mid\\s*=\\s*\\(lo\\s*\\+\\s*hi\\)\\s*//\\s*2"
+      - name: "Advances lower bound past mid"
+        type: pattern
+        value: "lo\\s*=\\s*mid\\s*\\+\\s*1"
+      - name: "Shrinks upper bound to mid"
+        type: pattern
+        value: "hi\\s*=\\s*mid"
+      - name: "Maintains lower bound search structure"
+        type: structure
+        values:
+          - "while lo < hi:"
+          - "nums[mid] < target"
+          - "lo = mid + 1"
+          - "hi = mid"
+          - "return lo"
+    explanation: "Starting from lo = 0 and hi = len(nums), lower-bound finds the first index where nums[mid] >= target. A too-small mid is discarded via lo = mid + 1; a qualifying mid might be the answer, so hi = mid keeps it in the search window."
   - id: search-the-answer
     type: mcq
     prompt: "You need the smallest number of workers that can finish a batch within an hour. can_finish(w) tells you whether w workers are enough, and adding workers never hurts. How do you find the minimum with the fewest calls to can_finish?"

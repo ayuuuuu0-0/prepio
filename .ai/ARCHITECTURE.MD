@@ -93,7 +93,7 @@ The `lesson.completed` payload carries performance facts only (user, lesson, att
 ## Grading Rules (the server is the only grader)
 
 1. **The client never receives answers or rubrics.** Lesson payloads sent to clients have all answer fields stripped. This is enforced by a test.
-2. Deterministic step types (`mcq`, `true_false`, `fill_blank`, `arrange`) are graded by **pure functions in one Go package**, table-tested. `prose` is graded by the rubric evaluator (structural stages now; LLM stage when wired). The LLM is never used for deterministic types.
+2. Deterministic step types (`mcq`, `true_false`, `fill_blank`, `arrange`, `code_snippet`) are graded by **pure functions in one Go package**, table-tested. `prose` is graded by the rubric evaluator (structural stages now; LLM stage when wired). The LLM is never used for deterministic types.
 3. A grading response contains: correctness, the explanation, and **only after an incorrect answer**, the correct answer.
 4. **Attempt integrity:**
    * One in-progress attempt per user and lesson; resumable.

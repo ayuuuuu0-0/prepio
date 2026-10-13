@@ -78,21 +78,28 @@ type AnswerRequest struct {
 	Answer grading.Answer `json:"answer"`
 }
 
+// CodeSnippetTestResult is the outcome of one assertion in a code_snippet step.
+type CodeSnippetTestResult struct {
+	Name   string `json:"name"`
+	Passed bool   `json:"passed"`
+}
+
 // AnswerResponse is the server's grading of one try.
 // CorrectAnswer is present only after an incorrect answer.
 type AnswerResponse struct {
-	Correct       bool            `json:"correct"`
-	Try           int             `json:"try"`
-	Explanation   string          `json:"explanation,omitempty"`
-	WhyNot        string          `json:"why_not,omitempty"`
-	CorrectAnswer *grading.Answer `json:"correct_answer,omitempty"`
-	Feedback      string          `json:"feedback,omitempty"`
-	Score         *int            `json:"score,omitempty"`
-	Strengths     []string        `json:"strengths,omitempty"`
-	Gaps          []string        `json:"gaps,omitempty"`
-	StepDone      bool            `json:"step_done"`
-	AllDone       bool            `json:"all_done"`
-	Replayed      bool            `json:"replayed"`
+	Correct       bool                    `json:"correct"`
+	Try           int                     `json:"try"`
+	Explanation   string                  `json:"explanation,omitempty"`
+	WhyNot        string                  `json:"why_not,omitempty"`
+	CorrectAnswer *grading.Answer         `json:"correct_answer,omitempty"`
+	Feedback      string                  `json:"feedback,omitempty"`
+	Score         *int                    `json:"score,omitempty"`
+	Strengths     []string                `json:"strengths,omitempty"`
+	Gaps          []string                `json:"gaps,omitempty"`
+	TestResults   []CodeSnippetTestResult `json:"test_results,omitempty"`
+	StepDone      bool                    `json:"step_done"`
+	AllDone       bool                    `json:"all_done"`
+	Replayed      bool                    `json:"replayed"`
 }
 
 // UnlockedNode is a node that became available because of a completion.

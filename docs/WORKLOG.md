@@ -320,10 +320,39 @@ Current Branch: `feat/l9-leagues-landing`
 
 ---
 
+## Phase L13 · Interactive Code Snippet Exercises (Boot.dev Style)
+
+### 1. Decision & Rationale
+* **The Problem:** Learners could answer multiple-choice, ordering, fill-in-the-blank, and written questions, but lacked short, hands-on code writing / bug-fixing exercises where they directly edit snippets and see instant per-test pass/fail results.
+* **The Decision:** Introduce `code_snippet` exercise type inspired by Boot.dev. Learners write code in an in-browser editor with line numbers, tab indentation, and language badges. Grading is 100% deterministic, server-side, and sandboxed without heavy Docker containers—using structured string, pattern (regex), and structural assertions authored in YAML. The server returns per-test results (`passed`, `name`), while tests and solution explanations are never leaked in client payloads.
+
+### 2. Implementation
+* **Database Migration:** Added `migrations/000044_allow_code_snippet_steps.up.sql` and `down.sql` to expand `lesson_steps.type` CHECK constraint to include `code_snippet`.
+* **Domain Model & Validator:** Updated `services/question/internal/lesson/` with `StepCodeSnippet`, `CodeSnippetPayload`, and `validateCodeSnippet()` ensuring supported languages (`go`, `python`, `sql`, `typescript`), 2–8 test assertions (`contains`, `not_contains`, `pattern`, `structure`), and maximum 60 starter lines.
+* **Grading Engine:** Added `GradeCodeSnippet()` in `services/question/internal/grading/grading.go` running tests sequentially and returning `test_results` (`name`, `passed`, `detail`).
+* **Web Client:**
+  - `CodeSnippetStep.tsx`: Code editor with monospaced font, gutter line numbers, 2-space tab indent, Enter key auto-indent, reset to starter button, and reactive focus/error borders.
+  - `FeedbackTray.tsx`: Boot.dev-style test suite card displaying each test case with pass/fail badges (`✓` / `✕`) and names.
+  - `answers.ts` & `types.ts`: Extended wire drafts, readiness checks (requires changing starter code), and unit tests (`vitest`).
+* **Content Authoring:** Added real `code_snippet` exercises across 4 lessons covering 3 languages:
+  - System Design (`why-caches-exist.yaml`): Cache-Aside read pattern in Go (`db.GetUser` miss handling + `cache.Set`).
+  - Backend & Production (`retry-without-fear.yaml`): Payment idempotency store handler in Go.
+  - Low-Level Design (`when-things-happen.yaml`): Observer pattern `subscribe` and `notify` in TypeScript.
+  - DSA Refresher (`halving-the-search.yaml`): Lower-bound binary search integer division and `lo = mid + 1` advance in Python.
+
+### 3. Testing & Verification
+* **Backend Unit & Integration Tests:** `grading_test.go` and `validate_test.go` passed; integration test `TestAuthoredContent` and migration rollback tests passed cleanly.
+* **Content Validation:** `content-sync --validate` confirmed 5 worlds and 40 lessons valid.
+* **Frontend Vitest:** 73/73 tests passed in `web/src/lib/lesson/answers.test.ts` and related modules.
+* **Frontend Build:** `npm run build` compiled with Turbopack with 0 errors across all 12 routes.
+
+---
+
 ## Operational Verification & Build Status
 
-* **Backend Compilation:** `go build ./...` passes with exit code 0 across all microservices and tools.
+* **Backend Compilation:** `go test ./...` passes across all microservices, integration tests, and tools.
 * **Frontend Compilation:** Next.js production build (`npm run build` with Turbopack) passes with exit code 0 (all 12 static/dynamic routes generate cleanly).
-* **Database Migrations:** All migrations 000001 through 000043 apply up cleanly; migrations 000035 through 000043 roll back and reapply with zero errors.
+* **Database Migrations:** All migrations 000001 through 000044 apply up cleanly; migrations 000035 through 000044 roll back and reapply with zero errors.
 * **Self-Hosted Web Fonts:** Sora, Manrope, and IBM Plex Mono fonts are self-hosted via `web/src/fonts/` (WOFF2, ~104 KB total), removing any runtime or build-time dependency on Google Fonts.
-* **Working Tree:** Clean, with zero uncommitted changes on branch `feat/l9-leagues-landing`.
+* **Working Tree:** Branch `feat/l13-code-snippet`.
+

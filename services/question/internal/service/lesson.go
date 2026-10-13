@@ -329,6 +329,26 @@ func (s *LessonService) grade(step loadedStep, req dto.AnswerRequest) (*dto.Answ
 		return &dto.AnswerResponse{Correct: true}, nil
 	case lesson.ProsePayload:
 		return s.gradeProse(p, req.Answer)
+	case lesson.CodeSnippetPayload:
+		res, err := grading.GradeCodeSnippet(p, req.Answer)
+		if errors.Is(err, grading.ErrInvalidAnswer) {
+			return nil, fmt.Errorf("%w: %v", ErrInvalidAnswer, err)
+		}
+		if err != nil {
+			return nil, err
+		}
+		var testResults []dto.CodeSnippetTestResult
+		for _, tr := range res.Tests {
+			testResults = append(testResults, dto.CodeSnippetTestResult{
+				Name:   tr.Name,
+				Passed: tr.Passed,
+			})
+		}
+		return &dto.AnswerResponse{
+			Correct:     res.Correct,
+			Explanation: res.Explanation,
+			TestResults: testResults,
+		}, nil
 	default:
 		res, err := grading.Grade(step.payload, req.Answer)
 		if errors.Is(err, grading.ErrInvalidAnswer) {

@@ -29,7 +29,13 @@ const arrange: ClientStep = {
   arrange: { prompt: "Order", items: ["write", "read", "ack"] },
 };
 const prose: ClientStep = { id: "q5", type: "prose", position: 5, prose: { prompt: "Explain", min_chars: 100 } };
-const unknown = { id: "q6", type: "type_line", position: 6 } as unknown as ClientStep;
+const codeStep: ClientStep = {
+  id: "q6",
+  type: "code_snippet",
+  position: 6,
+  code_snippet: { prompt: "Fix the race", language: "go", starter: "func fix() {}" },
+};
+const unknown = { id: "q7", type: "type_line", position: 7 } as unknown as ClientStep;
 
 describe("emptyDraft", () => {
   it("starts an empty draft for each supported type", () => {
@@ -40,6 +46,9 @@ describe("emptyDraft", () => {
   });
   it("starts a prose draft empty", () => {
     expect(emptyDraft(prose)).toEqual({ type: "prose", text: "" });
+  });
+  it("starts a code_snippet draft with the starter template", () => {
+    expect(emptyDraft(codeStep)).toEqual({ type: "code_snippet", code: "func fix() {}" });
   });
   it("returns null for steps the player can't render, or a missing payload", () => {
     expect(emptyDraft(unknown)).toBeNull();
@@ -78,6 +87,13 @@ describe("isReady and toAnswer", () => {
     const d: Draft = { type: "prose", text: "y".repeat(100) };
     expect(isReady(prose, d)).toBe(true);
     expect(toAnswer(prose, d)).toEqual({ text: "y".repeat(100) });
+  });
+  it("code_snippet needs changes from the starter template", () => {
+    expect(isReady(codeStep, { type: "code_snippet", code: "func fix() {}" })).toBe(false);
+    expect(isReady(codeStep, { type: "code_snippet", code: "   " })).toBe(false);
+    const d: Draft = { type: "code_snippet", code: "func fix() { return 1 }" };
+    expect(isReady(codeStep, d)).toBe(true);
+    expect(toAnswer(codeStep, d)).toEqual({ code: "func fix() { return 1 }" });
   });
   it("nothing is ready without a draft", () => {
     expect(isReady(mcq, null)).toBe(false);
@@ -147,6 +163,7 @@ describe("mistakes review", () => {
     expect(promptOf(fill)).toBe("Fill in the blanks: SET [1] EX [2]");
     expect(promptOf(arrange)).toBe("Order");
     expect(promptOf(prose)).toBe("Explain");
+    expect(promptOf(codeStep)).toBe("Fix the race");
     expect(promptOf(unknown)).toBe("");
   });
   it("keeps only the first miss of each step, in order", () => {

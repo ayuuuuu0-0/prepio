@@ -1,11 +1,12 @@
 // Package grading holds the pure, deterministic graders for lesson steps.
-// It is the only place mcq, true_false, fill_blank, and arrange answers are judged.
+// It is the only place mcq, true_false, fill_blank, arrange, and code_snippet answers are judged.
 // Prose steps are graded by the rubric evaluator, never here.
 package grading
 
 import (
 	"errors"
 	"fmt"
+	"regexp"
 	"strings"
 
 	"github.com/prepio/prepio/services/question/internal/lesson"
@@ -25,6 +26,7 @@ type Answer struct {
 	Blanks []string `json:"blanks,omitempty"` // fill_blank
 	Order  []int    `json:"order,omitempty"`  // arrange
 	Text   *string  `json:"text,omitempty"`   // prose
+	Code   *string  `json:"code,omitempty"`   // code_snippet
 }
 
 // Result is the outcome of grading one deterministic step.
@@ -35,6 +37,20 @@ type Result struct {
 	WhyNot string
 	// CorrectAnswer is set only when the answer was incorrect.
 	CorrectAnswer *Answer
+}
+
+// CodeSnippetTestResult is the outcome of one assertion in a code_snippet step.
+type CodeSnippetTestResult struct {
+	Name   string `json:"name"`
+	Passed bool   `json:"passed"`
+}
+
+// CodeSnippetResult is the outcome of grading a code_snippet step.
+// It embeds Result for the top-level correct/explanation fields, and adds
+// per-test details shown in the feedback tray.
+type CodeSnippetResult struct {
+	Result
+	Tests []CodeSnippetTestResult `json:"test_results"`
 }
 
 // Grade judges an answer against a deterministic step payload.
@@ -51,6 +67,60 @@ func Grade(payload any, a Answer) (Result, error) {
 	default:
 		return Result{}, ErrNotDeterministic
 	}
+}
+
+// GradeCodeSnippet judges a code_snippet answer against its test assertions.
+// It is separate from Grade() because it returns CodeSnippetResult, not Result.
+func GradeCodeSnippet(p lesson.CodeSnippetPayload, a Answer) (CodeSnippetResult, error) {
+	if a.Code == nil {
+		return CodeSnippetResult{}, fmt.Errorf("%w: code is required", ErrInvalidAnswer)
+	}
+	code := *a.Code
+	var results []CodeSnippetTestResult
+	allPassed := true
+
+	for _, t := range p.Tests {
+		passed := runSnippetTest(t, code)
+		results = append(results, CodeSnippetTestResult{Name: t.Name, Passed: passed})
+		if !passed {
+			allPassed = false
+		}
+	}
+
+	return CodeSnippetResult{
+		Result: Result{Correct: allPassed, Explanation: p.Explanation},
+		Tests:  results,
+	}, nil
+}
+
+// runSnippetTest executes one assertion against the submitted code.
+func runSnippetTest(t lesson.CodeSnippetTest, code string) bool {
+	switch t.Type {
+	case "contains":
+		return strings.Contains(code, t.Value)
+	case "not_contains":
+		return !strings.Contains(code, t.Value)
+	case "pattern":
+		re, err := regexp.Compile(t.Value)
+		if err != nil {
+			// Invalid regex — authoring error that should have been caught by validation.
+			// Fail safe: treat as not matching rather than panicking.
+			return false
+		}
+		return re.MatchString(code)
+	case "structure":
+		// All values must appear in the code in order; each searched from after the previous match.
+		pos := 0
+		for _, v := range t.Values {
+			idx := strings.Index(code[pos:], v)
+			if idx == -1 {
+				return false
+			}
+			pos += idx + len(v)
+		}
+		return true
+	}
+	return false
 }
 
 // MCQ grades a multiple-choice answer.

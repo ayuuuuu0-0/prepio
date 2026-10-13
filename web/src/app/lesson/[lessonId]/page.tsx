@@ -25,6 +25,7 @@ import { TrueFalseStep } from "@/components/lesson/TrueFalseStep";
 import { FillBlankStep } from "@/components/lesson/FillBlankStep";
 import { ArrangeStep } from "@/components/lesson/ArrangeStep";
 import { ProseStep } from "@/components/lesson/ProseStep";
+import { CodeSnippetStep } from "@/components/lesson/CodeSnippetStep";
 import { FeedbackTray } from "@/components/lesson/FeedbackTray";
 import { Celebration } from "@/components/lesson/Celebration";
 
@@ -478,6 +479,18 @@ function ExerciseStep({
           result={result ? { correct: result.correct } : null}
           disabled={disabled}
           onChange={(order) => onDraft({ type: "arrange", order })}
+        />
+      ) : null;
+    case "code_snippet":
+      return step.code_snippet ? (
+        <CodeSnippetStep
+          prompt={step.code_snippet.prompt}
+          language={step.code_snippet.language}
+          starter={step.code_snippet.starter}
+          code={shownDraft.code}
+          result={result ? { correct: result.correct } : null}
+          disabled={disabled}
+          onChange={(code) => onDraft({ type: "code_snippet", code })}
         />
       ) : null;
   }

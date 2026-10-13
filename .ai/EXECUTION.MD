@@ -117,6 +117,12 @@ Weekly leagues owned by Progress. A learner joins the current week's league the 
 **L8, Working Professionals path content:** worlds, nodes, and lessons authored with the product owner. Quality over quantity; first world complete before the second begins.
 **Status: implemented** on branch `feat/l9-leagues-landing`, pending review. Planned in `content/PLAN.md` (outline, authoring standard, and the review that shaped it) with the product owner's go-ahead on 2026-10-08. Four worlds, one per topic, 33 lessons: First Ascent (System Design, 9 nodes, extending the existing world), The Engine Room (Backend & Production), Blueprint Workshop (Low-Level Design), and Algorithm Gardens (DSA Refresher), 8 nodes each. Each world is a chain ending in a boss; worlds open in parallel so a topic never locks another. World 1 was written first and became the template for the others. `why-caches-exist` was rebalanced (version 2) so no lesson gives its answer away by option position. No `prose` steps until the player renders them. L8.1 added World 5, Deep Roots (DSA part 2: strings, linked lists, heaps, greedy, dynamic programming; 7 lessons), a sequel that opens after the Algorithm Gardens boss, so all 40 lessons together exercise every skill in all four topics.
 
+**L13, Code snippet exercises (Boot.dev style):** short code-writing and bug-fixing exercises with deterministic server grading and instant per-test feedback.
+**Status: implemented** on branch `feat/l13-code-snippet`.
+*Change record.* *Problem:* learners needed hands-on code writing / bug fixing alongside conceptual questions. *Proposal:* `code_snippet` exercise type (Go, Python, SQL, TypeScript) with an in-browser code editor (line numbers, Tab indentation, Enter auto-indent, reset button), server-side deterministic assertions (`contains`, `not_contains`, `pattern`, `structure`) in `services/question/internal/grading/`, zero client test/solution leakage, and a Boot.dev-style test results breakdown in `FeedbackTray.tsx`. Migration 000044 adds `code_snippet` to `lesson_steps.type` CHECK constraint. Authored 4 real exercises in System Design, Backend, LLD, and DSA.
+*Benefits:* authentic engineering practice with immediate feedback and zero Docker container security overhead.
+*Migration impact:* Migration 000044 expands `lesson_steps_type_check`.
+
 ### Phase L Success Criteria
 
 * A user can complete lessons end to end with instant, server-graded feedback.

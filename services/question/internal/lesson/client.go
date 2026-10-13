@@ -14,12 +14,13 @@ type ClientStep struct {
 	Type     string `json:"type"`
 	Position int    `json:"position"`
 
-	Intro     *ClientIntro     `json:"intro,omitempty"`
-	MCQ       *ClientMCQ       `json:"mcq,omitempty"`
-	TrueFalse *ClientTrueFalse `json:"true_false,omitempty"`
-	FillBlank *ClientFillBlank `json:"fill_blank,omitempty"`
-	Arrange   *ClientArrange   `json:"arrange,omitempty"`
-	Prose     *ClientProse     `json:"prose,omitempty"`
+	Intro       *ClientIntro       `json:"intro,omitempty"`
+	MCQ         *ClientMCQ         `json:"mcq,omitempty"`
+	TrueFalse   *ClientTrueFalse   `json:"true_false,omitempty"`
+	FillBlank   *ClientFillBlank   `json:"fill_blank,omitempty"`
+	Arrange     *ClientArrange     `json:"arrange,omitempty"`
+	Prose       *ClientProse       `json:"prose,omitempty"`
+	CodeSnippet *ClientCodeSnippet `json:"code_snippet,omitempty"`
 }
 
 // ClientIntro is the client view of an intro step.
@@ -58,6 +59,14 @@ type ClientProse struct {
 	MinChars int    `json:"min_chars"`
 }
 
+// ClientCodeSnippet is the answer-free client view of a code_snippet step.
+// Tests and Explanation are stripped — only the starter template is sent.
+type ClientCodeSnippet struct {
+	Prompt   string `json:"prompt"`
+	Language string `json:"language"`
+	Starter  string `json:"starter"`
+}
+
 // Project builds the answer-free client view of a stored step payload.
 // seed makes the fill-blank bank order stable for one attempt.
 func Project(stepKey, stepType string, position int, payload any, seed string) (ClientStep, error) {
@@ -75,6 +84,8 @@ func Project(stepKey, stepType string, position int, payload any, seed string) (
 		out.Arrange = &ClientArrange{Prompt: p.Prompt, Items: p.Items}
 	case ProsePayload:
 		out.Prose = &ClientProse{Prompt: p.Prompt, MinChars: p.MinChars}
+	case CodeSnippetPayload:
+		out.CodeSnippet = &ClientCodeSnippet{Prompt: p.Prompt, Language: p.Language, Starter: p.Starter}
 	default:
 		return ClientStep{}, fmt.Errorf("step %q: unsupported payload %T", stepKey, payload)
 	}
