@@ -9,13 +9,20 @@ import (
 
 // Step types.
 const (
-	StepIntro     = "intro"
-	StepMCQ       = "mcq"
-	StepTrueFalse = "true_false"
-	StepFillBlank = "fill_blank"
-	StepArrange   = "arrange"
-	StepProse     = "prose"
+	StepIntro        = "intro"
+	StepMCQ          = "mcq"
+	StepTrueFalse    = "true_false"
+	StepFillBlank    = "fill_blank"
+	StepArrange      = "arrange"
+	StepProse        = "prose"
+	StepCodeSnippet  = "code_snippet"
 )
+
+// CodeSnippetLanguages lists the languages a code_snippet step may declare.
+var CodeSnippetLanguages = []string{"go", "python", "sql", "typescript"}
+
+// CodeSnippetTestTypes lists the allowed assertion types for code_snippet tests.
+var CodeSnippetTestTypes = []string{"contains", "not_contains", "pattern", "structure"}
 
 // Lesson statuses. Only StatusPublished is served.
 const (
@@ -96,8 +103,25 @@ type Step struct {
 	Rubric   *Rubric `yaml:"rubric,omitempty" json:"rubric,omitempty"`
 	MinChars int     `yaml:"minChars,omitempty" json:"min_chars,omitempty"`
 
-	// true_false, fill_blank, arrange, prose
+	// code_snippet
+	Language string             `yaml:"language,omitempty" json:"language,omitempty"`
+	Starter  string             `yaml:"starter,omitempty" json:"starter,omitempty"`
+	Tests    []CodeSnippetTest  `yaml:"tests,omitempty" json:"tests,omitempty"`
+
+	// true_false, fill_blank, arrange, prose, code_snippet
 	Explanation string `yaml:"explanation,omitempty" json:"explanation,omitempty"`
+}
+
+// CodeSnippetTest is one assertion the grader checks against the learner's code.
+type CodeSnippetTest struct {
+	// Name is shown in the test results panel.
+	Name string `yaml:"name" json:"name"`
+	// Type is the assertion strategy: contains | not_contains | pattern | structure.
+	Type string `yaml:"type" json:"type"`
+	// Value is the string or regex for contains, not_contains, pattern assertions.
+	Value string `yaml:"value,omitempty" json:"value,omitempty"`
+	// Values is the ordered list of strings for structure assertions.
+	Values []string `yaml:"values,omitempty" json:"values,omitempty"`
 }
 
 // Beat is one beat of an intro.
@@ -200,6 +224,16 @@ type ProsePayload struct {
 	Explanation string `json:"explanation"`
 }
 
+// CodeSnippetPayload is the stored payload of a code-snippet step.
+// The Tests and Explanation fields are NEVER sent to the client.
+type CodeSnippetPayload struct {
+	Prompt      string            `json:"prompt"`
+	Language    string            `json:"language"`
+	Starter     string            `json:"starter"`
+	Tests       []CodeSnippetTest `json:"tests"`
+	Explanation string            `json:"explanation"`
+}
+
 // StoredPayload converts an authored step to its typed payload. It assumes the
 // step has passed validation.
 func (s Step) StoredPayload() (any, error) {
@@ -227,6 +261,14 @@ func (s Step) StoredPayload() (any, error) {
 			return nil, fmt.Errorf("step %q: prose requires a rubric", s.ID)
 		}
 		return ProsePayload{Prompt: s.Prompt, Rubric: *s.Rubric, MinChars: s.MinChars, Explanation: s.Explanation}, nil
+	case StepCodeSnippet:
+		return CodeSnippetPayload{
+			Prompt:      s.Prompt,
+			Language:    s.Language,
+			Starter:     s.Starter,
+			Tests:       s.Tests,
+			Explanation: s.Explanation,
+		}, nil
 	default:
 		return nil, fmt.Errorf("step %q: unknown type %q", s.ID, s.Type)
 	}
@@ -247,6 +289,8 @@ func ParsePayload(stepType string, raw []byte) (any, error) {
 		return decode[ArrangePayload](stepType, raw)
 	case StepProse:
 		return decode[ProsePayload](stepType, raw)
+	case StepCodeSnippet:
+		return decode[CodeSnippetPayload](stepType, raw)
 	default:
 		return nil, fmt.Errorf("unknown step type %q", stepType)
 	}

@@ -332,6 +332,8 @@ func (v *validator) step(scope string, s Step) {
 		v.arrange(scope, s)
 	case StepProse:
 		v.prose(scope, s)
+	case StepCodeSnippet:
+		v.codeSnippet(scope, s)
 	default:
 		v.addf(scope, "unknown step type %q", s.Type)
 	}
@@ -523,5 +525,62 @@ func (v *validator) prose(scope string, s Step) {
 	}
 	if required == 0 {
 		v.addf(scope, "rubric needs at least one required concept")
+	}
+}
+
+const (
+	minCodeSnippetTests = 2
+	maxCodeSnippetTests = 8
+	maxStarterLines     = 60
+)
+
+func (v *validator) codeSnippet(scope string, s Step) {
+	if strings.TrimSpace(s.Prompt) == "" {
+		v.addf(scope, "code_snippet needs a prompt")
+	}
+	if !slices.Contains(CodeSnippetLanguages, s.Language) {
+		v.addf(scope, "code_snippet language must be one of: %s", strings.Join(CodeSnippetLanguages, ", "))
+	}
+	if strings.TrimSpace(s.Starter) == "" {
+		v.addf(scope, "code_snippet needs a starter template")
+	} else {
+		lines := strings.Count(s.Starter, "\n") + 1
+		if lines > maxStarterLines {
+			v.addf(scope, "code_snippet starter has %d lines, max is %d", lines, maxStarterLines)
+		}
+	}
+	if len(s.Tests) < minCodeSnippetTests || len(s.Tests) > maxCodeSnippetTests {
+		v.addf(scope, "code_snippet needs %d-%d tests, has %d", minCodeSnippetTests, maxCodeSnippetTests, len(s.Tests))
+	}
+	for i, t := range s.Tests {
+		tscope := fmt.Sprintf("%s test[%d]", scope, i)
+		if strings.TrimSpace(t.Name) == "" {
+			v.addf(tscope, "test name is required")
+		}
+		if !slices.Contains(CodeSnippetTestTypes, t.Type) {
+			v.addf(tscope, "test type must be one of: %s", strings.Join(CodeSnippetTestTypes, ", "))
+			continue
+		}
+		switch t.Type {
+		case "contains", "not_contains":
+			if strings.TrimSpace(t.Value) == "" {
+				v.addf(tscope, "%s test needs a value", t.Type)
+			}
+		case "pattern":
+			if strings.TrimSpace(t.Value) == "" {
+				v.addf(tscope, "pattern test needs a value")
+			} else if _, err := regexp.Compile(t.Value); err != nil {
+				v.addf(tscope, "pattern value is not a valid regular expression: %v", err)
+			}
+		case "structure":
+			if len(t.Values) < 2 {
+				v.addf(tscope, "structure test needs at least 2 values (ordered substrings), has %d", len(t.Values))
+			}
+			for j, val := range t.Values {
+				if strings.TrimSpace(val) == "" {
+					v.addf(tscope, "structure value[%d] is empty", j)
+				}
+			}
+		}
 	}
 }

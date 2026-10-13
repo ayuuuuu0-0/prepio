@@ -147,9 +147,84 @@ func TestArrange(t *testing.T) {
 	}
 }
 
+func stringp(s string) *string { return &s }
+
 func TestProseIsNotGradedHere(t *testing.T) {
 	_, err := grading.Grade(lesson.ProsePayload{}, grading.Answer{})
 	require.True(t, errors.Is(err, grading.ErrNotDeterministic))
 	_, err = grading.Grade(lesson.IntroPayload{}, grading.Answer{})
 	require.True(t, errors.Is(err, grading.ErrNotDeterministic))
 }
+
+func TestCodeSnippet(t *testing.T) {
+	p := lesson.CodeSnippetPayload{
+		Prompt:   "Fix the race condition",
+		Language: "go",
+		Starter:  "type Counter struct { val int }",
+		Tests: []lesson.CodeSnippetTest{
+			{Name: "embeds sync.Mutex", Type: "contains", Value: "sync.Mutex"},
+			{Name: "does not use naked int increment", Type: "not_contains", Value: "c.val++ // unsafe"},
+			{Name: "valid lock method", Type: "pattern", Value: `(c\.)?mu\.Lock\(\)`},
+			{Name: "locks before increment", Type: "structure", Values: []string{"Lock()", "c.val++"}},
+		},
+		Explanation: "Use sync.Mutex to protect val",
+	}
+
+	t.Run("all tests pass", func(t *testing.T) {
+		code := `type Counter struct {
+			sync.Mutex
+			mu sync.Mutex
+			val int
+		}
+		func (c *Counter) Inc() {
+			c.mu.Lock()
+			c.val++
+			c.mu.Unlock()
+		}`
+		res, err := grading.GradeCodeSnippet(p, grading.Answer{Code: stringp(code)})
+		require.NoError(t, err)
+		require.True(t, res.Correct)
+		require.Equal(t, "Use sync.Mutex to protect val", res.Explanation)
+		require.Len(t, res.Tests, 4)
+		for _, tr := range res.Tests {
+			require.True(t, tr.Passed, "expected test %s to pass", tr.Name)
+		}
+	})
+
+	t.Run("some tests fail", func(t *testing.T) {
+		code := `type Counter struct {
+			sync.Mutex
+			val int
+		}
+		func (c *Counter) Inc() {
+			c.val++ // unsafe
+		}`
+		res, err := grading.GradeCodeSnippet(p, grading.Answer{Code: stringp(code)})
+		require.NoError(t, err)
+		require.False(t, res.Correct)
+		require.Len(t, res.Tests, 4)
+		require.True(t, res.Tests[0].Passed)  // contains sync.Mutex
+		require.False(t, res.Tests[1].Passed) // not_contains failed because it contains unsafe
+		require.False(t, res.Tests[2].Passed) // pattern failed
+		require.False(t, res.Tests[3].Passed) // structure failed
+	})
+
+	t.Run("structure ordering must be respected", func(t *testing.T) {
+		// Increment before lock -> structure must fail
+		code := `type Counter struct { sync.Mutex }
+		func (c *Counter) Inc() {
+			c.val++
+			c.mu.Lock()
+		}`
+		res, err := grading.GradeCodeSnippet(p, grading.Answer{Code: stringp(code)})
+		require.NoError(t, err)
+		require.False(t, res.Correct)
+		require.False(t, res.Tests[3].Passed)
+	})
+
+	t.Run("nil code returns ErrInvalidAnswer", func(t *testing.T) {
+		_, err := grading.GradeCodeSnippet(p, grading.Answer{})
+		require.ErrorIs(t, err, grading.ErrInvalidAnswer)
+	})
+}
+

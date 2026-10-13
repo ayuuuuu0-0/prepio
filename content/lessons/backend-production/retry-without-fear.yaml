@@ -60,3 +60,40 @@ steps:
       - "Look up the key; if it was seen before, return the saved response"
     order: [1, 3, 0, 2]
     explanation: "Read the key, check for an earlier result, do the work only for a new key while saving its response, then reply. A retry finds the saved response and gets the same answer without a second charge."
+  - id: idempotent-handler
+    type: code_snippet
+    prompt: "Complete the payment handler: if `key` exists in `store`, return the cached response immediately. Otherwise, charge the card with `chargeCard(ctx, req)`, save the response using `store.Set(key, resp)`, and return it."
+    language: go
+    starter: |
+      func HandlePayment(ctx context.Context, key string, req PaymentReq) (*PaymentResp, error) {
+      	// 1. Check idempotency store for existing record
+      	if resp, ok := store.Get(key); ok {
+      		// TODO: return cached response immediately
+      	}
+
+      	// 2. New key: charge card and cache response
+      	resp, err := chargeCard(ctx, req)
+      	if err != nil {
+      		return nil, err
+      	}
+      	// TODO: save into store with store.Set(key, resp), then return resp
+      	return nil, nil
+      }
+    tests:
+      - name: "Returns cached response on replay"
+        type: contains
+        value: "return resp, nil"
+      - name: "Saves newly charged response in store"
+        type: contains
+        value: "store.Set(key, resp)"
+      - name: "Removes stub return nil, nil"
+        type: not_contains
+        value: "return nil, nil"
+      - name: "Charges card before saving to store"
+        type: structure
+        values:
+          - "store.Get"
+          - "chargeCard"
+          - "store.Set"
+          - "return resp"
+    explanation: "The server checks its idempotency store before executing any side effects. If the key was processed earlier, it short-circuits and replays the cached response. Only new keys perform the charge and record their outcome."

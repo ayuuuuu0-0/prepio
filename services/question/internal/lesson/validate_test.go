@@ -203,6 +203,8 @@ func TestProjectNeverLeaksAnswers(t *testing.T) {
 		{lesson.StepArrange, lesson.ArrangePayload{Prompt: "p", Items: []string{"a", "b", "c"}, Order: []int{2, 0, 1}, Explanation: secret}},
 		{lesson.StepProse, lesson.ProsePayload{Prompt: "p", MinChars: 100, Explanation: secret,
 			Rubric: lesson.Rubric{Concepts: []lesson.RubricConcept{{Name: secret, Aliases: []string{secret}, Required: true}}}}},
+		{lesson.StepCodeSnippet, lesson.CodeSnippetPayload{Prompt: "p", Language: "go", Starter: "func a() {}", Explanation: secret,
+			Tests: []lesson.CodeSnippetTest{{Name: secret, Type: "contains", Value: secret}}}},
 	}
 	for _, s := range steps {
 		t.Run(s.typ, func(t *testing.T) {
@@ -212,11 +214,78 @@ func TestProjectNeverLeaksAnswers(t *testing.T) {
 			require.NoError(t, err)
 			body := string(raw)
 			require.NotContains(t, body, secret)
-			for _, field := range []string{`"answer"`, `"answers"`, `"order"`, `"explanation`, `"rubric"`, `"correct"`, `"wrong"`} {
+			for _, field := range []string{`"answer"`, `"answers"`, `"order"`, `"explanation"`, `"rubric"`, `"correct"`, `"wrong"`, `"tests"`} {
 				require.NotContains(t, body, field)
 			}
 		})
 	}
+}
+
+func TestCodeSnippetValidation(t *testing.T) {
+	validStep := lesson.Step{
+		ID:       "code-step",
+		Type:     lesson.StepCodeSnippet,
+		Prompt:   "Fix the race",
+		Language: "go",
+		Starter:  "type C struct {}",
+		Tests: []lesson.CodeSnippetTest{
+			{Name: "has mutex", Type: "contains", Value: "sync.Mutex"},
+			{Name: "locks properly", Type: "structure", Values: []string{"Lock()", "Unlock()"}},
+		},
+		Explanation: "Use sync.Mutex",
+	}
+
+	t.Run("valid code snippet passes", func(t *testing.T) {
+		c := validContent()
+		c.Lessons[0].Steps = append(c.Lessons[0].Steps, validStep)
+		require.Empty(t, lesson.Validate(c, catalog))
+	})
+
+	t.Run("invalid language rejected", func(t *testing.T) {
+		c := validContent()
+		bad := validStep
+		bad.Language = "cobol"
+		c.Lessons[0].Steps = append(c.Lessons[0].Steps, bad)
+		issues := lesson.Validate(c, catalog)
+		require.NotEmpty(t, issues)
+		require.Contains(t, strings.Join(issues, "\n"), "language must be one of")
+	})
+
+	t.Run("missing starter rejected", func(t *testing.T) {
+		c := validContent()
+		bad := validStep
+		bad.Starter = "   "
+		c.Lessons[0].Steps = append(c.Lessons[0].Steps, bad)
+		issues := lesson.Validate(c, catalog)
+		require.NotEmpty(t, issues)
+		require.Contains(t, strings.Join(issues, "\n"), "needs a starter template")
+	})
+
+	t.Run("invalid regex pattern rejected", func(t *testing.T) {
+		c := validContent()
+		bad := validStep
+		bad.Tests = []lesson.CodeSnippetTest{
+			{Name: "bad regex", Type: "pattern", Value: "[unclosed("},
+			{Name: "good one", Type: "contains", Value: "foo"},
+		}
+		c.Lessons[0].Steps = append(c.Lessons[0].Steps, bad)
+		issues := lesson.Validate(c, catalog)
+		require.NotEmpty(t, issues)
+		require.Contains(t, strings.Join(issues, "\n"), "not a valid regular expression")
+	})
+
+	t.Run("structure with less than 2 values rejected", func(t *testing.T) {
+		c := validContent()
+		bad := validStep
+		bad.Tests = []lesson.CodeSnippetTest{
+			{Name: "bad structure", Type: "structure", Values: []string{"only-one"}},
+			{Name: "good one", Type: "contains", Value: "foo"},
+		}
+		c.Lessons[0].Steps = append(c.Lessons[0].Steps, bad)
+		issues := lesson.Validate(c, catalog)
+		require.NotEmpty(t, issues)
+		require.Contains(t, strings.Join(issues, "\n"), "needs at least 2 values")
+	})
 }
 
 func TestFillBlankBankOrderIsStablePerSeed(t *testing.T) {
@@ -228,3 +297,4 @@ func TestFillBlankBankOrderIsStablePerSeed(t *testing.T) {
 	require.Equal(t, first.FillBlank.Bank, again.FillBlank.Bank)
 	require.ElementsMatch(t, p.Bank, first.FillBlank.Bank)
 }
+

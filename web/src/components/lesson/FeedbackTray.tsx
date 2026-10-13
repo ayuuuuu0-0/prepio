@@ -87,6 +87,33 @@ export function FeedbackTray({
             </p>
           )}
 
+          {result.test_results && result.test_results.length > 0 && (
+            <div className="mt-3 text-sm" style={{ color: "#E8EAED" }}>
+              <p className="font-mono text-[11px] font-bold uppercase tracking-widest mb-1.5" style={{ color: "#8B92A8" }}>
+                Test Cases ({result.test_results.filter((t) => t.passed).length}/{result.test_results.length} passed)
+              </p>
+              <div className="space-y-1.5 rounded-xl p-3" style={{ background: "rgba(0,0,0,0.3)", border: "1px solid rgba(255,255,255,0.06)" }}>
+                {result.test_results.map((t) => (
+                  <div key={t.name} className="flex items-center gap-2 text-xs">
+                    <span
+                      aria-hidden
+                      className="font-mono flex h-4 w-4 shrink-0 items-center justify-center rounded text-[10px] font-bold"
+                      style={{
+                        background: t.passed ? "rgba(52,211,153,0.18)" : "rgba(248,113,113,0.18)",
+                        color: t.passed ? "#34D399" : "#F87171",
+                      }}
+                    >
+                      {t.passed ? "✓" : "✕"}
+                    </span>
+                    <span className="font-mono" style={{ color: t.passed ? "#C8CCDA" : "#F87171" }}>
+                      {t.name}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           {prose && (
             <div className="mt-3 text-sm leading-relaxed" style={{ color: "#C8CCDA" }}>
               {result.feedback && <p>{result.feedback}</p>}

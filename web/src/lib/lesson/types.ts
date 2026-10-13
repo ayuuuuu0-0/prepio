@@ -1,6 +1,6 @@
 /** Wire types for the lesson runtime API (GET /path, attempts, answers, completion). */
 
-export type StepType = "intro" | "mcq" | "true_false" | "fill_blank" | "arrange" | "prose";
+export type StepType = "intro" | "mcq" | "true_false" | "fill_blank" | "arrange" | "prose" | "code_snippet";
 
 export type Beat = { text: string; emphasis?: string; visual?: string; duration_ms: number };
 
@@ -15,6 +15,7 @@ export type ClientStep = {
   fill_blank?: { code: string; blanks: number; bank: string[] };
   arrange?: { prompt: string; items: string[] };
   prose?: { prompt: string; min_chars: number };
+  code_snippet?: { prompt: string; language: "go" | "python" | "sql" | "typescript"; starter: string };
 };
 
 export type LessonInfo = {
@@ -43,6 +44,7 @@ export type Answer = {
   blanks?: string[];
   order?: number[];
   text?: string;
+  code?: string;
 };
 
 export type AnswerResult = {
@@ -55,6 +57,7 @@ export type AnswerResult = {
   score?: number;
   strengths?: string[];
   gaps?: string[];
+  test_results?: { name: string; passed: boolean }[];
   step_done: boolean;
   all_done: boolean;
   replayed: boolean;

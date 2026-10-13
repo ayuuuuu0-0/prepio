@@ -83,8 +83,9 @@ Intro motion: each beat plays for its `durationMs` (1.5-12 s; the whole intro at
 | `fill_blank` | `code` with blanks written `___1___`, `___2___`, … (each exactly once), `bank[]` (includes distractors), `answers[]` (per blank), `explanation` | deterministic |
 | `arrange` | `prompt`, `items[]` (authored scrambled; the client receives them as written), `order[]` (correct sequence as indices, never the identity), `explanation` | deterministic |
 | `prose` | `prompt`, `rubric` (concept list with aliases and required flags), `minChars` (≥ 100), `explanation` (the worked answer shown after grading) | rubric evaluator (LLM stage later) |
+| `code_snippet` | `prompt`, `language` (go, python, sql, typescript), `starter`, `tests[]` (name, type: contains/not_contains/pattern/structure, value/values), `explanation` | deterministic assertions |
 
-Later (not before its phase): `type_line`, a short free-text answer matched against accepted variants after whitespace/quote normalisation. No code-execution sandbox.
+Later (not before its phase): `type_line`, a short free-text answer matched against accepted variants after whitespace/quote normalisation. No arbitrary Docker container code execution sandbox; code snippets use deterministic server-side assertions.
 
 ### Authoring format
 
