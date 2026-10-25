@@ -11,4 +11,7 @@ var (
 	ErrRefreshTokenInvalid = errors.New("refresh token invalid")
 	ErrUserNotFound        = errors.New("user not found")
 	ErrDeviceNotFound      = errors.New("device not found")
+	ErrInvalidOTP          = errors.New("invalid or expired verification code")
+	ErrOTPCooldown         = errors.New("please wait before requesting another code")
+	ErrTooManyAttempts     = errors.New("too many failed attempts, please request a new code")
 )

@@ -17,6 +17,9 @@ const (
 	ErrInvalidToken        = "invalid_token"
 	ErrTokenRevoked        = "token_revoked"
 	ErrRefreshTokenInvalid = "refresh_token_invalid"
+	ErrInvalidOTP          = "invalid_otp"
+	ErrOTPCooldown         = "otp_cooldown"
+	ErrTooManyAttempts     = "too_many_attempts"
 
 	// Users
 	ErrUserNotFound     = "user_not_found"

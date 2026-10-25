@@ -84,6 +84,8 @@ func main() {
 	r.Route("/api/v1", func(r chi.Router) {
 		r.Group(func(r chi.Router) {
 			r.Use(middleware.RateLimit(redisClient, constants.UnauthenticatedRateLimitPerMinute, middleware.RateLimitKeyByIP))
+			r.Post("/auth/otp/send", userProxy.ServeHTTP)
+			r.Post("/auth/otp/verify", userProxy.ServeHTTP)
 			r.Post("/auth/register", userProxy.ServeHTTP)
 			r.Post("/auth/login", userProxy.ServeHTTP)
 			r.Post("/auth/refresh", userProxy.ServeHTTP)

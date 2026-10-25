@@ -140,6 +140,20 @@ export class ApiClient {
     });
   }
 
+  sendOTP(email: string) {
+    return this.request<{ message: string; expires_in: number }>("/api/v1/auth/otp/send", {
+      method: "POST",
+      body: JSON.stringify({ email }),
+    });
+  }
+
+  verifyOTP(email: string, code: string, username?: string) {
+    return this.request<AuthResponse>("/api/v1/auth/otp/verify", {
+      method: "POST",
+      body: JSON.stringify({ email, code, username: username || undefined }),
+    });
+  }
+
   login(email: string, password: string) {
     return this.request<AuthResponse>("/api/v1/auth/login", {
       method: "POST",

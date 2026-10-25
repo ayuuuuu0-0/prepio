@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import { GameBackground } from "@/components/game/GameBackground";
 import { CompanionHero } from "@/components/game/CompanionHero";
 import { SpeechBubble } from "@/components/game/SpeechBubble";
@@ -24,12 +24,63 @@ const inputStyle = {
 
 export default function LoginPage() {
   const router = useRouter();
+  const [method, setMethod] = useState<"otp" | "password">("otp");
+  const [otpStep, setOtpStep] = useState<"send" | "verify">("send");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [code, setCode] = useState("");
+  const [countdown, setCountdown] = useState(0);
   const [error, setError] = useState("");
+  const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
 
-  async function onSubmit(e: FormEvent) {
+  useEffect(() => {
+    if (countdown <= 0) return;
+    const timer = setInterval(() => {
+      setCountdown((prev) => (prev > 0 ? prev - 1 : 0));
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [countdown]);
+
+  async function handleSendOTP(e?: FormEvent) {
+    if (e) e.preventDefault();
+    if (!email) return;
+    setLoading(true);
+    setError("");
+    setMessage("");
+    try {
+      const res = await api.sendOTP(email);
+      setMessage(res.message || "Verification code sent to your email!");
+      setOtpStep("verify");
+      setCountdown(60);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to send code");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleVerifyOTP(e: FormEvent) {
+    e.preventDefault();
+    if (!code || code.length !== 6) {
+      setError("Please enter the 6-digit verification code");
+      return;
+    }
+    setLoading(true);
+    setError("");
+    try {
+      const res = await api.verifyOTP(email, code);
+      api.setAuthTokens(res.access_token);
+      const profile = await api.getProfile();
+      router.push(profile.onboarding_completed ? "/dashboard" : "/onboarding");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Verification failed");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handlePasswordLogin(e: FormEvent) {
     e.preventDefault();
     setLoading(true);
     setError("");
@@ -100,51 +151,187 @@ export default function LoginPage() {
             <h1 className="font-display text-2xl font-bold mb-1" style={{ color: "#E8EAED" }}>
               Continue prep
             </h1>
-            <p className="font-body text-sm mb-8" style={{ color: "#4A5068" }}>
+            <p className="font-body text-sm mb-6" style={{ color: "#4A5068" }}>
               Sign in to your account
             </p>
 
-            <form onSubmit={onSubmit} className="space-y-4">
-              {error && (
-                <p
-                  className="rounded-xl px-4 py-3 text-sm font-medium"
-                  style={{
-                    background: "rgba(248,113,113,0.1)",
-                    border: "1px solid rgba(248,113,113,0.3)",
-                    color: "#F87171",
-                  }}
-                >
-                  {error}
-                </p>
-              )}
+            {/* Auth Method Selector */}
+            <div
+              className="flex rounded-xl p-1 mb-6 text-xs font-semibold"
+              style={{ background: "#1A1D27", border: "1px solid #2E3347" }}
+            >
+              <button
+                type="button"
+                onClick={() => {
+                  setMethod("otp");
+                  setError("");
+                  setMessage("");
+                }}
+                className={`flex-1 py-2 rounded-lg transition-all ${
+                  method === "otp"
+                    ? "bg-[#7C6EF5] text-white shadow-sm"
+                    : "text-[#8C93A8] hover:text-[#E8EAED]"
+                }`}
+              >
+                Email Code (OTP)
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setMethod("password");
+                  setError("");
+                  setMessage("");
+                }}
+                className={`flex-1 py-2 rounded-lg transition-all ${
+                  method === "password"
+                    ? "bg-[#7C6EF5] text-white shadow-sm"
+                    : "text-[#8C93A8] hover:text-[#E8EAED]"
+                }`}
+              >
+                Password
+              </button>
+            </div>
 
-              <input
-                className="w-full rounded-xl px-4 py-3 text-sm font-medium outline-none transition-all"
-                style={inputStyle}
-                onFocus={(e) => (e.target.style.borderColor = "#7C6EF5")}
-                onBlur={(e) => (e.target.style.borderColor = "#2E3347")}
-                type="email"
-                placeholder="Email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-              />
-              <input
-                className="w-full rounded-xl px-4 py-3 text-sm font-medium outline-none transition-all"
-                style={inputStyle}
-                onFocus={(e) => (e.target.style.borderColor = "#7C6EF5")}
-                onBlur={(e) => (e.target.style.borderColor = "#2E3347")}
-                type="password"
-                placeholder="Password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-              />
+            {error && (
+              <p
+                className="rounded-xl px-4 py-3 text-sm font-medium mb-4"
+                style={{
+                  background: "rgba(248,113,113,0.1)",
+                  border: "1px solid rgba(248,113,113,0.3)",
+                  color: "#F87171",
+                }}
+              >
+                {error}
+              </p>
+            )}
 
-              <GameButton type="submit" disabled={loading}>
-                {loading ? "Signing in..." : "Continue Prep"}
-              </GameButton>
-            </form>
+            {message && (
+              <p
+                className="rounded-xl px-4 py-3 text-sm font-medium mb-4"
+                style={{
+                  background: "rgba(52,211,153,0.1)",
+                  border: "1px solid rgba(52,211,153,0.3)",
+                  color: "#34D399",
+                }}
+              >
+                {message}
+              </p>
+            )}
+
+            {method === "otp" ? (
+              otpStep === "send" ? (
+                <form onSubmit={handleSendOTP} className="space-y-4">
+                  <div>
+                    <label className="block text-xs font-medium mb-1.5" style={{ color: "#8C93A8" }}>
+                      Email Address
+                    </label>
+                    <input
+                      className="w-full rounded-xl px-4 py-3 text-sm font-medium outline-none transition-all"
+                      style={inputStyle}
+                      onFocus={(e) => (e.target.style.borderColor = "#7C6EF5")}
+                      onBlur={(e) => (e.target.style.borderColor = "#2E3347")}
+                      type="email"
+                      placeholder="you@example.com"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      required
+                    />
+                  </div>
+                  <GameButton type="submit" disabled={loading}>
+                    {loading ? "Sending Code..." : "Send Verification Code"}
+                  </GameButton>
+                </form>
+              ) : (
+                <form onSubmit={handleVerifyOTP} className="space-y-4">
+                  <div>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <label className="text-xs font-medium" style={{ color: "#8C93A8" }}>
+                        6-Digit Code
+                      </label>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setOtpStep("send");
+                          setCode("");
+                          setError("");
+                        }}
+                        className="text-xs font-semibold hover:underline"
+                        style={{ color: "#7C6EF5" }}
+                      >
+                        Change email
+                      </button>
+                    </div>
+                    <input
+                      className="w-full rounded-xl px-4 py-3 text-center text-xl font-bold tracking-[0.5em] outline-none transition-all"
+                      style={inputStyle}
+                      onFocus={(e) => (e.target.style.borderColor = "#7C6EF5")}
+                      onBlur={(e) => (e.target.style.borderColor = "#2E3347")}
+                      type="text"
+                      maxLength={6}
+                      placeholder="------"
+                      value={code}
+                      onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                      required
+                      autoFocus
+                    />
+                    <p className="text-[11px] mt-1 text-center" style={{ color: "#8C93A8" }}>
+                      Sent to <span className="font-medium text-[#E8EAED]">{email}</span>
+                    </p>
+                  </div>
+
+                  <GameButton type="submit" disabled={loading || code.length !== 6}>
+                    {loading ? "Verifying..." : "Verify & Sign In"}
+                  </GameButton>
+
+                  <div className="pt-2 text-center">
+                    {countdown > 0 ? (
+                      <p className="text-xs font-mono" style={{ color: "#8C93A8" }}>
+                        Resend code in {countdown}s
+                      </p>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => handleSendOTP()}
+                        disabled={loading}
+                        className="text-xs font-semibold hover:underline"
+                        style={{ color: "#7C6EF5" }}
+                      >
+                        Resend verification code
+                      </button>
+                    )}
+                  </div>
+                </form>
+              )
+            ) : (
+              <form onSubmit={handlePasswordLogin} className="space-y-4">
+                <input
+                  className="w-full rounded-xl px-4 py-3 text-sm font-medium outline-none transition-all"
+                  style={inputStyle}
+                  onFocus={(e) => (e.target.style.borderColor = "#7C6EF5")}
+                  onBlur={(e) => (e.target.style.borderColor = "#2E3347")}
+                  type="email"
+                  placeholder="Email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                />
+                <input
+                  className="w-full rounded-xl px-4 py-3 text-sm font-medium outline-none transition-all"
+                  style={inputStyle}
+                  onFocus={(e) => (e.target.style.borderColor = "#7C6EF5")}
+                  onBlur={(e) => (e.target.style.borderColor = "#2E3347")}
+                  type="password"
+                  placeholder="Password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                />
+
+                <GameButton type="submit" disabled={loading}>
+                  {loading ? "Signing in..." : "Continue Prep"}
+                </GameButton>
+              </form>
+            )}
 
             <p className="mt-6 text-center text-sm" style={{ color: "#4A5068" }}>
               No account?{" "}

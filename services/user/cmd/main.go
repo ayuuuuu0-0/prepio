@@ -12,6 +12,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	chimw "github.com/go-chi/chi/v5/middleware"
 	"github.com/prepio/prepio/services/user/internal/handler"
+	"github.com/prepio/prepio/services/user/internal/mailer"
 	"github.com/prepio/prepio/services/user/internal/service"
 	"github.com/prepio/prepio/services/user/internal/store"
 	"github.com/prepio/prepio/shared/jwt"
@@ -49,7 +50,9 @@ func main() {
 	deviceStore := store.NewUserDeviceStore(pool)
 	characterStore := store.NewCharacterStore(pool)
 
-	authService := service.NewAuthService(userStore, refreshStore, signer, redisClient)
+	mailClient := mailer.NewResendMailer(os.Getenv("RESEND_API_KEY"), os.Getenv("RESEND_FROM_EMAIL"))
+
+	authService := service.NewAuthService(userStore, refreshStore, signer, redisClient, mailClient)
 	userService := service.NewUserService(userStore, deviceStore)
 	onboardingService := service.NewOnboardingService(userStore, characterStore)
 
@@ -64,6 +67,8 @@ func main() {
 	r.Use(chimw.Recoverer)
 
 	r.Route("/api/v1", func(r chi.Router) {
+		r.Post("/auth/otp/send", authHandler.SendOTP)
+		r.Post("/auth/otp/verify", authHandler.VerifyOTP)
 		r.Post("/auth/register", authHandler.Register)
 		r.Post("/auth/login", authHandler.Login)
 		r.Post("/auth/refresh", authHandler.Refresh)

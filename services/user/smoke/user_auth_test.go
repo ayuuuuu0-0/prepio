@@ -10,6 +10,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	chimw "github.com/go-chi/chi/v5/middleware"
 	"github.com/prepio/prepio/services/user/internal/handler"
+	"github.com/prepio/prepio/services/user/internal/mailer"
 	"github.com/prepio/prepio/services/user/internal/service"
 	"github.com/prepio/prepio/services/user/internal/store"
 	"github.com/prepio/prepio/shared/jwt"
@@ -32,13 +33,16 @@ func TestUserAuthFlow(t *testing.T) {
 	userStore := store.NewUserStore(pool)
 	refreshStore := store.NewRefreshTokenStore(pool)
 	deviceStore := store.NewUserDeviceStore(pool)
+	mockMailer := &mailer.MockMailer{}
 
-	authHandler := handler.NewAuthHandler(service.NewAuthService(userStore, refreshStore, signer, redisClient))
+	authHandler := handler.NewAuthHandler(service.NewAuthService(userStore, refreshStore, signer, redisClient, mockMailer))
 	userHandler := handler.NewUserHandler(service.NewUserService(userStore, deviceStore))
 
 	r := chi.NewRouter()
 	r.Use(chimw.Recoverer)
 	r.Route("/api/v1", func(r chi.Router) {
+		r.Post("/auth/otp/send", authHandler.SendOTP)
+		r.Post("/auth/otp/verify", authHandler.VerifyOTP)
 		r.Post("/auth/register", authHandler.Register)
 		r.Post("/auth/login", authHandler.Login)
 		r.Post("/auth/refresh", authHandler.Refresh)
@@ -93,6 +97,79 @@ func TestUserAuthFlow(t *testing.T) {
 
 	afterLogout := getJSON(t, server.URL+"/api/v1/users/me", newAccess)
 	require.Equal(t, http.StatusUnauthorized, afterLogout.StatusCode)
+}
+
+func TestUserOTPFlow(t *testing.T) {
+	pool, _ := testdb.Start(t)
+	testdb.Migrate(t, pool)
+
+	redisClient, _ := testredis.New(t)
+
+	signer, err := jwt.NewSigner("test-secret-key-for-smoke-tests")
+	require.NoError(t, err)
+
+	userStore := store.NewUserStore(pool)
+	refreshStore := store.NewRefreshTokenStore(pool)
+	deviceStore := store.NewUserDeviceStore(pool)
+	mockMailer := &mailer.MockMailer{}
+
+	authHandler := handler.NewAuthHandler(service.NewAuthService(userStore, refreshStore, signer, redisClient, mockMailer))
+	userHandler := handler.NewUserHandler(service.NewUserService(userStore, deviceStore))
+
+	r := chi.NewRouter()
+	r.Use(chimw.Recoverer)
+	r.Route("/api/v1", func(r chi.Router) {
+		r.Post("/auth/otp/send", authHandler.SendOTP)
+		r.Post("/auth/otp/verify", authHandler.VerifyOTP)
+		r.Group(func(r chi.Router) {
+			r.Use(middleware.Auth(signer, redisClient))
+			r.Get("/users/me", userHandler.GetMe)
+		})
+	})
+
+	server := httptest.NewServer(r)
+	t.Cleanup(server.Close)
+
+	testEmail := "otpuser@example.com"
+
+	// 1. Send OTP
+	sendBody, _ := json.Marshal(map[string]string{"email": testEmail})
+	sendResp := postJSON(t, server.URL+"/api/v1/auth/otp/send", sendBody, "")
+	require.Equal(t, http.StatusOK, sendResp.StatusCode)
+	require.Equal(t, testEmail, mockMailer.LastEmail)
+	require.Len(t, mockMailer.LastCode, 6)
+
+	otpCode := mockMailer.LastCode
+
+	// 2. Verify with wrong code should fail
+	wrongBody, _ := json.Marshal(map[string]string{
+		"email": testEmail,
+		"code":  "000000",
+	})
+	wrongResp := postJSON(t, server.URL+"/api/v1/auth/otp/verify", wrongBody, "")
+	require.Equal(t, http.StatusBadRequest, wrongResp.StatusCode)
+
+	// 3. Verify with correct code should succeed and create account
+	correctBody, _ := json.Marshal(map[string]string{
+		"email":    testEmail,
+		"code":     otpCode,
+		"username": "otpstudent",
+	})
+	verifyResp := postJSON(t, server.URL+"/api/v1/auth/otp/verify", correctBody, "")
+	require.Equal(t, http.StatusOK, verifyResp.StatusCode)
+
+	auth := decodeMap(t, verifyResp)
+	require.NotEmpty(t, auth["access_token"])
+	require.NotEmpty(t, auth["refresh_token"])
+
+	user := auth["user"].(map[string]any)
+	require.Equal(t, testEmail, user["email"])
+	require.Equal(t, "otpstudent", user["username"])
+
+	// 4. Access protected endpoint with token
+	accessToken := auth["access_token"].(string)
+	profileResp := getJSON(t, server.URL+"/api/v1/users/me", accessToken)
+	require.Equal(t, http.StatusOK, profileResp.StatusCode)
 }
 
 func postJSON(t *testing.T, url string, body []byte, token string) *http.Response {

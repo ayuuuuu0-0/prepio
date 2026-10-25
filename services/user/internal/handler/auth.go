@@ -23,6 +23,41 @@ func NewAuthHandler(auth *service.AuthService) *AuthHandler {
 	return &AuthHandler{auth: auth}
 }
 
+// SendOTP handles POST /api/v1/auth/otp/send.
+func (h *AuthHandler) SendOTP(w http.ResponseWriter, r *http.Request) {
+	var req dto.SendOTPRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		response.Error(w, http.StatusBadRequest, constants.ErrInvalidRequest, "invalid request body")
+		return
+	}
+
+	resp, err := h.auth.SendOTP(r.Context(), req)
+	if err != nil {
+		writeServiceError(w, err)
+		return
+	}
+
+	response.Data(w, http.StatusOK, resp)
+}
+
+// VerifyOTP handles POST /api/v1/auth/otp/verify.
+func (h *AuthHandler) VerifyOTP(w http.ResponseWriter, r *http.Request) {
+	var req dto.VerifyOTPRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		response.Error(w, http.StatusBadRequest, constants.ErrInvalidRequest, "invalid request body")
+		return
+	}
+
+	resp, err := h.auth.VerifyOTP(r.Context(), req)
+	if err != nil {
+		writeServiceError(w, err)
+		return
+	}
+
+	auth.SetRefreshTokenCookie(w, r, resp.RefreshToken)
+	response.Data(w, http.StatusOK, resp)
+}
+
 // Register handles POST /api/v1/auth/register.
 func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 	var req dto.RegisterRequest
@@ -104,6 +139,12 @@ func writeServiceError(w http.ResponseWriter, err error) {
 		response.Error(w, http.StatusBadRequest, constants.ErrInvalidRequest, err.Error())
 	case errors.Is(err, service.ErrInvalidCredentials):
 		response.Error(w, http.StatusUnauthorized, constants.ErrInvalidCredentials, err.Error())
+	case errors.Is(err, service.ErrInvalidOTP):
+		response.Error(w, http.StatusBadRequest, constants.ErrInvalidOTP, err.Error())
+	case errors.Is(err, service.ErrOTPCooldown):
+		response.Error(w, http.StatusTooManyRequests, constants.ErrOTPCooldown, err.Error())
+	case errors.Is(err, service.ErrTooManyAttempts):
+		response.Error(w, http.StatusTooManyRequests, constants.ErrTooManyAttempts, err.Error())
 	case errors.Is(err, service.ErrEmailTaken):
 		response.Error(w, http.StatusConflict, constants.ErrEmailTaken, err.Error())
 	case errors.Is(err, service.ErrUsernameTaken):
