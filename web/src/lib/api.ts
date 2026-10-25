@@ -3,6 +3,7 @@ import type {
   Answer,
   AnswerResult,
   AttemptData,
+  CompanionReaction,
   CompletionData,
   PathData,
 } from "@/lib/lesson/types";
@@ -203,6 +204,12 @@ export class ApiClient {
       `/api/v1/attempts/${encodeURIComponent(attemptId)}/steps/${encodeURIComponent(stepId)}/answer`,
       { method: "POST", body: JSON.stringify({ try: tryNo, answer }) },
     );
+  }
+
+  /** getCompanionReaction returns a dialogue line and expression for an event. */
+  getCompanionReaction(event: string) {
+    const q = event ? `?event=${encodeURIComponent(event)}` : "";
+    return this.request<CompanionReaction>(`/api/v1/companions/reaction${q}`);
   }
 
   /** completeAttempt finishes the attempt; the response includes Progress rewards. */

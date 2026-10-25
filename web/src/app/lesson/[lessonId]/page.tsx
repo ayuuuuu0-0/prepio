@@ -15,7 +15,7 @@ import {
   type Mistake,
 } from "@/lib/lesson/answers";
 import { useSound } from "@/lib/sound";
-import type { AnswerResult, AttemptData, ClientStep, CompletionData } from "@/lib/lesson/types";
+import type { AnswerResult, AttemptData, ClientStep, CompanionReaction, CompletionData } from "@/lib/lesson/types";
 import { CompanionHero } from "@/components/game/CompanionHero";
 import { GameButton } from "@/components/game/GameButton";
 import { PlayerShell } from "@/components/lesson/PlayerShell";
@@ -147,6 +147,8 @@ function Player({
   const [streak, setStreak] = useState<number | null>(null);
   const polls = useRef(0);
   const [mistakes, setMistakes] = useState<Mistake[]>([]);
+  const [companionReaction, setCompanionReaction] = useState<CompanionReaction | null>(null);
+  const [completionReaction, setCompletionReaction] = useState<CompanionReaction | null>(null);
   const sound = useSound();
 
   const stepsById = useMemo(() => new Map(attempt.steps.map((s) => [s.id, s])), [attempt.steps]);
@@ -171,6 +173,9 @@ function Player({
     try {
       const result = await api.answerStep(attempt.attempt_id, step.id, nextTry(session, step.id), toAnswer(step, draft));
       setGraded({ result, draft });
+      api.getCompanionReaction(result.correct ? "correct_answer" : "wrong_answer")
+        .then((r) => setCompanionReaction(r))
+        .catch(() => {});
       sound.cue(result.correct ? "correct" : "wrong");
       if (!result.correct) {
         setMistakes((list) =>
@@ -248,7 +253,13 @@ function Player({
     (async () => {
       try {
         const done = await api.completeAttempt(attempt.attempt_id);
-        if (!cancelled) setCompletion(done);
+        if (!cancelled) {
+          setCompletion(done);
+          const eventType = done.accuracy >= 0.8 ? "lesson_complete_high" : "lesson_complete_low";
+          api.getCompanionReaction(eventType)
+            .then((r) => { if (!cancelled) setCompletionReaction(r); })
+            .catch(() => {});
+        }
       } catch {
         if (!cancelled) setCompleteFailed(true);
       }
@@ -303,6 +314,7 @@ function Player({
               streak={streak}
               companionName={companionName}
               companionSpecies={companionSpecies}
+              companionReaction={completionReaction}
               onBackToJourney={backToJourney}
               mistakes={mistakes}
             />
@@ -338,6 +350,8 @@ function Player({
         result={graded.result}
         correctAnswer={step ? correctAnswerLines(step, graded.result.correct_answer) : []}
         companionName={companionName}
+        companionSpecies={companionSpecies}
+        companionReaction={companionReaction}
         onContinue={next}
         continueLabel={session.queue.length === 1 && graded.result.correct ? "Finish" : "Continue"}
       />

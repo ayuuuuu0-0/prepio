@@ -15,9 +15,9 @@ import (
 	"github.com/prepio/prepio/services/gateway/internal/dashboard"
 	"github.com/prepio/prepio/services/gateway/internal/leagues"
 	"github.com/prepio/prepio/services/gateway/internal/lessons"
-	"github.com/prepio/prepio/shared/proxy"
 	"github.com/prepio/prepio/shared/jwt"
 	"github.com/prepio/prepio/shared/middleware"
+	"github.com/prepio/prepio/shared/proxy"
 	redisclient "github.com/prepio/prepio/shared/redis"
 )
 
@@ -103,6 +103,7 @@ func main() {
 			r.Handle("/skills/*", questionProxy)
 			r.Get("/skills", questionProxy.ServeHTTP)
 			r.Post("/auth/logout", userProxy.ServeHTTP)
+			r.Get("/companions/reaction", userProxy.ServeHTTP)
 			r.Handle("/users/*", userProxy)
 			r.Handle("/streaks/*", streakProxy)
 			r.Handle("/progress/*", progressProxy)

@@ -111,6 +111,15 @@ export type CompletionData = {
 
 export type NodeStatus = "locked" | "current" | "available" | "done";
 
+export type CompanionExpression = "happy" | "disappointed" | "excited" | "thinking" | "neutral";
+
+export type CompanionReaction = {
+  line: string;
+  expression: CompanionExpression;
+  name: string;
+  species: string;
+};
+
 export type PathNode = {
   id: string;
   slug: string;

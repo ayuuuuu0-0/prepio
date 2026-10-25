@@ -31,6 +31,18 @@ func (h *OnboardingHandler) ListCompanions(w http.ResponseWriter, r *http.Reques
 	response.Data(w, http.StatusOK, resp)
 }
 
+// GetReaction handles GET /api/v1/companions/reaction?event=correct_answer.
+func (h *OnboardingHandler) GetReaction(w http.ResponseWriter, r *http.Request) {
+	userID, _ := middleware.UserIDFromContext(r.Context())
+	event := r.URL.Query().Get("event")
+	resp, err := h.onboarding.GetCompanionReaction(r.Context(), userID, event)
+	if err != nil {
+		response.Error(w, http.StatusInternalServerError, constants.ErrInternal, "internal error")
+		return
+	}
+	response.Data(w, http.StatusOK, resp)
+}
+
 // CompleteOnboarding handles POST /api/v1/users/onboarding.
 func (h *OnboardingHandler) CompleteOnboarding(w http.ResponseWriter, r *http.Request) {
 	userID, ok := middleware.UserIDFromContext(r.Context())

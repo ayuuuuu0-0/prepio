@@ -69,3 +69,29 @@ func (s *CharacterStore) GetByID(ctx context.Context, id string) (*Character, er
 	}
 	return &c, nil
 }
+
+// Dialogue is a line of dialogue with its companion expression.
+type Dialogue struct {
+	Line       string
+	Expression string
+}
+
+// GetRandomDialogue retrieves a random dialogue line for a given character and notification/event type.
+func (s *CharacterStore) GetRandomDialogue(ctx context.Context, characterID string, notificationType string) (*Dialogue, error) {
+	const q = `
+		SELECT dialogue_line, expression
+		FROM character_dialogues
+		WHERE character_id = $1 AND notification_type = $2
+		ORDER BY random()
+		LIMIT 1`
+
+	var d Dialogue
+	err := s.pool.QueryRow(ctx, q, characterID, notificationType).Scan(&d.Line, &d.Expression)
+	if err == pgx.ErrNoRows {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, fmt.Errorf("get random dialogue: %w", err)
+	}
+	return &d, nil
+}

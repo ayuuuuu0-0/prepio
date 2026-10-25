@@ -2,6 +2,8 @@
 
 import { useEffect, useRef } from "react";
 import type { AnswerResult } from "@/lib/lesson/types";
+import { CompanionHero } from "@/components/game/CompanionHero";
+import { SpeechBubble } from "@/components/game/SpeechBubble";
 
 /**
  * FeedbackTray slides up after a step is graded. It always carries an icon and
@@ -12,6 +14,8 @@ export function FeedbackTray({
   result,
   correctAnswer = [],
   companionName,
+  companionSpecies,
+  companionReaction,
   onContinue,
   continueLabel,
 }: {
@@ -19,6 +23,8 @@ export function FeedbackTray({
   /** The server's correct answer in words, one line per part (sent only after a miss). */
   correctAnswer?: string[];
   companionName?: string;
+  companionSpecies?: string;
+  companionReaction?: { line: string; expression: string } | null;
   onContinue: () => void;
   continueLabel: string;
 }) {
@@ -61,11 +67,24 @@ export function FeedbackTray({
             </span>
             {heading}
           </p>
-          {intro && (
+
+          {companionReaction?.line ? (
+            <div className="mt-3 flex items-start gap-3">
+              <CompanionHero
+                name={companionName}
+                species={companionSpecies}
+                size="sm"
+                reaction={ok ? "correct" : "wrong"}
+              />
+              <SpeechBubble className="flex-1" speakerName={companionName ?? "Byte"}>
+                {companionReaction.line}
+              </SpeechBubble>
+            </div>
+          ) : intro ? (
             <p className="mt-1 text-sm font-semibold" style={{ color: "#8B92A8" }}>
               {intro}
             </p>
-          )}
+          ) : null}
 
           {!ok && correctAnswer.length > 0 && (
             <div className="mt-3 text-sm" style={{ color: "#E8EAED" }}>
@@ -129,7 +148,7 @@ export function FeedbackTray({
                   {result.strengths!.map((s) => (
                     <li key={s}>
                       <span aria-hidden style={{ color: "#34D399" }}>✓ </span>
-                                            {s}
+                      {s}
                     </li>
                   ))}
                 </ul>
@@ -144,7 +163,7 @@ export function FeedbackTray({
                   {result.gaps!.map((g) => (
                     <li key={g}>
                       <span aria-hidden style={{ color: "#F5B942" }}>+ </span>
-                                            {g}
+                      {g}
                     </li>
                   ))}
                 </ul>

@@ -96,6 +96,56 @@ func (s *OnboardingService) GetProfile(ctx context.Context, userID string) (*dto
 	return s.buildProfile(ctx, user)
 }
 
+// GetCompanionReaction returns a random dialogue line and expression for the user's active companion.
+func (s *OnboardingService) GetCompanionReaction(ctx context.Context, userID string, event string) (*dto.CompanionReactionResponse, error) {
+	charID := constants.DefaultCharacterID
+	charName := "Byte"
+	charSpecies := "capybara"
+
+	if userID != "" {
+		user, err := s.users.GetByID(ctx, userID)
+		if err == nil && user != nil && user.ActiveCharID != nil && len(*user.ActiveCharID) > 0 {
+			charID = *user.ActiveCharID
+		}
+	}
+
+	char, err := s.characters.GetByID(ctx, charID)
+	if err == nil && char != nil {
+		charName = char.Name
+		charSpecies = char.Species
+	}
+
+	if event == "" {
+		event = "correct_answer"
+	}
+
+	dialogue, err := s.characters.GetRandomDialogue(ctx, charID, event)
+	if err != nil {
+		return nil, err
+	}
+	if dialogue == nil {
+		fallbackExpr := "happy"
+		fallbackLine := "Keep going! You're making progress."
+		if event == "wrong_answer" {
+			fallbackExpr = "disappointed"
+			fallbackLine = "Mistakes are how we learn. Let's get the next one!"
+		}
+		return &dto.CompanionReactionResponse{
+			Line:       fallbackLine,
+			Expression: fallbackExpr,
+			Name:       charName,
+			Species:    charSpecies,
+		}, nil
+	}
+
+	return &dto.CompanionReactionResponse{
+		Line:       dialogue.Line,
+		Expression: dialogue.Expression,
+		Name:       charName,
+		Species:    charSpecies,
+	}, nil
+}
+
 func (s *OnboardingService) buildProfile(ctx context.Context, user *store.User) (*dto.ProfileResponse, error) {
 	focusTopics, err := s.users.ListFocusTopics(ctx, user.ID)
 	if err != nil {

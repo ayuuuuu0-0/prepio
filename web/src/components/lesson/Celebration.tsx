@@ -42,6 +42,7 @@ export function Celebration({
   streak,
   companionName,
   companionSpecies,
+  companionReaction,
   onBackToJourney,
   mistakes = [],
 }: {
@@ -49,6 +50,7 @@ export function Celebration({
   streak: number | null;
   companionName?: string;
   companionSpecies?: string;
+  companionReaction?: { line: string; expression: string } | null;
   onBackToJourney: () => void;
   /** Exercises missed during this lesson, with the server's correct answers. */
   mistakes?: Mistake[];
@@ -162,7 +164,7 @@ export function Celebration({
       <div className="mt-6 flex w-full items-start gap-4 text-left">
         <CompanionHero name={companionName} species={companionSpecies} size="md" reaction="correct" />
         <SpeechBubble className="flex-1" speakerName={companionName ?? "Byte"}>
-          {message(completion.accuracy, rewards?.first_completion)}
+          {companionReaction?.line ?? message(completion.accuracy, rewards?.first_completion)}
         </SpeechBubble>
       </div>
 

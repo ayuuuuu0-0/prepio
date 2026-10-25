@@ -75,6 +75,7 @@ func main() {
 			r.Post("/auth/logout", authHandler.Logout)
 			r.Get("/users/me", userHandler.GetMe)
 			r.Get("/users/profile", onboardingHandler.GetProfile)
+			r.Get("/companions/reaction", onboardingHandler.GetReaction)
 			r.Post("/users/onboarding", onboardingHandler.CompleteOnboarding)
 			r.Post("/users/public-cards", userHandler.PublicCards)
 			r.Patch("/users/me", userHandler.UpdateMe)
