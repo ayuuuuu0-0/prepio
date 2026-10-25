@@ -28,6 +28,7 @@ import { ProseStep } from "@/components/lesson/ProseStep";
 import { CodeSnippetStep } from "@/components/lesson/CodeSnippetStep";
 import { FeedbackTray } from "@/components/lesson/FeedbackTray";
 import { Celebration } from "@/components/lesson/Celebration";
+import { CornerCompanion } from "@/components/lesson/CornerCompanion";
 
 type Load =
   | { status: "loading" }
@@ -100,24 +101,23 @@ function LoadError({ error, onRetry }: { error: { code: string; message: string 
 
   return (
     <div className="game-bg-challenge flex min-h-dvh flex-col items-center justify-center px-6 text-center">
-      <p className="text-5xl" aria-hidden>
-        {locked ? "🔒" : "🧭"}
-      </p>
-      <h1 className="font-display mt-4 text-xl font-extrabold" style={{ color: "#E8EAED" }}>
-        {title}
-      </h1>
-      <p className="mt-2 max-w-sm text-sm leading-relaxed" style={{ color: "#8B92A8" }} role="alert">
-        {body}
-      </p>
-      <div className="mt-6 flex w-full max-w-xs flex-col gap-3">
-        {!locked && !missing && (
-          <GameButton type="button" onClick={onRetry}>
-            Try again
+      <div className="w-full max-w-sm rounded-2xl p-6" style={{ background: "#1A1D27", border: "1px solid #2E3347" }}>
+        <h1 className="font-display text-xl font-extrabold" style={{ color: "#E8EAED" }}>
+          {title}
+        </h1>
+        <p className="mt-2 text-sm leading-relaxed" style={{ color: "#8B92A8" }}>
+          {body}
+        </p>
+        <div className="mt-6 flex flex-col gap-3">
+          {!locked && !missing && (
+            <GameButton type="button" onClick={onRetry}>
+              Try again
+            </GameButton>
+          )}
+          <GameButton type="button" variant="ghost" onClick={() => router.push("/journey")}>
+            Back to journey
           </GameButton>
-        )}
-        <GameButton type="button" variant={locked || missing ? "primary" : "ghost"} onClick={() => router.push("/journey")}>
-          Back to journey
-        </GameButton>
+        </div>
       </div>
     </div>
   );
@@ -173,10 +173,18 @@ function Player({
     try {
       const result = await api.answerStep(attempt.attempt_id, step.id, nextTry(session, step.id), toAnswer(step, draft));
       setGraded({ result, draft });
-      api.getCompanionReaction(result.correct ? "correct_answer" : "wrong_answer")
-        .then((r) => setCompanionReaction(r))
-        .catch(() => {});
       sound.cue(result.correct ? "correct" : "wrong");
+
+      // Fetch dynamic companion reaction and speak dialogue line
+      api.getCompanionReaction(result.correct ? "correct_answer" : "wrong_answer")
+        .then((r) => {
+          setCompanionReaction(r);
+          if (r?.line) {
+            sound.speak(r.line, companionName);
+          }
+        })
+        .catch(() => {});
+
       if (!result.correct) {
         setMistakes((list) =>
           recordMistake(list, {
@@ -200,12 +208,13 @@ function Player({
     } finally {
       setSubmitting(false);
     }
-  }, [step, draft, ready, submitting, session, attempt.attempt_id, onResync, sound]);
+  }, [step, draft, ready, submitting, session, attempt.attempt_id, onResync, sound, companionName]);
 
   const next = useCallback(() => {
     setGraded(null);
     setDrafted(null);
     setProblem(null);
+    setCompanionReaction(null);
     dispatch({ type: "continue" });
   }, []);
 
@@ -257,7 +266,12 @@ function Player({
           setCompletion(done);
           const eventType = done.accuracy >= 0.8 ? "lesson_complete_high" : "lesson_complete_low";
           api.getCompanionReaction(eventType)
-            .then((r) => { if (!cancelled) setCompletionReaction(r); })
+            .then((r) => {
+              if (!cancelled) {
+                setCompletionReaction(r);
+                if (r?.line) sound.speak(r.line, companionName);
+              }
+            })
             .catch(() => {});
         }
       } catch {
@@ -267,31 +281,32 @@ function Player({
     return () => {
       cancelled = true;
     };
-  }, [session.phase, completion, completeFailed, attempt.attempt_id]);
+  }, [session.phase, attempt.attempt_id, completion, completeFailed, sound, companionName]);
 
-  // Progress applies the completion asynchronously; re-ask (idempotent) until the rewards are in.
-  useEffect(() => {
-    if (!completion?.rewards_pending || polls.current >= MAX_REWARD_POLLS) return;
-    const t = setTimeout(async () => {
-      polls.current += 1;
-      try {
-        setCompletion(await api.completeAttempt(attempt.attempt_id));
-      } catch {
-        /* keep what we have; the celebration still shows accuracy */
-      }
-    }, 1200);
-    return () => clearTimeout(t);
-  }, [completion, attempt.attempt_id]);
-
+  // Poll the dashboard for the updated streak until it catches up, or give up after a few tries.
   useEffect(() => {
     if (!completion) return;
-    api
-      .getDashboardHome()
-      .then((home) => setStreak(home.streak.current_streak))
-      .catch(() => setStreak(null));
-  }, [completion?.attempt_id]); // eslint-disable-line react-hooks/exhaustive-deps
+    let cancelled = false;
+    const poll = async () => {
+      try {
+        const home = await api.getDashboardHome();
+        if (cancelled) return;
+        setStreak(home.streak.current_streak);
+        if (home.streak.streak_active_today || polls.current >= MAX_REWARD_POLLS) {
+          return;
+        }
+        polls.current += 1;
+        setTimeout(poll, 1500);
+      } catch {
+        // Leave the streak absent; the celebration renders without it.
+      }
+    };
+    poll();
+    return () => {
+      cancelled = true;
+    };
+  }, [completion]);
 
-  // Tell the journey which node was finished and which nodes the server reports as newly unlocked.
   const backToJourney = () => {
     if (!completion) {
       router.push("/journey");
@@ -349,70 +364,91 @@ function Player({
       <FeedbackTray
         result={graded.result}
         correctAnswer={step ? correctAnswerLines(step, graded.result.correct_answer) : []}
-        companionName={companionName}
-        companionSpecies={companionSpecies}
-        companionReaction={companionReaction}
         onContinue={next}
         continueLabel={session.queue.length === 1 && graded.result.correct ? "Finish" : "Continue"}
       />
     ) : undefined;
 
   return (
-    <PlayerShell
-      progress={progress(session)}
-      combo={session.combo}
-      confirmingExit={confirmingExit}
-      onRequestExit={() => setConfirmingExit(true)}
-      onCancelExit={() => setConfirmingExit(false)}
-      onConfirmExit={() => router.push("/journey")}
-      tray={tray}
-      onReplayIntro={
-        session.hasIntro && session.phase === "answering" && !submitting ? () => dispatch({ type: "replayIntro" }) : undefined
-      }
-      soundOn={sound.enabled}
-      onToggleSound={sound.toggle}
-      companion={<CompanionHero name={companionName} species={companionSpecies} size="sm" reaction={reaction} />}
-    >
-      {session.phase === "intro" && intro?.intro ? (
-        <IntroStep beats={intro.intro.beats} mediaUrl={intro.intro.media_url} onDone={() => dispatch({ type: "finishIntro" })} />
-      ) : step && draft ? (
-        <>
-          <ExerciseStep
-            step={step}
-            draft={draft}
-            graded={graded}
-            disabled={submitting || session.phase !== "answering" || confirmingExit}
-            onDraft={setDraft}
-          />
-          {session.phase === "answering" && (
-            <div className="mt-auto pt-6">
-              {problem && (
-                <p className="mb-3 text-center text-sm font-semibold" style={{ color: "#F87171" }} role="alert">
-                  {problem}
-                </p>
-              )}
-              <GameButton type="button" onClick={check} disabled={!ready || submitting}>
-                {submitting ? "Checking…" : "Check"}
+    <>
+      <PlayerShell
+        progress={progress(session)}
+        combo={session.combo}
+        confirmingExit={confirmingExit}
+        onRequestExit={() => setConfirmingExit(true)}
+        onCancelExit={() => setConfirmingExit(false)}
+        onConfirmExit={() => router.push("/journey")}
+        tray={tray}
+        onReplayIntro={
+          session.hasIntro && session.phase === "answering" && !submitting ? () => dispatch({ type: "replayIntro" }) : undefined
+        }
+        soundOn={sound.enabled}
+        onToggleSound={sound.toggle}
+      >
+        {session.phase === "intro" && intro?.intro ? (
+          <IntroStep beats={intro.intro.beats} mediaUrl={intro.intro.media_url} onDone={() => dispatch({ type: "finishIntro" })} />
+        ) : step && draft ? (
+          <>
+            <ExerciseStep
+              step={step}
+              draft={draft}
+              graded={graded}
+              disabled={submitting || session.phase !== "answering" || confirmingExit}
+              onDraft={setDraft}
+            />
+            {session.phase === "answering" && (
+              <div className="mt-auto pt-6">
+                {problem && (
+                  <p className="mb-3 text-center text-sm font-semibold" style={{ color: "#F87171" }} role="alert">
+                    {problem}
+                  </p>
+                )}
+                <GameButton type="button" onClick={check} disabled={!ready || submitting}>
+                  {submitting ? "Checking…" : "Check"}
+                </GameButton>
+              </div>
+            )}
+          </>
+        ) : (
+          <div className="flex flex-1 flex-col items-center justify-center text-center">
+            <h1 className="font-display text-xl font-extrabold" style={{ color: "#E8EAED" }}>
+              This exercise isn&apos;t available in this version
+            </h1>
+            <p className="mt-2 max-w-sm text-sm" style={{ color: "#8B92A8" }}>
+              Your progress is saved. Leave the lesson and come back after the next update.
+            </p>
+            <div className="mt-6 w-full max-w-xs">
+              <GameButton type="button" onClick={() => router.push("/journey")}>
+                Back to journey
               </GameButton>
             </div>
-          )}
-        </>
-      ) : (
-        <div className="flex flex-1 flex-col items-center justify-center text-center">
-          <h1 className="font-display text-xl font-extrabold" style={{ color: "#E8EAED" }}>
-            This exercise isn&apos;t available in this version
-          </h1>
-          <p className="mt-2 max-w-sm text-sm" style={{ color: "#8B92A8" }}>
-            Your progress is saved. Leave the lesson and come back after the next update.
-          </p>
-          <div className="mt-6 w-full max-w-xs">
-            <GameButton type="button" onClick={() => router.push("/journey")}>
-              Back to journey
-            </GameButton>
           </div>
-        </div>
+        )}
+      </PlayerShell>
+
+      {/* Persistent Airlearn-style Corner Co-pilot HUD */}
+      {session.phase !== "intro" && (
+        <CornerCompanion
+          name={companionName}
+          species={companionSpecies}
+          reaction={reaction}
+          dialogueLine={companionReaction?.line}
+          soundOn={sound.enabled}
+          onToggleSound={sound.toggle}
+          onPoke={() => {
+            sound.cue("poke");
+            const pokePhrases = [
+              `I'm watching your code! Keep going.`,
+              `Stay focused — you got this!`,
+              `Quality over speed. Think through edge cases.`,
+              `Your streak is on the line, let's nail it!`,
+            ];
+            const phrase = pokePhrases[Math.floor(Math.random() * pokePhrases.length)];
+            sound.speak(phrase, companionName);
+          }}
+        />
       )}
-    </PlayerShell>
+    </>
   );
 }
 

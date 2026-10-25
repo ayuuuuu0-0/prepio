@@ -7,7 +7,7 @@ import { useCallback, useEffect, useState } from "react";
  * off by default, and the choice is remembered on this device.
  */
 
-export type Cue = "correct" | "wrong" | "complete";
+export type Cue = "correct" | "wrong" | "complete" | "poke";
 
 const STORAGE_KEY = "prepio_sound";
 
@@ -26,6 +26,10 @@ export const CUES: Record<Cue, [number, number, number][]> = {
     [659, 0.12, 0.14],
     [784, 0.24, 0.14],
     [1047, 0.36, 0.32],
+  ],
+  poke: [
+    [440, 0, 0.08],
+    [554, 0.06, 0.12],
   ],
 };
 
@@ -59,6 +63,35 @@ function play(cue: Cue) {
   }
 }
 
+/** speakCompanionLine uses Web Speech API to voice companion dialogue with customized personality pitch. */
+export function speakCompanionLine(line: string, companionName?: string, enabled: boolean = true) {
+  if (!enabled || typeof window === "undefined" || !("speechSynthesis" in window)) return;
+  try {
+    window.speechSynthesis.cancel();
+    const utterance = new SpeechSynthesisUtterance(line);
+    const name = (companionName ?? "").toLowerCase();
+    if (name.includes("pip")) {
+      utterance.pitch = 1.35;
+      utterance.rate = 1.15;
+    } else if (name.includes("byte")) {
+      utterance.pitch = 0.85;
+      utterance.rate = 0.95;
+    } else if (name.includes("zara") || name.includes("cat")) {
+      utterance.pitch = 1.25;
+      utterance.rate = 1.1;
+    } else if (name.includes("kodo") || name.includes("owl")) {
+      utterance.pitch = 0.8;
+      utterance.rate = 0.9;
+    } else {
+      utterance.pitch = 1.1;
+      utterance.rate = 1.05;
+    }
+    window.speechSynthesis.speak(utterance);
+  } catch {
+    // Graceful fallback if speech synthesis is disabled in browser
+  }
+}
+
 /** useSound exposes the remembered on/off preference and a player that is silent when off. */
 export function useSound() {
   const [enabled, setEnabled] = useState(false);
@@ -87,5 +120,12 @@ export function useSound() {
     [enabled],
   );
 
-  return { enabled, toggle, cue };
+  const speak = useCallback(
+    (line: string, companionName?: string) => {
+      if (enabled) speakCompanionLine(line, companionName, enabled);
+    },
+    [enabled],
+  );
+
+  return { enabled, toggle, cue, speak };
 }

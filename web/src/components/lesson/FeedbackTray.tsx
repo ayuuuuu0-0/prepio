@@ -2,20 +2,15 @@
 
 import { useEffect, useRef } from "react";
 import type { AnswerResult } from "@/lib/lesson/types";
-import { CompanionHero } from "@/components/game/CompanionHero";
-import { SpeechBubble } from "@/components/game/SpeechBubble";
 
 /**
  * FeedbackTray slides up after a step is graded. It always carries an icon and
- * words (never colour alone), the explanation, and, after a miss, why the chosen
- * option was wrong. Enter (handled by the page) or the button continues.
+ * words (never colour alone), the explanation, test case results, and, after a miss,
+ * why the chosen option was wrong. Enter (handled by the page) or the button continues.
  */
 export function FeedbackTray({
   result,
   correctAnswer = [],
-  companionName,
-  companionSpecies,
-  companionReaction,
   onContinue,
   continueLabel,
 }: {
@@ -37,14 +32,7 @@ export function FeedbackTray({
   // Written answers come back with a rubric score instead of a single correct option.
   const prose = typeof result.score === "number";
   const tone = ok ? "#34D399" : "#F87171";
-  const heading = ok ? "Nice, that's right" : "Not quite";
-  const intro = ok
-    ? companionName
-      ? `${companionName} is impressed.`
-      : null
-    : companionName
-      ? `${companionName}: no worries, this one comes back at the end.`
-      : "No worries, this one comes back at the end.";
+  const heading = ok ? "Nice, that's right!" : "Not quite";
 
   return (
     <div
@@ -60,31 +48,13 @@ export function FeedbackTray({
           <p className="font-display flex items-center gap-2 text-lg font-extrabold" style={{ color: tone }}>
             <span
               aria-hidden
-              className="flex h-7 w-7 items-center justify-center rounded-full text-sm"
+              className="flex h-7 w-7 items-center justify-center rounded-full text-sm font-black"
               style={{ background: tone, color: "#0F1117" }}
             >
               {ok ? "✓" : "✕"}
             </span>
             {heading}
           </p>
-
-          {companionReaction?.line ? (
-            <div className="mt-3 flex items-start gap-3">
-              <CompanionHero
-                name={companionName}
-                species={companionSpecies}
-                size="sm"
-                reaction={ok ? "correct" : "wrong"}
-              />
-              <SpeechBubble className="flex-1" speakerName={companionName ?? "Byte"}>
-                {companionReaction.line}
-              </SpeechBubble>
-            </div>
-          ) : intro ? (
-            <p className="mt-1 text-sm font-semibold" style={{ color: "#8B92A8" }}>
-              {intro}
-            </p>
-          ) : null}
 
           {!ok && correctAnswer.length > 0 && (
             <div className="mt-3 text-sm" style={{ color: "#E8EAED" }}>
