@@ -2,8 +2,8 @@ package testing
 
 import (
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/prepio/prepio/services/notification/internal/service"
-	"github.com/prepio/prepio/services/notification/internal/store"
+	"github.com/prepio/prepio/internal/notification/service"
+	"github.com/prepio/prepio/internal/notification/store"
 	"github.com/redis/go-redis/v9"
 )
 

@@ -20,41 +20,36 @@ import (
 func main() {
 	log.Println("=== Starting Prepio Local Development Environment ===")
 
-	// 1. Embedded Postgres
-	port := uint32(5433)
-	dataDir := filepath.Join(os.TempDir(), "prepio-local-pg")
-	_ = os.RemoveAll(dataDir)
-
-	db := embeddedpostgres.NewDatabase(embeddedpostgres.DefaultConfig().
-		RuntimePath(dataDir).
-		Port(port).
+	// 1. Start embedded PostgreSQL on port 5433
+	log.Println("[1/4] Starting embedded PostgreSQL on port 5433...")
+	pgConfig := embeddedpostgres.DefaultConfig().
+		Port(5433).
 		Database("prepio").
 		Username("prepio").
-		Password("prepio"))
+		Password("prepio")
 
-	log.Printf("[1/4] Starting embedded PostgreSQL on port %d...", port)
-	if err := db.Start(); err != nil {
-		log.Fatalf("Failed to start embedded postgres: %v", err)
+	pg := embeddedpostgres.NewDatabase(pgConfig)
+	if err := pg.Start(); err != nil {
+		log.Printf("Note on PostgreSQL start: %v (checking if already running...)", err)
 	}
 	defer func() {
-		log.Println("Stopping PostgreSQL...")
-		_ = db.Stop()
-		_ = os.RemoveAll(dataDir)
+		log.Println("Stopping embedded PostgreSQL...")
+		_ = pg.Stop()
 	}()
 
-	dsn := fmt.Sprintf("postgres://prepio:prepio@localhost:%d/prepio?sslmode=disable", port)
+	dsn := "postgres://prepio:prepio@localhost:5433/prepio?sslmode=disable"
 
-	// 2. Connect and run migrations
+	// 2. Apply migrations
 	log.Println("[2/4] Connecting and applying migrations...")
-	pool, err := connectWithRetry(dsn, 30)
+	pool, err := connectWithRetry(dsn, 10)
 	if err != nil {
-		log.Fatalf("Failed to connect to postgres: %v", err)
+		log.Fatalf("Failed to connect to local PostgreSQL: %v", err)
 	}
+	defer pool.Close()
 
-	if err := applyMigrations(pool, "migrations"); err != nil {
+	if err := applyMigrations(pool, "./migrations"); err != nil {
 		log.Fatalf("Failed to apply migrations: %v", err)
 	}
-	pool.Close()
 	log.Println("  Migrations applied successfully!")
 
 	// 3. Sync lesson content
@@ -67,8 +62,8 @@ func main() {
 		log.Printf("Warning: content-sync had notices: %v", err)
 	}
 
-	// 4. Start backend microservices
-	log.Println("[4/4] Starting backend services...")
+	// 4. Start unified modular monolith server
+	log.Println("[4/4] Starting Prepio modular monolith server...")
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
@@ -77,50 +72,30 @@ func main() {
 		"REDIS_ADDR=localhost:6379",
 		"JWT_SECRET=dev-secret-change-in-production-use-32-chars",
 		"DEV_SYNC_EVENTS=true",
-		"USER_SERVICE_URL=http://localhost:8081",
-		"QUESTION_SERVICE_URL=http://localhost:8082",
-		"STREAK_SERVICE_URL=http://localhost:8083",
-		"PROGRESS_SERVICE_URL=http://localhost:8084",
 		"GATEWAY_PORT=8080",
 	)
 
-	services := []struct {
-		name string
-		path string
-	}{
-		{"user", "./services/user/cmd"},
-		{"question", "./services/question/cmd"},
-		{"streak", "./services/streak/cmd"},
-		{"progress", "./services/progress/cmd"},
-		{"gateway", "./services/gateway/cmd"},
+	cmd := exec.CommandContext(ctx, "go", "run", "./cmd/server")
+	cmd.Env = baseEnv
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	if err := cmd.Start(); err != nil {
+		log.Fatalf("Failed to start server: %v", err)
 	}
-
-	var cmds []*exec.Cmd
-	for _, s := range services {
-		cmd := exec.CommandContext(ctx, "go", "run", s.path)
-		cmd.Env = baseEnv
-		cmd.Stdout = os.Stdout
-		cmd.Stderr = os.Stderr
-		if err := cmd.Start(); err != nil {
-			log.Fatalf("Failed to start %s service: %v", s.name, err)
-		}
-		cmds = append(cmds, cmd)
-		log.Printf("  Started %s service (PID %d)", s.name, cmd.Process.Pid)
-		time.Sleep(1 * time.Second)
-	}
+	log.Printf("  Started modular monolith server (PID %d)", cmd.Process.Pid)
 
 	log.Println("\n=======================================================")
-	log.Println(" PREPIO LOCAL BACKEND READY AT http://localhost:8080")
+	log.Println(" PREPIO MODULAR MONOLITH READY AT http://localhost:8080")
 	log.Println(" API Gateway: http://localhost:8080/api/v1")
-	log.Println(" Press Ctrl+C to stop all services.")
+	log.Println(" Press Ctrl+C to stop.")
 	log.Println("=======================================================\n")
 
-	// Wait for gateway to be responsive
+	// Wait for server to be responsive
 	for i := 0; i < 15; i++ {
 		resp, err := http.Get("http://localhost:8080/api/v1/companions")
 		if err == nil && resp.StatusCode == http.StatusOK {
 			resp.Body.Close()
-			log.Println("✓ Gateway healthcheck passed: http://localhost:8080 is answering!")
+			log.Println("✓ Monolith healthcheck passed: http://localhost:8080 is answering!")
 			break
 		}
 		time.Sleep(1 * time.Second)
@@ -130,14 +105,12 @@ func main() {
 	signal.Notify(stop, syscall.SIGINT, syscall.SIGTERM)
 	<-stop
 
-	log.Println("\nShutting down all backend services...")
+	log.Println("\nShutting down modular monolith...")
 	cancel()
-	for _, cmd := range cmds {
-		if cmd.Process != nil {
-			_ = cmd.Process.Kill()
-		}
+	if cmd.Process != nil {
+		_ = cmd.Process.Kill()
 	}
-	log.Println("All services stopped.")
+	log.Println("Server stopped.")
 }
 
 func connectWithRetry(dsn string, retries int) (*pgxpool.Pool, error) {

@@ -2,9 +2,9 @@ package testing
 
 import (
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/prepio/prepio/services/progress/internal/dto"
-	"github.com/prepio/prepio/services/progress/internal/service"
-	"github.com/prepio/prepio/services/progress/internal/store"
+	"github.com/prepio/prepio/internal/progress/dto"
+	"github.com/prepio/prepio/internal/progress/service"
+	"github.com/prepio/prepio/internal/progress/store"
 )
 
 // AttemptRewards re-exports the rewards DTO for integration tests.

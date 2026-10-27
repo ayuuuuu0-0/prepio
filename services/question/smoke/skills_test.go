@@ -9,9 +9,9 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/prepio/prepio/services/question/internal/handler"
-	"github.com/prepio/prepio/services/question/internal/service"
-	"github.com/prepio/prepio/services/question/internal/store"
+	"github.com/prepio/prepio/internal/question/handler"
+	"github.com/prepio/prepio/internal/question/service"
+	"github.com/prepio/prepio/internal/question/store"
 	"github.com/prepio/prepio/shared/jwt"
 	"github.com/prepio/prepio/shared/middleware"
 	"github.com/prepio/prepio/test/testdb"

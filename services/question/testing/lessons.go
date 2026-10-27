@@ -2,11 +2,11 @@ package testing
 
 import (
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/prepio/prepio/services/question/internal/dto"
-	"github.com/prepio/prepio/services/question/internal/grading"
-	"github.com/prepio/prepio/services/question/internal/lesson"
-	"github.com/prepio/prepio/services/question/internal/service"
-	"github.com/prepio/prepio/services/question/internal/store"
+	"github.com/prepio/prepio/internal/question/dto"
+	"github.com/prepio/prepio/internal/question/grading"
+	"github.com/prepio/prepio/internal/question/lesson"
+	"github.com/prepio/prepio/internal/question/service"
+	"github.com/prepio/prepio/internal/question/store"
 )
 
 // Re-exports so integration tests outside this module tree can build content and call the runtime.

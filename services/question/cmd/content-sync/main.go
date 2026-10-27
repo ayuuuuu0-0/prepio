@@ -13,8 +13,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/prepio/prepio/services/question/internal/lesson"
-	"github.com/prepio/prepio/services/question/internal/store"
+	"github.com/prepio/prepio/internal/question/lesson"
+	"github.com/prepio/prepio/internal/question/store"
 	"github.com/prepio/prepio/shared/postgres"
 )
 

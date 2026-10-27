@@ -7,14 +7,9 @@ RUN go mod download
 
 COPY . .
 
-# Compile each microservice as a static, lightweight binary
-RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-s -w" -o user ./services/user/cmd
-RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-s -w" -o question ./services/question/cmd
+# Compile the modular monolith server and content-sync CLI
+RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-s -w" -o server ./cmd/server
 RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-s -w" -o content-sync ./services/question/cmd/content-sync
-RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-s -w" -o streak ./services/streak/cmd
-RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-s -w" -o progress ./services/progress/cmd
-RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-s -w" -o notification ./services/notification/cmd
-RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-s -w" -o gateway ./services/gateway/cmd
 
 # === Stage 2: Extract migrate binary ===
 FROM migrate/migrate:v4.18.1 AS migrate-bin
@@ -31,13 +26,8 @@ WORKDIR /app
 COPY --from=migrate-bin /migrate /usr/local/bin/migrate
 
 # Copy compiled binaries
-COPY --from=builder /build/user /app/user
-COPY --from=builder /build/question /app/question
+COPY --from=builder /build/server /app/server
 COPY --from=builder /build/content-sync /app/content-sync
-COPY --from=builder /build/streak /app/streak
-COPY --from=builder /build/progress /app/progress
-COPY --from=builder /build/notification /app/notification
-COPY --from=builder /build/gateway /app/gateway
 
 # Copy database migrations
 COPY migrations /app/migrations

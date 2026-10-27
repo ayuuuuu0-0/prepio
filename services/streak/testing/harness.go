@@ -2,8 +2,8 @@ package testing
 
 import (
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/prepio/prepio/services/streak/internal/service"
-	"github.com/prepio/prepio/services/streak/internal/store"
+	"github.com/prepio/prepio/internal/streak/service"
+	"github.com/prepio/prepio/internal/streak/store"
 	"github.com/redis/go-redis/v9"
 )
 

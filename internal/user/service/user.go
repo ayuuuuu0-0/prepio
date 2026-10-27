@@ -1,0 +1,142 @@
+package service
+
+import (
+	"context"
+
+	"github.com/google/uuid"
+	"github.com/prepio/prepio/internal/user/dto"
+	"github.com/prepio/prepio/internal/user/store"
+)
+
+// UserService handles user profile and device registrations.
+type UserService struct {
+	users   *store.UserStore
+	devices *store.UserDeviceStore
+}
+
+// NewUserService creates a UserService.
+func NewUserService(users *store.UserStore, devices *store.UserDeviceStore) *UserService {
+	return &UserService{users: users, devices: devices}
+}
+
+// GetProfile returns the authenticated user's profile.
+func (s *UserService) GetProfile(ctx context.Context, userID string) (*dto.UserResponse, error) {
+	user, err := s.users.GetByID(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+	if user == nil {
+		return nil, ErrUserNotFound
+	}
+
+	resp := toUserResponse(user)
+	return &resp, nil
+}
+
+// UpdateProfile updates the authenticated user's profile.
+func (s *UserService) UpdateProfile(ctx context.Context, userID string, req dto.UpdateProfileRequest) (*dto.UserResponse, error) {
+	user, err := s.users.GetByID(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+	if user == nil {
+		return nil, ErrUserNotFound
+	}
+
+	timezone := user.Timezone
+	if req.Timezone != nil && len(*req.Timezone) > 0 {
+		timezone = *req.Timezone
+	}
+
+	reminderTime := user.ReminderTime
+	if req.ReminderTime != nil && len(*req.ReminderTime) > 0 {
+		reminderTime = *req.ReminderTime
+	}
+
+	updated, err := s.users.UpdateProfile(ctx, userID, timezone, reminderTime, user.ActiveCharID)
+	if err != nil {
+		return nil, err
+	}
+
+	if req.PreferredLanguage != nil && len(*req.PreferredLanguage) > 0 {
+		updated, err = s.users.SetPreferredLanguage(ctx, userID, *req.PreferredLanguage)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	resp := toUserResponse(updated)
+	return &resp, nil
+}
+
+// RegisterDevice upserts an FCM token for the user.
+func (s *UserService) RegisterDevice(ctx context.Context, userID string, req dto.RegisterDeviceRequest) (*dto.DeviceResponse, error) {
+	if len(req.FCMToken) == 0 || len(req.Platform) == 0 {
+		return nil, ErrInvalidRequest
+	}
+
+	device, err := s.devices.Upsert(ctx, userID, req.FCMToken, req.Platform)
+	if err != nil {
+		return nil, err
+	}
+
+	return &dto.DeviceResponse{
+		ID:       device.ID,
+		Platform: device.Platform,
+	}, nil
+}
+
+// DeleteDevice removes a registered device.
+func (s *UserService) DeleteDevice(ctx context.Context, userID, deviceID string) error {
+	deleted, err := s.devices.Delete(ctx, userID, deviceID)
+	if err != nil {
+		return err
+	}
+	if !deleted {
+		return ErrDeviceNotFound
+	}
+	return nil
+}
+
+func toUserResponse(user *store.User) dto.UserResponse {
+	return dto.UserResponse{
+		ID:                user.ID,
+		Email:             user.Email,
+		Username:          user.Username,
+		Timezone:          user.Timezone,
+		PreferredLanguage: user.PreferredLanguage,
+		ActiveCharID:      user.ActiveCharID,
+		ReminderTime:      user.ReminderTime,
+	}
+}
+
+// MaxPublicCards caps one public-card lookup; a league cohort is the largest caller.
+const MaxPublicCards = 50
+
+// PublicCards returns public cards for up to MaxPublicCards user ids.
+func (s *UserService) PublicCards(ctx context.Context, ids []string) ([]dto.PublicCardResponse, error) {
+	if len(ids) > MaxPublicCards {
+		return nil, ErrInvalidRequest
+	}
+	for _, id := range ids {
+		if _, err := uuid.Parse(id); err != nil {
+			return nil, ErrInvalidRequest
+		}
+	}
+
+	cards, err := s.users.PublicCards(ctx, ids)
+	if err != nil {
+		return nil, err
+	}
+
+	resp := make([]dto.PublicCardResponse, 0, len(cards))
+	for _, c := range cards {
+		resp = append(resp, dto.PublicCardResponse{
+			ID:               c.ID,
+			Username:         c.Username,
+			CompanionName:    c.CompanionName,
+			CompanionSpecies: c.CompanionSpecies,
+		})
+	}
+	return resp, nil
+}

@@ -12,9 +12,9 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	chimw "github.com/go-chi/chi/v5/middleware"
-	"github.com/prepio/prepio/services/question/internal/handler"
-	"github.com/prepio/prepio/services/question/internal/service"
-	"github.com/prepio/prepio/services/question/internal/store"
+	"github.com/prepio/prepio/internal/question/handler"
+	"github.com/prepio/prepio/internal/question/service"
+	"github.com/prepio/prepio/internal/question/store"
 	"github.com/prepio/prepio/shared/jwt"
 	"github.com/prepio/prepio/shared/kafka"
 	"github.com/prepio/prepio/shared/middleware"

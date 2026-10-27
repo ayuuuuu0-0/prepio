@@ -2,9 +2,9 @@ package testing
 
 import (
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/prepio/prepio/services/user/internal/dto"
-	"github.com/prepio/prepio/services/user/internal/service"
-	"github.com/prepio/prepio/services/user/internal/store"
+	"github.com/prepio/prepio/internal/user/dto"
+	"github.com/prepio/prepio/internal/user/service"
+	"github.com/prepio/prepio/internal/user/store"
 )
 
 // OnboardingRequest and ProfileResponse re-export the DTOs for integration tests.
