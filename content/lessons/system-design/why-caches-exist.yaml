@@ -39,7 +39,7 @@ steps:
     explanation: "The cache keeps returning its stored copy until it expires or is invalidated, so users can see the old price. Choosing a TTL is choosing how stale is acceptable."
   - id: cache-aside
     type: code_snippet
-    prompt: "Implement the Cache-Aside read pattern in Go: check cache for key `id`. On a cache miss, fetch user from DB via `db.GetUser(ctx, id)`, store in cache with `cache.Set(ctx, id, user, ttl)`, and return the user."
+    prompt: "Implement the Cache-Aside read pattern: check cache for key `id`. On a miss, fetch user from DB via `db.GetUser(ctx, id)` (or language equivalent), store in cache with `cache.Set(...)`, and return the user."
     language: go
     starter: |
       func GetUser(ctx context.Context, id string) (*User, error) {
@@ -52,6 +52,22 @@ steps:
       	// 2. Cache miss: fetch from DB and populate cache
       	// TODO: load user with db.GetUser, store with cache.Set, and return user
       	return nil, nil
+      }
+    solution: |
+      func GetUser(ctx context.Context, id string) (*User, error) {
+      	// 1. Check cache first
+      	user, err := cache.Get(ctx, id)
+      	if err == nil && user != nil {
+      		return user, nil
+      	}
+
+      	// 2. Cache miss: fetch from DB and populate cache
+      	user, err = db.GetUser(ctx, id)
+      	if err != nil {
+      		return nil, err
+      	}
+      	cache.Set(ctx, id, user, ttl)
+      	return user, nil
       }
     tests:
       - name: "Fetches from database on miss"
@@ -70,6 +86,135 @@ steps:
           - "db.GetUser"
           - "cache.Set"
           - "return"
+    languages:
+      go:
+        starter: |
+          func GetUser(ctx context.Context, id string) (*User, error) {
+          	// 1. Check cache first
+          	user, err := cache.Get(ctx, id)
+          	if err == nil && user != nil {
+          		return user, nil
+          	}
+
+          	// 2. Cache miss: fetch from DB and populate cache
+          	// TODO: load user with db.GetUser, store with cache.Set, and return user
+          	return nil, nil
+          }
+        solution: |
+          func GetUser(ctx context.Context, id string) (*User, error) {
+          	// 1. Check cache first
+          	user, err := cache.Get(ctx, id)
+          	if err == nil && user != nil {
+          		return user, nil
+          	}
+
+          	// 2. Cache miss: fetch from DB and populate cache
+          	user, err = db.GetUser(ctx, id)
+          	if err != nil {
+          		return nil, err
+          	}
+          	cache.Set(ctx, id, user, ttl)
+          	return user, nil
+          }
+        tests:
+          - name: "Fetches from database on miss"
+            type: contains
+            value: "db.GetUser(ctx, id)"
+          - name: "Stores fetched user into cache"
+            type: contains
+            value: "cache.Set(ctx, id, user, ttl)"
+          - name: "Replaces nil stub return"
+            type: not_contains
+            value: "return nil, nil"
+          - name: "Maintains Cache-Aside execution order"
+            type: structure
+            values:
+              - "cache.Get"
+              - "db.GetUser"
+              - "cache.Set"
+              - "return"
+      python:
+        starter: |
+          async def get_user(id: str) -> User:
+              # 1. Check cache first
+              user = await cache.get(id)
+              if user is not None:
+                  return user
+
+              # 2. Cache miss: fetch from DB and populate cache
+              # TODO: fetch with db.get_user(id), cache with cache.set(id, user, ttl), return user
+              return None
+        solution: |
+          async def get_user(id: str) -> User:
+              # 1. Check cache first
+              user = await cache.get(id)
+              if user is not None:
+                  return user
+
+              # 2. Cache miss: fetch from DB and populate cache
+              user = await db.get_user(id)
+              await cache.set(id, user, ttl)
+              return user
+        tests:
+          - name: "Fetches from database on miss"
+            type: contains
+            value: "db.get_user(id)"
+          - name: "Stores fetched user into cache"
+            type: contains
+            value: "cache.set(id, user, ttl)"
+          - name: "Replaces None stub return"
+            type: not_contains
+            value: "return None"
+          - name: "Maintains Cache-Aside execution order"
+            type: structure
+            values:
+              - "cache.get"
+              - "db.get_user"
+              - "cache.set"
+              - "return user"
+      node:
+        starter: |
+          async function getUser(id) {
+            // 1. Check cache first
+            const cached = await cache.get(id);
+            if (cached) {
+              return cached;
+            }
+
+            // 2. Cache miss: fetch from DB and populate cache
+            // TODO: fetch with db.getUser(id), cache with cache.set(id, user, ttl), return user
+            return null;
+          }
+        solution: |
+          async function getUser(id) {
+            // 1. Check cache first
+            const cached = await cache.get(id);
+            if (cached) {
+              return cached;
+            }
+
+            // 2. Cache miss: fetch from DB and populate cache
+            const user = await db.getUser(id);
+            await cache.set(id, user, ttl);
+            return user;
+          }
+        tests:
+          - name: "Fetches from database on miss"
+            type: contains
+            value: "db.getUser(id)"
+          - name: "Stores fetched user into cache"
+            type: contains
+            value: "cache.set(id, user, ttl)"
+          - name: "Replaces null stub return"
+            type: not_contains
+            value: "return null;"
+          - name: "Maintains Cache-Aside execution order"
+            type: structure
+            values:
+              - "cache.get"
+              - "db.getUser"
+              - "cache.set"
+              - "return user"
     explanation: "In the cache-aside pattern, application code first checks cache. On a miss, it queries the database, updates the cache with a TTL for future callers, and returns the result."
   - id: poor-fit
     type: mcq

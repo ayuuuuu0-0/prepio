@@ -51,6 +51,24 @@ steps:
           // TODO: dispatch onOrderPlaced(order) to every listener
         }
       }
+    solution: |
+      interface OrderListener {
+        onOrderPlaced(order: Order): void;
+      }
+
+      class OrderEventEmitter {
+        private listeners: OrderListener[] = [];
+
+        subscribe(listener: OrderListener): void {
+          this.listeners.push(listener);
+        }
+
+        notify(order: Order): void {
+          for (const listener of this.listeners) {
+            listener.onOrderPlaced(order);
+          }
+        }
+      }
     tests:
       - name: "Appends listener to list in subscribe"
         type: contains

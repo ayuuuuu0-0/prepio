@@ -105,7 +105,7 @@ export class ApiClient {
 
     const res = await fetch(`${API_URL}${path}`, { ...init, headers, credentials: "include" });
 
-    if (res.status === 401 && retry) {
+    if (res.status === 401 && retry && !path.startsWith("/api/v1/auth/")) {
       const refreshed = await this.refreshAccessToken();
       if (refreshed) return this.request<T>(path, init, false);
       this.setAuthTokens(null);
@@ -140,17 +140,17 @@ export class ApiClient {
     });
   }
 
-  sendOTP(email: string) {
-    return this.request<{ message: string; expires_in: number }>("/api/v1/auth/otp/send", {
+  sendOTP(email: string, username?: string, signup?: boolean) {
+    return this.request<{ message: string; expires_in: number; dev_code?: string }>("/api/v1/auth/otp/send", {
       method: "POST",
-      body: JSON.stringify({ email }),
+      body: JSON.stringify({ email, username, signup }),
     });
   }
 
-  verifyOTP(email: string, code: string, username?: string) {
+  verifyOTP(email: string, code: string, username?: string, password?: string) {
     return this.request<AuthResponse>("/api/v1/auth/otp/verify", {
       method: "POST",
-      body: JSON.stringify({ email, code, username: username || undefined }),
+      body: JSON.stringify({ email, code, username: username || undefined, password: password || undefined }),
     });
   }
 
@@ -174,13 +174,14 @@ export class ApiClient {
     return this.request<TopicInfo[]>("/api/v1/topics");
   }
 
-  completeOnboarding(experienceLevel: string, companionId: string, focusTopics: string[]) {
+  completeOnboarding(experienceLevel: string, companionId: string, focusTopics: string[], preferredLanguage: string = "python") {
     return this.request<Profile>("/api/v1/users/onboarding", {
       method: "POST",
       body: JSON.stringify({
         experience_level: experienceLevel,
         companion_id: companionId,
         focus_topics: focusTopics,
+        preferred_language: preferredLanguage,
       }),
     });
   }
@@ -251,6 +252,7 @@ export type Profile = {
   email: string;
   username: string;
   experience_level?: string;
+  preferred_language?: string;
   onboarding_completed: boolean;
   companion?: Companion;
   focus_topics?: string[];

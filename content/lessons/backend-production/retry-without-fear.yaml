@@ -79,6 +79,21 @@ steps:
       	// TODO: save into store with store.Set(key, resp), then return resp
       	return nil, nil
       }
+    solution: |
+      func HandlePayment(ctx context.Context, key string, req PaymentReq) (*PaymentResp, error) {
+      	// 1. Check idempotency store for existing record
+      	if resp, ok := store.Get(key); ok {
+      		return resp, nil
+      	}
+
+      	// 2. New key: charge card and cache response
+      	resp, err := chargeCard(ctx, req)
+      	if err != nil {
+      		return nil, err
+      	}
+      	store.Set(key, resp)
+      	return resp, nil
+      }
     tests:
       - name: "Returns cached response on replay"
         type: contains

@@ -3,8 +3,8 @@
 import { useCallback, useEffect, useState } from "react";
 
 /**
- * Lesson sound effects, synthesized with WebAudio (no audio files). Sound is optional,
- * off by default, and the choice is remembered on this device.
+ * Lesson sound effects, synthesized with WebAudio tones (beeps/chimes).
+ * Speech synthesis is removed per user request.
  */
 
 export type Cue = "correct" | "wrong" | "complete" | "poke";
@@ -63,36 +63,7 @@ function play(cue: Cue) {
   }
 }
 
-/** speakCompanionLine uses Web Speech API to voice companion dialogue with customized personality pitch. */
-export function speakCompanionLine(line: string, companionName?: string, enabled: boolean = true) {
-  if (!enabled || typeof window === "undefined" || !("speechSynthesis" in window)) return;
-  try {
-    window.speechSynthesis.cancel();
-    const utterance = new SpeechSynthesisUtterance(line);
-    const name = (companionName ?? "").toLowerCase();
-    if (name.includes("pip")) {
-      utterance.pitch = 1.35;
-      utterance.rate = 1.15;
-    } else if (name.includes("byte")) {
-      utterance.pitch = 0.85;
-      utterance.rate = 0.95;
-    } else if (name.includes("zara") || name.includes("cat")) {
-      utterance.pitch = 1.25;
-      utterance.rate = 1.1;
-    } else if (name.includes("kodo") || name.includes("owl")) {
-      utterance.pitch = 0.8;
-      utterance.rate = 0.9;
-    } else {
-      utterance.pitch = 1.1;
-      utterance.rate = 1.05;
-    }
-    window.speechSynthesis.speak(utterance);
-  } catch {
-    // Graceful fallback if speech synthesis is disabled in browser
-  }
-}
-
-/** useSound exposes the remembered on/off preference and a player that is silent when off. */
+/** useSound exposes the remembered on/off preference and an earcon player that is silent when off. */
 export function useSound() {
   const [enabled, setEnabled] = useState(false);
 
@@ -108,7 +79,7 @@ export function useSound() {
       } catch {
         // Storage can be unavailable (private mode); the toggle still works for this visit.
       }
-      if (next) play("correct"); // a short confirmation that sound is on
+      if (next) play("correct");
       return next;
     });
   }, []);
@@ -120,12 +91,5 @@ export function useSound() {
     [enabled],
   );
 
-  const speak = useCallback(
-    (line: string, companionName?: string) => {
-      if (enabled) speakCompanionLine(line, companionName, enabled);
-    },
-    [enabled],
-  );
-
-  return { enabled, toggle, cue, speak };
+  return { enabled, toggle, cue };
 }

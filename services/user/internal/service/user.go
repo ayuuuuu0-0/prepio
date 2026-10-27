@@ -4,12 +4,11 @@ import (
 	"context"
 
 	"github.com/google/uuid"
-
 	"github.com/prepio/prepio/services/user/internal/dto"
 	"github.com/prepio/prepio/services/user/internal/store"
 )
 
-// UserService handles profile and device operations.
+// UserService handles user profile and device registrations.
 type UserService struct {
 	users   *store.UserStore
 	devices *store.UserDeviceStore
@@ -59,6 +58,13 @@ func (s *UserService) UpdateProfile(ctx context.Context, userID string, req dto.
 		return nil, err
 	}
 
+	if req.PreferredLanguage != nil && len(*req.PreferredLanguage) > 0 {
+		updated, err = s.users.SetPreferredLanguage(ctx, userID, *req.PreferredLanguage)
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	resp := toUserResponse(updated)
 	return &resp, nil
 }
@@ -82,10 +88,6 @@ func (s *UserService) RegisterDevice(ctx context.Context, userID string, req dto
 
 // DeleteDevice removes a registered device.
 func (s *UserService) DeleteDevice(ctx context.Context, userID, deviceID string) error {
-	if len(deviceID) == 0 {
-		return ErrInvalidRequest
-	}
-
 	deleted, err := s.devices.Delete(ctx, userID, deviceID)
 	if err != nil {
 		return err
@@ -98,12 +100,13 @@ func (s *UserService) DeleteDevice(ctx context.Context, userID, deviceID string)
 
 func toUserResponse(user *store.User) dto.UserResponse {
 	return dto.UserResponse{
-		ID:           user.ID,
-		Email:        user.Email,
-		Username:     user.Username,
-		Timezone:     user.Timezone,
-		ActiveCharID: user.ActiveCharID,
-		ReminderTime: user.ReminderTime,
+		ID:                user.ID,
+		Email:             user.Email,
+		Username:          user.Username,
+		Timezone:          user.Timezone,
+		PreferredLanguage: user.PreferredLanguage,
+		ActiveCharID:      user.ActiveCharID,
+		ReminderTime:      user.ReminderTime,
 	}
 }
 
@@ -120,14 +123,19 @@ func (s *UserService) PublicCards(ctx context.Context, ids []string) ([]dto.Publ
 			return nil, ErrInvalidRequest
 		}
 	}
+
 	cards, err := s.users.PublicCards(ctx, ids)
 	if err != nil {
 		return nil, err
 	}
+
 	resp := make([]dto.PublicCardResponse, 0, len(cards))
 	for _, c := range cards {
 		resp = append(resp, dto.PublicCardResponse{
-			ID: c.ID, Username: c.Username, CompanionName: c.CompanionName, CompanionSpecies: c.CompanionSpecies,
+			ID:               c.ID,
+			Username:         c.Username,
+			CompanionName:    c.CompanionName,
+			CompanionSpecies: c.CompanionSpecies,
 		})
 	}
 	return resp, nil

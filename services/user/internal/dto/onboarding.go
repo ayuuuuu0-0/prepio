@@ -2,9 +2,10 @@ package dto
 
 // OnboardingRequest is the body for POST /api/v1/users/onboarding.
 type OnboardingRequest struct {
-	FocusTopics     []string `json:"focus_topics"`
-	ExperienceLevel string   `json:"experience_level"`
-	CompanionID     string   `json:"companion_id"`
+	FocusTopics       []string `json:"focus_topics"`
+	ExperienceLevel   string   `json:"experience_level"`
+	CompanionID       string   `json:"companion_id"`
+	PreferredLanguage string   `json:"preferred_language,omitempty"`
 }
 
 // CharacterResponse is the public companion shape.
@@ -29,6 +30,7 @@ type ProfileResponse struct {
 	Username            string             `json:"username"`
 	Timezone            string             `json:"timezone,omitempty"`
 	ExperienceLevel     string             `json:"experience_level,omitempty"`
+	PreferredLanguage   string             `json:"preferred_language,omitempty"`
 	OnboardingCompleted bool               `json:"onboarding_completed"`
 	FocusTopics         []string           `json:"focus_topics"`
 	Companion           *CharacterResponse `json:"companion,omitempty"`

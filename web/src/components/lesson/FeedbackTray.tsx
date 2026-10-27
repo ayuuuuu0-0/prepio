@@ -1,18 +1,19 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { AnswerResult } from "@/lib/lesson/types";
 
 /**
  * FeedbackTray slides up after a step is graded. It always carries an icon and
- * words (never colour alone), the explanation, test case results, and, after a miss,
- * why the chosen option was wrong. Enter (handled by the page) or the button continues.
+ * words, the explanation, test case results, and after a miss, the correct answer
+ * or an interactive "Reveal Solution" card for code snippets to avoid getting stuck.
  */
 export function FeedbackTray({
   result,
   correctAnswer = [],
   onContinue,
   continueLabel,
+  onApplySolution,
 }: {
   result: AnswerResult;
   /** The server's correct answer in words, one line per part (sent only after a miss). */
@@ -22,17 +23,40 @@ export function FeedbackTray({
   companionReaction?: { line: string; expression: string } | null;
   onContinue: () => void;
   continueLabel: string;
+  onApplySolution?: (code: string) => void;
 }) {
   const ref = useRef<HTMLButtonElement>(null);
+  const [solutionRevealed, setSolutionRevealed] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const [applied, setApplied] = useState(false);
+
   useEffect(() => {
     ref.current?.focus({ preventScroll: true });
   }, []);
 
   const ok = result.correct;
-  // Written answers come back with a rubric score instead of a single correct option.
   const prose = typeof result.score === "number";
   const tone = ok ? "#34D399" : "#F87171";
   const heading = ok ? "Nice, that's right!" : "Not quite";
+  const solutionCode = result.correct_answer?.code;
+
+  const handleCopy = async () => {
+    if (!solutionCode) return;
+    try {
+      await navigator.clipboard.writeText(solutionCode);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // clipboard access fallback
+    }
+  };
+
+  const handleApply = () => {
+    if (!solutionCode || !onApplySolution) return;
+    onApplySolution(solutionCode);
+    setApplied(true);
+    setTimeout(() => setApplied(false), 2500);
+  };
 
   return (
     <div
@@ -56,7 +80,8 @@ export function FeedbackTray({
             {heading}
           </p>
 
-          {!ok && correctAnswer.length > 0 && (
+          {/* Regular non-code correct answer text */}
+          {!ok && !solutionCode && correctAnswer.length > 0 && (
             <div className="mt-3 text-sm" style={{ color: "#E8EAED" }}>
               <p className="font-mono text-[11px] font-bold uppercase tracking-widest" style={{ color: "#8B92A8" }}>
                 Correct answer
@@ -66,6 +91,66 @@ export function FeedbackTray({
                   {line}
                 </p>
               ))}
+            </div>
+          )}
+
+          {/* Reveal Solution Card for Code Snippets */}
+          {!ok && solutionCode && (
+            <div className="mt-3 overflow-hidden rounded-xl border border-amber-500/30 bg-[#161214]">
+              <div className="flex items-center justify-between px-3 py-2.5 bg-amber-500/10">
+                <div className="flex items-center gap-2">
+                  <span className="text-amber-400 text-sm">💡</span>
+                  <span className="text-xs font-bold text-amber-200">
+                    Stuck? Learn from the solution
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setSolutionRevealed(!solutionRevealed)}
+                  className="rounded-lg px-2.5 py-1 text-xs font-mono font-bold transition hover:bg-white/10"
+                  style={{
+                    background: solutionRevealed ? "rgba(255,255,255,0.08)" : "#F59E0B",
+                    color: solutionRevealed ? "#F3F4F6" : "#111827",
+                  }}
+                >
+                  {solutionRevealed ? "Hide Solution" : "Reveal Solution"}
+                </button>
+              </div>
+
+              {solutionRevealed && (
+                <div className="p-3 border-t border-white/5 space-y-2">
+                  <pre
+                    tabIndex={0}
+                    className="font-mono max-h-48 overflow-x-auto rounded-lg p-3 text-xs leading-relaxed outline-none"
+                    style={{ background: "#0D0F14", color: "#E8EAED", border: "1px solid #2E3347" }}
+                  >
+                    <code>{solutionCode}</code>
+                  </pre>
+                  <div className="flex flex-wrap items-center gap-2 pt-1">
+                    {onApplySolution && (
+                      <button
+                        type="button"
+                        onClick={handleApply}
+                        className="rounded-lg px-3 py-1.5 text-xs font-mono font-bold transition flex items-center gap-1.5"
+                        style={{
+                          background: applied ? "#34D399" : "#7C6EF5",
+                          color: applied ? "#0F1117" : "#FFFFFF",
+                        }}
+                      >
+                        {applied ? "✓ Applied to Editor!" : "⚡ Apply to Editor"}
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      onClick={handleCopy}
+                      className="rounded-lg px-3 py-1.5 text-xs font-mono font-semibold transition hover:bg-white/10"
+                      style={{ background: "#1F2330", color: "#C8CCDA", border: "1px solid #2E3347" }}
+                    >
+                      {copied ? "✓ Copied!" : "📋 Copy Code"}
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           )}
 

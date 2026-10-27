@@ -345,9 +345,10 @@ func (s *LessonService) grade(step loadedStep, req dto.AnswerRequest) (*dto.Answ
 			})
 		}
 		return &dto.AnswerResponse{
-			Correct:     res.Correct,
-			Explanation: res.Explanation,
-			TestResults: testResults,
+			Correct:       res.Correct,
+			Explanation:   res.Explanation,
+			TestResults:   testResults,
+			CorrectAnswer: res.CorrectAnswer,
 		}, nil
 	default:
 		res, err := grading.Grade(step.payload, req.Answer)

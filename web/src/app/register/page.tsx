@@ -8,7 +8,7 @@ import { GameBackground } from "@/components/game/GameBackground";
 import { CompanionHero } from "@/components/game/CompanionHero";
 import { SpeechBubble } from "@/components/game/SpeechBubble";
 import { GameButton } from "@/components/game/GameButton";
-import { api } from "@/lib/api";
+import { api, ApiRequestError } from "@/lib/api";
 
 const inputStyle = {
   background: "#1A1D27",
@@ -18,13 +18,13 @@ const inputStyle = {
 
 export default function RegisterPage() {
   const router = useRouter();
-  const [method, setMethod] = useState<"otp" | "password">("otp");
-  const [otpStep, setOtpStep] = useState<"send" | "verify">("send");
+  const [step, setStep] = useState<"details" | "otp">("details");
   const [email, setEmail] = useState("");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [code, setCode] = useState("");
   const [countdown, setCountdown] = useState(0);
+  const [devCode, setDevCode] = useState("");
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
@@ -39,51 +39,63 @@ export default function RegisterPage() {
 
   async function handleSendOTP(e?: FormEvent) {
     if (e) e.preventDefault();
-    if (!email) return;
+    const cleanEmail = email.trim();
+    const cleanUsername = username.trim();
+
+    if (!cleanEmail || !cleanEmail.includes("@") || !cleanEmail.includes(".")) {
+      setError("Please enter a valid email address.");
+      return;
+    }
+    if (cleanUsername.length < 3) {
+      setError("Username must be at least 3 characters long.");
+      return;
+    }
+    if (password.length < 8) {
+      setError("Password must be at least 8 characters long.");
+      return;
+    }
+
     setLoading(true);
     setError("");
     setMessage("");
     try {
-      const res = await api.sendOTP(email);
+      const res = await api.sendOTP(cleanEmail, cleanUsername, true);
       setMessage(res.message || "Verification code sent to your email!");
-      setOtpStep("verify");
+      if (res.dev_code) {
+        setDevCode(res.dev_code);
+      }
+      setStep("otp");
       setCountdown(60);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to send code");
+      if (err instanceof ApiRequestError) {
+        setError(err.message);
+      } else {
+        setError(err instanceof Error ? err.message : "Failed to send verification code");
+      }
     } finally {
       setLoading(false);
     }
   }
 
-  async function handleVerifyOTP(e: FormEvent) {
+  async function handleVerifyAndRegister(e: FormEvent) {
     e.preventDefault();
-    if (!code || code.length !== 6) {
-      setError("Please enter the 6-digit verification code");
+    const cleanCode = code.trim();
+    if (!cleanCode || cleanCode.length !== 6) {
+      setError("Please enter the complete 6-digit verification code");
       return;
     }
     setLoading(true);
     setError("");
     try {
-      const res = await api.verifyOTP(email, code, username.trim() || undefined);
+      const res = await api.verifyOTP(email.trim(), cleanCode, username.trim(), password);
       api.setAuthTokens(res.access_token);
       router.push("/onboarding");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Verification failed");
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  async function handlePasswordRegister(e: FormEvent) {
-    e.preventDefault();
-    setLoading(true);
-    setError("");
-    try {
-      const res = await api.register(email, username, password);
-      api.setAuthTokens(res.access_token);
-      router.push("/onboarding");
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Registration failed");
+      if (err instanceof ApiRequestError) {
+        setError(err.message);
+      } else {
+        setError(err instanceof Error ? err.message : "Verification failed");
+      }
     } finally {
       setLoading(false);
     }
@@ -92,6 +104,7 @@ export default function RegisterPage() {
   return (
     <GameBackground>
       <div className="flex min-h-screen">
+        {/* Left marketing panel on desktop */}
         <div
           className="hidden lg:flex lg:w-1/2 flex-col justify-between p-12"
           style={{ borderRight: "1px solid #2E3347" }}
@@ -109,30 +122,18 @@ export default function RegisterPage() {
           </div>
 
           <div className="flex flex-col items-center gap-6 py-12">
-            <CompanionHero name="Pip" species="red_panda" size="lg" />
-            <SpeechBubble speakerName="Pip" className="max-w-xs text-center">
-              Pick a companion. Start mastering engineering topics today.
+            <CompanionHero name="Byte" species="capybara" size="lg" />
+            <SpeechBubble speakerName="Byte" className="max-w-xs text-center">
+              Create your account to unlock your personal companion and level up!
             </SpeechBubble>
           </div>
 
-          <div className="grid grid-cols-3 gap-4">
-            {[
-              { label: "Core Topics", value: "System Design, DSA, LLD" },
-              { label: "Lessons captured", value: "Misses, patterns, next steps" },
-              { label: "Mastery focus", value: "Skills over streaks" },
-            ].map((s) => (
-              <div key={s.label}>
-                <p className="font-body text-sm font-semibold leading-snug lg:text-base" style={{ color: "#E8EAED" }}>
-                  {s.value}
-                </p>
-                <p className="font-mono mt-1 text-[10px] font-semibold uppercase tracking-widest" style={{ color: "#7C6EF5" }}>
-                  {s.label}
-                </p>
-              </div>
-            ))}
+          <div className="text-xs font-mono" style={{ color: "#8C93A8" }}>
+            Real-world system design · Multi-language coding · Gamified mastery
           </div>
         </div>
 
+        {/* Right form panel */}
         <div className="flex w-full lg:w-1/2 flex-col items-center justify-center px-6 py-12">
           <div className="mb-8 flex flex-col items-center gap-2 lg:hidden">
             <div className="flex items-center gap-2">
@@ -141,57 +142,23 @@ export default function RegisterPage() {
                 PREPIO
               </p>
             </div>
-            <CompanionHero name="Pip" species="red_panda" size="md" />
+            <CompanionHero name="Byte" species="capybara" size="md" />
           </div>
 
           <div className="w-full max-w-sm">
             <h1 className="font-display text-2xl font-bold mb-1" style={{ color: "#E8EAED" }}>
-              Create account
+              {step === "details" ? "Create your account" : "Verify your email"}
             </h1>
-            <p className="font-body text-sm mb-6" style={{ color: "#4A5068" }}>
-              Pick a companion. Start mastering topics from day one.
+            <p className="font-body text-sm mb-6" style={{ color: "#8B92A8" }}>
+              {step === "details"
+                ? "Enter your details to receive your 6-digit signup OTP"
+                : `We sent a 6-digit verification code to ${email}`}
             </p>
-
-            {/* Auth Method Selector */}
-            <div
-              className="flex rounded-xl p-1 mb-6 text-xs font-semibold"
-              style={{ background: "#1A1D27", border: "1px solid #2E3347" }}
-            >
-              <button
-                type="button"
-                onClick={() => {
-                  setMethod("otp");
-                  setError("");
-                  setMessage("");
-                }}
-                className={`flex-1 py-2 rounded-lg transition-all ${
-                  method === "otp"
-                    ? "bg-[#7C6EF5] text-white shadow-sm"
-                    : "text-[#8C93A8] hover:text-[#E8EAED]"
-                }`}
-              >
-                Instant Email OTP
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setMethod("password");
-                  setError("");
-                  setMessage("");
-                }}
-                className={`flex-1 py-2 rounded-lg transition-all ${
-                  method === "password"
-                    ? "bg-[#7C6EF5] text-white shadow-sm"
-                    : "text-[#8C93A8] hover:text-[#E8EAED]"
-                }`}
-              >
-                With Password
-              </button>
-            </div>
 
             {error && (
               <p
                 className="rounded-xl px-4 py-3 text-sm font-medium mb-4"
+                role="alert"
                 style={{
                   background: "rgba(248,113,113,0.1)",
                   border: "1px solid rgba(248,113,113,0.3)",
@@ -205,6 +172,7 @@ export default function RegisterPage() {
             {message && (
               <p
                 className="rounded-xl px-4 py-3 text-sm font-medium mb-4"
+                role="status"
                 style={{
                   background: "rgba(52,211,153,0.1)",
                   border: "1px solid rgba(52,211,153,0.3)",
@@ -215,152 +183,141 @@ export default function RegisterPage() {
               </p>
             )}
 
-            {method === "otp" ? (
-              otpStep === "send" ? (
-                <form onSubmit={handleSendOTP} className="space-y-4">
-                  <div>
-                    <label className="block text-xs font-medium mb-1.5" style={{ color: "#8C93A8" }}>
-                      Email Address
-                    </label>
-                    <input
-                      className="w-full rounded-xl px-4 py-3 text-sm font-medium outline-none transition-all"
-                      style={inputStyle}
-                      onFocus={(e) => (e.target.style.borderColor = "#7C6EF5")}
-                      onBlur={(e) => (e.target.style.borderColor = "#2E3347")}
-                      type="email"
-                      placeholder="you@example.com"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      required
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-medium mb-1.5" style={{ color: "#8C93A8" }}>
-                      Username <span style={{ color: "#4A5068" }}>(optional)</span>
-                    </label>
-                    <input
-                      className="w-full rounded-xl px-4 py-3 text-sm font-medium outline-none transition-all"
-                      style={inputStyle}
-                      onFocus={(e) => (e.target.style.borderColor = "#7C6EF5")}
-                      onBlur={(e) => (e.target.style.borderColor = "#2E3347")}
-                      placeholder="e.g. devhero"
-                      value={username}
-                      onChange={(e) => setUsername(e.target.value)}
-                    />
-                  </div>
-                  <GameButton type="submit" variant="gold" disabled={loading}>
-                    {loading ? "Sending Code..." : "Send Verification Code"}
+            {/* Step 1: User enters email, username, password */}
+            {step === "details" && (
+              <form onSubmit={handleSendOTP} className="space-y-4">
+                <div>
+                  <label className="font-mono block text-xs font-semibold mb-1" style={{ color: "#8C93A8" }}>
+                    Email
+                  </label>
+                  <input
+                    type="email"
+                    autoComplete="email"
+                    required
+                    placeholder="you@domain.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="w-full rounded-xl px-4 py-3 text-sm outline-none transition focus:border-[#7C6EF5]"
+                    style={inputStyle}
+                  />
+                </div>
+
+                <div>
+                  <label className="font-mono block text-xs font-semibold mb-1" style={{ color: "#8C93A8" }}>
+                    Username
+                  </label>
+                  <input
+                    type="text"
+                    autoComplete="username"
+                    required
+                    placeholder="e.g. ayush_coder"
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value)}
+                    className="w-full rounded-xl px-4 py-3 text-sm outline-none transition focus:border-[#7C6EF5]"
+                    style={inputStyle}
+                  />
+                </div>
+
+                <div>
+                  <label className="font-mono block text-xs font-semibold mb-1" style={{ color: "#8C93A8" }}>
+                    Password (min. 8 characters)
+                  </label>
+                  <input
+                    type="password"
+                    autoComplete="new-password"
+                    required
+                    minLength={8}
+                    placeholder="••••••••"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="w-full rounded-xl px-4 py-3 text-sm outline-none transition focus:border-[#7C6EF5]"
+                    style={inputStyle}
+                  />
+                </div>
+
+                <div className="pt-2">
+                  <GameButton
+                    type="submit"
+                    disabled={loading || !email.trim() || !username.trim() || password.length < 8}
+                    className="w-full"
+                  >
+                    {loading ? "Sending verification code…" : "Send Verification OTP →"}
                   </GameButton>
-                </form>
-              ) : (
-                <form onSubmit={handleVerifyOTP} className="space-y-4">
-                  <div>
-                    <div className="flex items-center justify-between mb-1.5">
-                      <label className="text-xs font-medium" style={{ color: "#8C93A8" }}>
-                        6-Digit Code
-                      </label>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setOtpStep("send");
-                          setCode("");
-                          setError("");
-                        }}
-                        className="text-xs font-semibold hover:underline"
-                        style={{ color: "#7C6EF5" }}
-                      >
-                        Change email
-                      </button>
-                    </div>
-                    <input
-                      className="w-full rounded-xl px-4 py-3 text-center text-xl font-bold tracking-[0.5em] outline-none transition-all"
-                      style={inputStyle}
-                      onFocus={(e) => (e.target.style.borderColor = "#7C6EF5")}
-                      onBlur={(e) => (e.target.style.borderColor = "#2E3347")}
-                      type="text"
-                      maxLength={6}
-                      placeholder="------"
-                      value={code}
-                      onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
-                      required
-                      autoFocus
-                    />
-                    <p className="text-[11px] mt-1 text-center" style={{ color: "#8C93A8" }}>
-                      Sent to <span className="font-medium text-[#E8EAED]">{email}</span>
-                    </p>
-                  </div>
-
-                  <GameButton type="submit" variant="gold" disabled={loading || code.length !== 6}>
-                    {loading ? "Verifying..." : "Verify & Create Account"}
-                  </GameButton>
-
-                  <div className="pt-2 text-center">
-                    {countdown > 0 ? (
-                      <p className="text-xs font-mono" style={{ color: "#8C93A8" }}>
-                        Resend code in {countdown}s
-                      </p>
-                    ) : (
-                      <button
-                        type="button"
-                        onClick={() => handleSendOTP()}
-                        disabled={loading}
-                        className="text-xs font-semibold hover:underline"
-                        style={{ color: "#7C6EF5" }}
-                      >
-                        Resend verification code
-                      </button>
-                    )}
-                  </div>
-                </form>
-              )
-            ) : (
-              <form onSubmit={handlePasswordRegister} className="space-y-4">
-                <input
-                  className="w-full rounded-xl px-4 py-3 text-sm font-medium outline-none transition-all"
-                  style={inputStyle}
-                  onFocus={(e) => (e.target.style.borderColor = "#7C6EF5")}
-                  onBlur={(e) => (e.target.style.borderColor = "#2E3347")}
-                  type="email"
-                  placeholder="Email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
-                />
-                <input
-                  className="w-full rounded-xl px-4 py-3 text-sm font-medium outline-none transition-all"
-                  style={inputStyle}
-                  onFocus={(e) => (e.target.style.borderColor = "#7C6EF5")}
-                  onBlur={(e) => (e.target.style.borderColor = "#2E3347")}
-                  placeholder="Username"
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
-                  required
-                />
-                <input
-                  className="w-full rounded-xl px-4 py-3 text-sm font-medium outline-none transition-all"
-                  style={inputStyle}
-                  onFocus={(e) => (e.target.style.borderColor = "#7C6EF5")}
-                  onBlur={(e) => (e.target.style.borderColor = "#2E3347")}
-                  type="password"
-                  placeholder="Password (8+ chars)"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  minLength={8}
-                  required
-                />
-
-                <GameButton type="submit" variant="gold" disabled={loading}>
-                  {loading ? "Creating..." : "Create Account"}
-                </GameButton>
+                </div>
               </form>
             )}
 
-            <p className="mt-6 text-center text-sm" style={{ color: "#4A5068" }}>
-              Already have an account?{" "}
-              <Link href="/login" className="font-semibold" style={{ color: "#7C6EF5" }}>
-                Sign in
+            {/* Step 2: User enters OTP */}
+            {step === "otp" && (
+              <form onSubmit={handleVerifyAndRegister} className="space-y-4">
+                {devCode && (
+                  <div className="flex items-center justify-between rounded-xl p-3 bg-amber-500/10 border border-amber-500/30 text-xs">
+                    <span className="text-amber-300 font-mono">Dev OTP: <strong>{devCode}</strong></span>
+                    <button
+                      type="button"
+                      onClick={() => setCode(devCode)}
+                      className="px-2.5 py-1 bg-amber-500 text-black font-bold rounded-lg hover:bg-amber-400"
+                    >
+                      Fill Code
+                    </button>
+                  </div>
+                )}
+
+                <div>
+                  <label className="font-mono block text-xs font-semibold mb-1" style={{ color: "#8C93A8" }}>
+                    Enter 6-Digit Code
+                  </label>
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    maxLength={6}
+                    autoFocus
+                    required
+                    placeholder="123456"
+                    value={code}
+                    onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                    className="w-full text-center tracking-[0.4em] font-mono text-xl font-bold rounded-xl px-4 py-3 outline-none transition focus:border-[#7C6EF5]"
+                    style={inputStyle}
+                  />
+                </div>
+
+                <div className="pt-2">
+                  <GameButton
+                    type="submit"
+                    disabled={loading || code.trim().length !== 6}
+                    className="w-full"
+                  >
+                    {loading ? "Verifying & Creating Account…" : "Verify & Start Journey"}
+                  </GameButton>
+                </div>
+
+                <div className="flex items-center justify-between text-xs pt-2" style={{ color: "#8B92A8" }}>
+                  <button
+                    type="button"
+                    onClick={() => setStep("details")}
+                    className="hover:underline text-[#7C6EF5]"
+                  >
+                    ← Edit details
+                  </button>
+                  <button
+                    type="button"
+                    disabled={countdown > 0 || loading}
+                    onClick={() => handleSendOTP()}
+                    className="hover:underline text-[#7C6EF5] disabled:opacity-40 disabled:hover:no-underline"
+                  >
+                    {countdown > 0 ? `Resend in ${countdown}s` : "Resend code"}
+                  </button>
+                </div>
+              </form>
+            )}
+
+            <div className="mt-6 text-center text-sm" style={{ color: "#8B92A8" }}>
+              <span>Already have an account? </span>
+              <Link href="/login" className="font-semibold text-[#7C6EF5] hover:underline">
+                Sign in with password →
               </Link>
-            </p>
+            </div>
           </div>
         </div>
       </div>

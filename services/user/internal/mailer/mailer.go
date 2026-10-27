@@ -13,6 +13,7 @@ import (
 // Mailer defines the email sending capability for Prepio auth.
 type Mailer interface {
 	SendOTP(ctx context.Context, toEmail, code string) error
+	IsDev() bool
 }
 
 // ResendMailer sends emails via Resend's REST API.
@@ -34,6 +35,10 @@ func NewResendMailer(apiKey, fromEmail string) *ResendMailer {
 	}
 }
 
+func (m *ResendMailer) IsDev() bool {
+	return m.apiKey == "" || m.apiKey == "mock" || m.apiKey == "dev"
+}
+
 type resendPayload struct {
 	From    string   `json:"from"`
 	To      []string `json:"to"`
@@ -44,7 +49,7 @@ type resendPayload struct {
 // SendOTP delivers the 6-digit verification code to the recipient email.
 func (m *ResendMailer) SendOTP(ctx context.Context, toEmail, code string) error {
 	// Fallback/development mode: if API key is not configured or in tests, log the code
-	if m.apiKey == "" || m.apiKey == "mock" || m.apiKey == "dev" {
+	if m.IsDev() {
 		log.Printf("[OTP DEV MODE] Verification code for %s is: %s", toEmail, code)
 		return nil
 	}
@@ -80,27 +85,26 @@ func (m *ResendMailer) SendOTP(ctx context.Context, toEmail, code string) error 
 		HTML:    html,
 	}
 
-	bodyBytes, err := json.Marshal(payload)
+	body, err := json.Marshal(payload)
 	if err != nil {
 		return fmt.Errorf("marshal resend payload: %w", err)
 	}
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, "https://api.resend.com/emails", bytes.NewReader(bodyBytes))
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, "https://api.resend.com/emails", bytes.NewReader(body))
 	if err != nil {
 		return fmt.Errorf("create resend request: %w", err)
 	}
-
-	req.Header.Set("Authorization", "Bearer "+m.apiKey)
+	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", m.apiKey))
 	req.Header.Set("Content-Type", "application/json")
 
 	resp, err := m.client.Do(req)
 	if err != nil {
-		return fmt.Errorf("resend request failed: %w", err)
+		return fmt.Errorf("send email via resend: %w", err)
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		return fmt.Errorf("resend returned status %d", resp.StatusCode)
+	if resp.StatusCode >= 300 {
+		return fmt.Errorf("resend api error: status %d", resp.StatusCode)
 	}
 
 	return nil
@@ -116,4 +120,8 @@ func (m *MockMailer) SendOTP(ctx context.Context, toEmail, code string) error {
 	m.LastEmail = toEmail
 	m.LastCode = code
 	return nil
+}
+
+func (m *MockMailer) IsDev() bool {
+	return true
 }

@@ -1,8 +1,11 @@
+"use client";
+
 import { companionVisual } from "@/lib/design/companions";
+import { FullBodyCompanion } from "./companions/FullBodyCompanion";
 
 type Reaction = "idle" | "correct" | "wrong";
 
-/** CompanionHero shows the animated companion with optional reaction state. */
+/** CompanionHero shows the full-body dressed mascot with animated gestures and reactions. */
 export function CompanionHero({
   name,
   species,
@@ -16,10 +19,10 @@ export function CompanionHero({
 }) {
   const visual = companionVisual(name, species);
 
-  const sizeClass =
-    size === "lg" ? "h-28 w-28 text-5xl" :
-    size === "md" ? "h-20 w-20 text-4xl" :
-    "h-12 w-12 text-2xl";
+  const containerSize =
+    size === "lg" ? "h-36 w-32" :
+    size === "md" ? "h-28 w-24" :
+    "h-16 w-14";
 
   const animClass =
     reaction === "correct" ? "animate-companion-correct" :
@@ -27,22 +30,21 @@ export function CompanionHero({
     "animate-companion-idle";
 
   return (
-    <div className="relative inline-flex flex-col items-center">
+    <div className={`relative inline-flex flex-col items-center justify-end ${containerSize}`}>
+      {/* Background Soft Glow */}
       <div
-        className={`absolute inset-0 rounded-full blur-md opacity-40 ${sizeClass}`}
-        style={{ background: visual.glow, transform: "scale(1.2)" }}
+        className="absolute bottom-1 h-14 w-24 rounded-full blur-xl opacity-50"
+        style={{ background: visual.glow }}
         aria-hidden
       />
-      <div
-        className={`relative flex items-center justify-center rounded-full border border-white/10 ${sizeClass} ${animClass}`}
-        style={{
-          background: `linear-gradient(135deg, ${visual.glow}33 0%, #1A1D27 100%)`,
-          boxShadow: `0 0 24px ${visual.glow}44, inset 0 1px 0 rgba(255,255,255,0.08)`,
-        }}
-      >
-        <span role="img" aria-label={name ?? "companion"} className="select-none">
-          {visual.emoji}
-        </span>
+      {/* Full-Body Dressed Mascot Vector */}
+      <div className={`relative h-full w-full flex items-center justify-center ${animClass}`}>
+        <FullBodyCompanion
+          name={name}
+          species={species}
+          reaction={reaction}
+          className="h-full w-full object-contain filter drop-shadow-[0_8px_16px_rgba(0,0,0,0.4)]"
+        />
       </div>
     </div>
   );

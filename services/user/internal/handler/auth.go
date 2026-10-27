@@ -138,7 +138,7 @@ func writeServiceError(w http.ResponseWriter, err error) {
 	case errors.Is(err, service.ErrInvalidRequest):
 		response.Error(w, http.StatusBadRequest, constants.ErrInvalidRequest, err.Error())
 	case errors.Is(err, service.ErrInvalidCredentials):
-		response.Error(w, http.StatusUnauthorized, constants.ErrInvalidCredentials, err.Error())
+		response.Error(w, http.StatusUnauthorized, constants.ErrInvalidCredentials, "Incorrect password. Please try again.")
 	case errors.Is(err, service.ErrInvalidOTP):
 		response.Error(w, http.StatusBadRequest, constants.ErrInvalidOTP, err.Error())
 	case errors.Is(err, service.ErrOTPCooldown):
@@ -146,15 +146,15 @@ func writeServiceError(w http.ResponseWriter, err error) {
 	case errors.Is(err, service.ErrTooManyAttempts):
 		response.Error(w, http.StatusTooManyRequests, constants.ErrTooManyAttempts, err.Error())
 	case errors.Is(err, service.ErrEmailTaken):
-		response.Error(w, http.StatusConflict, constants.ErrEmailTaken, err.Error())
+		response.Error(w, http.StatusConflict, constants.ErrEmailTaken, "An account with this email already exists.")
 	case errors.Is(err, service.ErrUsernameTaken):
-		response.Error(w, http.StatusConflict, constants.ErrUsernameTaken, err.Error())
+		response.Error(w, http.StatusConflict, constants.ErrUsernameTaken, "This username is already taken.")
 	case errors.Is(err, service.ErrInvalidToken):
 		response.Error(w, http.StatusUnauthorized, constants.ErrInvalidToken, err.Error())
 	case errors.Is(err, service.ErrRefreshTokenInvalid):
 		response.Error(w, http.StatusUnauthorized, constants.ErrRefreshTokenInvalid, err.Error())
 	case errors.Is(err, service.ErrUserNotFound):
-		response.Error(w, http.StatusNotFound, constants.ErrUserNotFound, err.Error())
+		response.Error(w, http.StatusNotFound, constants.ErrUserNotFound, "Account does not exist. Please sign up.")
 	case errors.Is(err, service.ErrDeviceNotFound):
 		response.Error(w, http.StatusNotFound, constants.ErrDeviceNotFound, err.Error())
 	default:

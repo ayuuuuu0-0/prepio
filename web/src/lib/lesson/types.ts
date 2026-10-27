@@ -4,6 +4,18 @@ export type StepType = "intro" | "mcq" | "true_false" | "fill_blank" | "arrange"
 
 export type Beat = { text: string; emphasis?: string; visual?: string; duration_ms: number };
 
+export type ClientCodeSnippetVariant = {
+  language: string;
+  starter: string;
+};
+
+export type ClientCodeSnippet = {
+  prompt: string;
+  language: string;
+  starter: string;
+  languages?: Record<string, ClientCodeSnippetVariant>;
+};
+
 /** ClientStep is what the server sends: never any answer, explanation, or rubric. */
 export type ClientStep = {
   id: string;
@@ -15,7 +27,7 @@ export type ClientStep = {
   fill_blank?: { code: string; blanks: number; bank: string[] };
   arrange?: { prompt: string; items: string[] };
   prose?: { prompt: string; min_chars: number };
-  code_snippet?: { prompt: string; language: "go" | "python" | "sql" | "typescript"; starter: string };
+  code_snippet?: ClientCodeSnippet;
 };
 
 export type LessonInfo = {
@@ -45,6 +57,7 @@ export type Answer = {
   order?: number[];
   text?: string;
   code?: string;
+  language?: string;
 };
 
 export type AnswerResult = {

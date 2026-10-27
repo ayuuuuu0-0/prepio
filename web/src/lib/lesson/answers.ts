@@ -15,7 +15,7 @@ export type Draft =
   /** text is a written answer, graded by the server's rubric. */
   | { type: "prose"; text: string }
   /** code is the learner's modified code snippet. */
-  | { type: "code_snippet"; code: string };
+  | { type: "code_snippet"; code: string; language?: string };
 
 /** GRADABLE lists the step types the player can render and submit. */
 export const GRADABLE = ["mcq", "true_false", "fill_blank", "arrange", "prose", "code_snippet"] as const;
@@ -34,7 +34,9 @@ export function emptyDraft(step: ClientStep): Draft | null {
     case "prose":
       return step.prose ? { type: "prose", text: "" } : null;
     case "code_snippet":
-      return step.code_snippet ? { type: "code_snippet", code: step.code_snippet.starter } : null;
+      return step.code_snippet
+        ? { type: "code_snippet", code: step.code_snippet.starter, language: step.code_snippet.language }
+        : null;
     default:
       return null;
   }
@@ -75,7 +77,7 @@ export function toAnswer(step: ClientStep, d: Draft): Answer {
     case "prose":
       return { text: d.text };
     case "code_snippet":
-      return { code: d.code };
+      return { code: d.code, language: d.language };
   }
 }
 
@@ -137,6 +139,8 @@ export function correctAnswerLines(step: ClientStep, correct: Answer | undefined
       const items = step.arrange?.items ?? [];
       return (correct.order ?? []).filter((i) => items[i] !== undefined).map((i, pos) => `${pos + 1}. ${items[i]}`);
     }
+    case "code_snippet":
+      return correct.code ? [correct.code] : [];
     default:
       return [];
   }

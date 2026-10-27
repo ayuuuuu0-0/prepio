@@ -39,7 +39,7 @@ func (s *OnboardingService) ListCompanions(ctx context.Context) ([]dto.Character
 }
 
 // Complete stores onboarding choices for the authenticated user: 1-3 focus topics, an
-// experience level, and a starter companion.
+// experience level, a starter companion, and an optional preferred coding language.
 func (s *OnboardingService) Complete(ctx context.Context, userID string, req dto.OnboardingRequest) (*dto.ProfileResponse, error) {
 	if len(req.ExperienceLevel) == 0 || len(req.CompanionID) == 0 {
 		return nil, ErrInvalidRequest
@@ -73,7 +73,7 @@ func (s *OnboardingService) Complete(ctx context.Context, userID string, req dto
 		return nil, err
 	}
 
-	user, err := s.users.CompleteOnboarding(ctx, userID, req.ExperienceLevel, req.CompanionID)
+	user, err := s.users.CompleteOnboarding(ctx, userID, req.ExperienceLevel, req.CompanionID, req.PreferredLanguage)
 	if err != nil {
 		return nil, err
 	}
@@ -156,6 +156,7 @@ func (s *OnboardingService) buildProfile(ctx context.Context, user *store.User) 
 		Email:               user.Email,
 		Username:            user.Username,
 		Timezone:            user.Timezone,
+		PreferredLanguage:   user.PreferredLanguage,
 		OnboardingCompleted: user.OnboardingCompleted,
 		FocusTopics:         focusTopics,
 	}

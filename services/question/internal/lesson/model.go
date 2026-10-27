@@ -19,7 +19,14 @@ const (
 )
 
 // CodeSnippetLanguages lists the languages a code_snippet step may declare.
-var CodeSnippetLanguages = []string{"go", "python", "sql", "typescript"}
+var CodeSnippetLanguages = []string{"go", "python", "javascript", "node", "sql", "typescript"}
+
+// CodeSnippetVariant holds starter, solution, and tests for one programming language.
+type CodeSnippetVariant struct {
+	Starter  string            `yaml:"starter,omitempty" json:"starter,omitempty"`
+	Solution string            `yaml:"solution,omitempty" json:"solution,omitempty"`
+	Tests    []CodeSnippetTest `yaml:"tests,omitempty" json:"tests,omitempty"`
+}
 
 // CodeSnippetTestTypes lists the allowed assertion types for code_snippet tests.
 var CodeSnippetTestTypes = []string{"contains", "not_contains", "pattern", "structure"}
@@ -104,9 +111,11 @@ type Step struct {
 	MinChars int     `yaml:"minChars,omitempty" json:"min_chars,omitempty"`
 
 	// code_snippet
-	Language string             `yaml:"language,omitempty" json:"language,omitempty"`
-	Starter  string             `yaml:"starter,omitempty" json:"starter,omitempty"`
-	Tests    []CodeSnippetTest  `yaml:"tests,omitempty" json:"tests,omitempty"`
+	Language  string                        `yaml:"language,omitempty" json:"language,omitempty"`
+	Starter   string                        `yaml:"starter,omitempty" json:"starter,omitempty"`
+	Solution  string                        `yaml:"solution,omitempty" json:"solution,omitempty"`
+	Tests     []CodeSnippetTest             `yaml:"tests,omitempty" json:"tests,omitempty"`
+	Languages map[string]CodeSnippetVariant `yaml:"languages,omitempty" json:"languages,omitempty"`
 
 	// true_false, fill_blank, arrange, prose, code_snippet
 	Explanation string `yaml:"explanation,omitempty" json:"explanation,omitempty"`
@@ -227,11 +236,13 @@ type ProsePayload struct {
 // CodeSnippetPayload is the stored payload of a code-snippet step.
 // The Tests and Explanation fields are NEVER sent to the client.
 type CodeSnippetPayload struct {
-	Prompt      string            `json:"prompt"`
-	Language    string            `json:"language"`
-	Starter     string            `json:"starter"`
-	Tests       []CodeSnippetTest `json:"tests"`
-	Explanation string            `json:"explanation"`
+	Prompt      string                        `json:"prompt"`
+	Language    string                        `json:"language"`
+	Starter     string                        `json:"starter"`
+	Solution    string                        `json:"solution,omitempty"`
+	Tests       []CodeSnippetTest             `json:"tests"`
+	Languages   map[string]CodeSnippetVariant `json:"languages,omitempty"`
+	Explanation string                        `json:"explanation"`
 }
 
 // StoredPayload converts an authored step to its typed payload. It assumes the
@@ -266,7 +277,9 @@ func (s Step) StoredPayload() (any, error) {
 			Prompt:      s.Prompt,
 			Language:    s.Language,
 			Starter:     s.Starter,
+			Solution:    s.Solution,
 			Tests:       s.Tests,
+			Languages:   s.Languages,
 			Explanation: s.Explanation,
 		}, nil
 	default:

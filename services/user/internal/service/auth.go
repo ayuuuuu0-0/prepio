@@ -55,6 +55,25 @@ func (s *AuthService) SendOTP(ctx context.Context, req dto.SendOTPRequest) (*dto
 		return nil, ErrInvalidRequest
 	}
 
+	if req.Signup {
+		existing, err := s.users.GetByEmail(ctx, email)
+		if err != nil {
+			return nil, err
+		}
+		if existing != nil {
+			return nil, ErrEmailTaken
+		}
+		if req.Username != "" {
+			existingUser, err := s.users.GetByUsername(ctx, strings.TrimSpace(req.Username))
+			if err != nil {
+				return nil, err
+			}
+			if existingUser != nil {
+				return nil, ErrUsernameTaken
+			}
+		}
+	}
+
 	// Rate limiting: allow at most 1 request per 60 seconds per email
 	rateKey := fmt.Sprintf("otp:rate:%s", email)
 	exists, err := s.redis.Exists(ctx, rateKey).Result()
@@ -84,10 +103,14 @@ func (s *AuthService) SendOTP(ctx context.Context, req dto.SendOTPRequest) (*dto
 		return nil, fmt.Errorf("send otp email: %w", err)
 	}
 
-	return &dto.SendOTPResponse{
+	resp := &dto.SendOTPResponse{
 		Message:   "Verification code sent to email",
 		ExpiresIn: 300,
-	}, nil
+	}
+	if s.mailer.IsDev() {
+		resp.DevCode = code
+	}
+	return resp, nil
 }
 
 // VerifyOTP verifies the 6-digit code and signs in or creates the user.
@@ -143,12 +166,19 @@ func (s *AuthService) VerifyOTP(ctx context.Context, req dto.VerifyOTPRequest) (
 			return nil, err
 		}
 
-		// Generate random secure password hash
-		randomBytes := make([]byte, 32)
-		_, _ = rand.Read(randomBytes)
-		hash, err := bcrypt.GenerateFromPassword(randomBytes, bcrypt.DefaultCost)
-		if err != nil {
-			return nil, fmt.Errorf("hash password: %w", err)
+		var hash []byte
+		if len(req.Password) > 0 {
+			hash, err = bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
+			if err != nil {
+				return nil, fmt.Errorf("hash password: %w", err)
+			}
+		} else {
+			randomBytes := make([]byte, 32)
+			_, _ = rand.Read(randomBytes)
+			hash, err = bcrypt.GenerateFromPassword(randomBytes, bcrypt.DefaultCost)
+			if err != nil {
+				return nil, fmt.Errorf("hash password: %w", err)
+			}
 		}
 
 		user, err = s.users.Create(ctx, email, uniqueUsername, string(hash), constants.DefaultTimezone)
@@ -228,21 +258,29 @@ func (s *AuthService) Register(ctx context.Context, req dto.RegisterRequest) (*d
 	return s.issueTokens(ctx, user)
 }
 
-// Login authenticates a user and returns auth tokens.
+// Login authenticates a user by email or username, and returns auth tokens.
 func (s *AuthService) Login(ctx context.Context, req dto.LoginRequest) (*dto.AuthResponse, error) {
-	if len(req.Email) == 0 || len(req.Password) == 0 {
+	identifier := strings.TrimSpace(req.Email)
+	password := req.Password
+	if len(identifier) == 0 || len(password) == 0 {
 		return nil, ErrInvalidCredentials
 	}
 
-	user, err := s.users.GetByEmail(ctx, req.Email)
+	var user *store.User
+	var err error
+	if strings.Contains(identifier, "@") {
+		user, err = s.users.GetByEmail(ctx, strings.ToLower(identifier))
+	} else {
+		user, err = s.users.GetByUsername(ctx, identifier)
+	}
 	if err != nil {
 		return nil, err
 	}
 	if user == nil {
-		return nil, ErrInvalidCredentials
+		return nil, ErrUserNotFound
 	}
 
-	if err := bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(req.Password)); err != nil {
+	if err := bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(password)); err != nil {
 		return nil, ErrInvalidCredentials
 	}
 

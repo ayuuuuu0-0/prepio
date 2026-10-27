@@ -12,9 +12,31 @@ import { GameButton } from "@/components/game/GameButton";
 
 const MAX_TOPICS = 3;
 
+const LANGUAGES = [
+  {
+    id: "python",
+    name: "Python",
+    badge: "🐍 Python",
+    description: "Clean scripting, DSA algorithms, and backend web services",
+  },
+  {
+    id: "node",
+    name: "Node.js / JavaScript",
+    badge: "🟢 Node.js",
+    description: "Full-stack APIs, async event loops, and microservices",
+  },
+  {
+    id: "go",
+    name: "Go",
+    badge: "🐹 Go",
+    description: "High concurrency, high performance, and cloud distributed systems",
+  },
+];
+
 const stepMessages = [
   "What do you want to sharpen? Pick up to three. They move to the front of your path, and nothing gets locked.",
   "How much experience do you have? This sets your starting point.",
+  "Which programming language do you prefer for hands-on coding exercises?",
   "Choose your companion. They'll grow with you throughout the journey.",
 ];
 
@@ -25,6 +47,7 @@ export default function OnboardingPage() {
   const [companions, setCompanions] = useState<Companion[]>([]);
   const [focus, setFocus] = useState<string[]>([]);
   const [experience, setExperience] = useState("");
+  const [preferredLanguage, setPreferredLanguage] = useState("python");
   const [companionId, setCompanionId] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -45,6 +68,9 @@ export default function OnboardingPage() {
         if (cancelled) return;
         setCompanions(c);
         setTopics(t);
+        if (c.length > 0 && !companionId) {
+          setCompanionId(c[0].id);
+        }
       } catch (err) {
         if (!cancelled) setError(err instanceof Error ? err.message : "Failed to load onboarding");
       }
@@ -52,7 +78,7 @@ export default function OnboardingPage() {
     return () => {
       cancelled = true;
     };
-  }, [router]);
+  }, [router, companionId]);
 
   function toggleTopic(slug: string) {
     setFocus((current) => {
@@ -66,7 +92,7 @@ export default function OnboardingPage() {
     setLoading(true);
     setError("");
     try {
-      await api.completeOnboarding(experience, companionId, focus);
+      await api.completeOnboarding(experience, companionId, focus, preferredLanguage);
       router.replace("/dashboard");
     } catch (err) {
       setError(err instanceof Error ? err.message : "onboarding failed");
@@ -78,8 +104,8 @@ export default function OnboardingPage() {
   return (
     <GameBackground variant="forest">
       <main className="mx-auto min-h-dvh max-w-lg px-4 py-8">
-        <div className="flex items-center gap-2" role="progressbar" aria-label="Onboarding progress" aria-valuemin={1} aria-valuemax={3} aria-valuenow={step}>
-          {[1, 2, 3].map((s) => (
+        <div className="flex items-center gap-2" role="progressbar" aria-label="Onboarding progress" aria-valuemin={1} aria-valuemax={4} aria-valuenow={step}>
+          {[1, 2, 3, 4].map((s) => (
             <div key={s} className={`h-3 flex-1 rounded-full transition ${s <= step ? "bg-[#7C6EF5]" : "bg-[#2E3347]"}`} />
           ))}
         </div>
@@ -99,6 +125,7 @@ export default function OnboardingPage() {
           </p>
         )}
 
+        {/* Step 1: Sharpen Topics */}
         {step === 1 && (
           <section className="mt-6" aria-labelledby="topics-title">
             <h1 id="topics-title" className="font-display text-2xl font-extrabold tracking-tight" style={{ color: "#E8EAED" }}>
@@ -161,8 +188,12 @@ export default function OnboardingPage() {
           </section>
         )}
 
+        {/* Step 2: Experience Level */}
         {step === 2 && (
           <section className="mt-6 space-y-3">
+            <h1 className="font-display text-2xl font-extrabold tracking-tight" style={{ color: "#E8EAED" }}>
+              How much experience do you have?
+            </h1>
             {EXPERIENCE_LEVELS.map((level) => (
               <button
                 key={level.id}
@@ -191,32 +222,107 @@ export default function OnboardingPage() {
           </section>
         )}
 
+        {/* Step 3: Preferred Programming Language */}
         {step === 3 && (
-          <section className="mt-6 space-y-3">
-            {companions.map((c) => {
-              const v = companionVisual(c.name, c.species);
-              const selected = companionId === c.id;
-              return (
-                <button
-                  key={c.id}
-                  type="button"
-                  onClick={() => setCompanionId(c.id)}
-                  className={`flex w-full items-center gap-4 rounded-2xl p-4 transition ${selected ? "scale-[1.02] ring-2 ring-[#7C6EF5]" : ""}`}
-                  style={{
-                    background: `linear-gradient(135deg, ${v.glow}33 0%, #1A1D27 100%)`,
-                    border: `1px solid ${selected ? "#7C6EF5" : "#2E3347"}`,
-                  }}
-                >
-                  <span className="text-4xl">{v.emoji}</span>
-                  <div className="text-left">
-                    <p className="font-display text-xl font-bold text-white drop-shadow">{c.name}</p>
-                    <p className="text-sm font-semibold capitalize text-white/90">{c.species.replace("_", " ")}</p>
-                  </div>
-                </button>
-              );
-            })}
+          <section className="mt-6 space-y-3" aria-labelledby="lang-title">
+            <h1 id="lang-title" className="font-display text-2xl font-extrabold tracking-tight" style={{ color: "#E8EAED" }}>
+              Choose your primary coding language
+            </h1>
+            <p className="text-sm font-semibold" style={{ color: "#8B92A8" }}>
+              Coding exercises will start in this language. You can also switch languages any time inside exercises.
+            </p>
+            <div className="mt-4 space-y-3">
+              {LANGUAGES.map((lang) => {
+                const selected = preferredLanguage === lang.id;
+                return (
+                  <button
+                    key={lang.id}
+                    type="button"
+                    onClick={() => setPreferredLanguage(lang.id)}
+                    className={`flex w-full items-center gap-4 rounded-2xl p-4 text-left transition ${
+                      selected ? "scale-[1.01] ring-2 ring-[#7C6EF5]" : "hover:border-[#7C6EF5]/50"
+                    }`}
+                    style={{
+                      background: selected ? "rgba(124,110,245,0.18)" : "#1A1D27",
+                      border: `1px solid ${selected ? "#7C6EF5" : "#2E3347"}`,
+                    }}
+                  >
+                    <div className="min-w-0 flex-1">
+                      <span className="font-display block text-lg font-extrabold leading-tight text-white">
+                        {lang.badge}
+                      </span>
+                      <span className="mt-1 block text-xs font-semibold leading-snug" style={{ color: "#8B92A8" }}>
+                        {lang.description}
+                      </span>
+                    </div>
+                    <span
+                      aria-hidden
+                      className="font-mono flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-bold"
+                      style={{
+                        background: selected ? "#7C6EF5" : "#242836",
+                        color: selected ? "#FFFFFF" : "transparent",
+                        border: selected ? "none" : "1px solid #2E3347",
+                      }}
+                    >
+                      ✓
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
             <div className="mt-4 flex gap-3">
               <GameButton variant="secondary" className="flex-1" onClick={() => setStep(2)}>
+                Back
+              </GameButton>
+              <GameButton className="flex-1" onClick={() => setStep(4)}>
+                Continue →
+              </GameButton>
+            </div>
+          </section>
+        )}
+
+        {/* Step 4: Choose Companion */}
+        {step === 4 && (
+          <section className="mt-6 space-y-3">
+            <h1 className="font-display text-2xl font-extrabold tracking-tight" style={{ color: "#E8EAED" }}>
+              Choose your companion
+            </h1>
+            <p className="text-sm font-semibold" style={{ color: "#8B92A8" }}>
+              Your co-pilot wears distinct gear and reacts as you solve problems.
+            </p>
+            <div className="mt-4 space-y-3">
+              {companions.map((c) => {
+                const v = companionVisual(c.name, c.species);
+                const selected = companionId === c.id;
+                return (
+                  <button
+                    key={c.id}
+                    type="button"
+                    onClick={() => setCompanionId(c.id)}
+                    className={`flex w-full items-center gap-4 rounded-2xl p-4 transition ${
+                      selected ? "scale-[1.02] ring-2 ring-[#7C6EF5]" : "hover:border-[#7C6EF5]/50"
+                    }`}
+                    style={{
+                      background: `linear-gradient(135deg, ${v.glow}26 0%, #1A1D27 100%)`,
+                      border: `1px solid ${selected ? "#7C6EF5" : "#2E3347"}`,
+                    }}
+                  >
+                    <CompanionHero name={c.name} species={c.species} size="sm" />
+                    <div className="text-left flex-1">
+                      <p className="font-display text-xl font-bold text-white drop-shadow">{c.name}</p>
+                      <p className="text-sm font-semibold capitalize text-white/80">{c.species.replace("_", " ")}</p>
+                    </div>
+                    {selected && (
+                      <span className="font-mono text-xs font-bold text-[#7C6EF5] px-2 py-1 rounded-md bg-[#7C6EF5]/20">
+                        Selected
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+            <div className="mt-4 flex gap-3">
+              <GameButton variant="secondary" className="flex-1" onClick={() => setStep(3)}>
                 Back
               </GameButton>
               <GameButton className="flex-1" variant="gold" disabled={companionId.length === 0 || loading} onClick={finish}>

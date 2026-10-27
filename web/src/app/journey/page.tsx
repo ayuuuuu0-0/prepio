@@ -193,8 +193,7 @@ function JourneyContent() {
                 </div>
 
                 <div className="relative mt-10 flex flex-col items-center gap-8">
-                  <div className="absolute left-1/2 top-4 h-[calc(100%-2rem)] w-1 -translate-x-1/2 rounded-full bg-white/15" aria-hidden />
-                  {w.nodes.map((node, i) => (
+                                    {w.nodes.map((node, i) => (
                     <div key={node.id} className={`relative z-10 ${i % 2 === 0 ? "-ml-16" : "ml-16"}`}>
                       {node === next && (
                         <div className="absolute -right-16 -top-1" aria-hidden>

@@ -17,6 +17,7 @@ type User struct {
 	Username            string
 	PasswordHash        string
 	Timezone            string
+	PreferredLanguage   string
 	ActiveCharID        *string
 	ReminderTime        string
 	ExperienceLevel     *string
@@ -40,7 +41,7 @@ func (s *UserStore) Create(ctx context.Context, email, username, passwordHash, t
 	const q = `
 		INSERT INTO users (email, username, password_hash, timezone)
 		VALUES ($1, $2, $3, $4)
-		RETURNING id, email, username, password_hash, timezone, active_char_id,
+		RETURNING id, email, username, password_hash, timezone, preferred_language, active_char_id,
 		          reminder_time::text, experience_level, onboarding_completed,
 		          created_at, updated_at`
 
@@ -51,7 +52,7 @@ func (s *UserStore) Create(ctx context.Context, email, username, passwordHash, t
 // GetByID returns a user by primary key.
 func (s *UserStore) GetByID(ctx context.Context, id string) (*User, error) {
 	const q = `
-		SELECT id, email, username, password_hash, timezone, active_char_id,
+		SELECT id, email, username, password_hash, timezone, preferred_language, active_char_id,
 		       reminder_time::text, experience_level, onboarding_completed,
 		       created_at, updated_at
 		FROM users WHERE id = $1`
@@ -67,7 +68,7 @@ func (s *UserStore) GetByID(ctx context.Context, id string) (*User, error) {
 // GetByEmail returns a user by email address.
 func (s *UserStore) GetByEmail(ctx context.Context, email string) (*User, error) {
 	const q = `
-		SELECT id, email, username, password_hash, timezone, active_char_id,
+		SELECT id, email, username, password_hash, timezone, preferred_language, active_char_id,
 		       reminder_time::text, experience_level, onboarding_completed,
 		       created_at, updated_at
 		FROM users WHERE email = $1`
@@ -83,7 +84,7 @@ func (s *UserStore) GetByEmail(ctx context.Context, email string) (*User, error)
 // GetByUsername returns a user by username.
 func (s *UserStore) GetByUsername(ctx context.Context, username string) (*User, error) {
 	const q = `
-		SELECT id, email, username, password_hash, timezone, active_char_id,
+		SELECT id, email, username, password_hash, timezone, preferred_language, active_char_id,
 		       reminder_time::text, experience_level, onboarding_completed,
 		       created_at, updated_at
 		FROM users WHERE username = $1`
@@ -104,11 +105,29 @@ func (s *UserStore) UpdateProfile(ctx context.Context, id string, timezone, remi
 		    reminder_time = $3::time,
 		    active_char_id = $4
 		WHERE id = $1
-		RETURNING id, email, username, password_hash, timezone, active_char_id,
+		RETURNING id, email, username, password_hash, timezone, preferred_language, active_char_id,
 		          reminder_time::text, experience_level, onboarding_completed,
 		          created_at, updated_at`
 
 	row := s.pool.QueryRow(ctx, q, id, timezone, reminderTime, activeCharID)
+	user, err := scanUser(row)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil, nil
+	}
+	return user, err
+}
+
+// SetPreferredLanguage updates the user's primary code language.
+func (s *UserStore) SetPreferredLanguage(ctx context.Context, id, language string) (*User, error) {
+	const q = `
+		UPDATE users
+		SET preferred_language = $2
+		WHERE id = $1
+		RETURNING id, email, username, password_hash, timezone, preferred_language, active_char_id,
+		          reminder_time::text, experience_level, onboarding_completed,
+		          created_at, updated_at`
+
+	row := s.pool.QueryRow(ctx, q, id, language)
 	user, err := scanUser(row)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, nil
@@ -149,7 +168,7 @@ func (s *UserStore) HasCharacterUnlock(ctx context.Context, userID, characterID 
 func (s *UserStore) SetActiveCharacter(ctx context.Context, userID, characterID string) (*User, error) {
 	const q = `
 		UPDATE users SET active_char_id = $2 WHERE id = $1
-		RETURNING id, email, username, password_hash, timezone, active_char_id,
+		RETURNING id, email, username, password_hash, timezone, preferred_language, active_char_id,
 		          reminder_time::text, experience_level, onboarding_completed,
 		          created_at, updated_at`
 
@@ -162,18 +181,19 @@ func (s *UserStore) SetActiveCharacter(ctx context.Context, userID, characterID 
 }
 
 // CompleteOnboarding stores onboarding choices and marks the profile complete.
-func (s *UserStore) CompleteOnboarding(ctx context.Context, userID, experienceLevel, characterID string) (*User, error) {
+func (s *UserStore) CompleteOnboarding(ctx context.Context, userID, experienceLevel, characterID, preferredLanguage string) (*User, error) {
 	const q = `
 		UPDATE users
 		SET experience_level = $2,
 		    active_char_id = $3,
+		    preferred_language = COALESCE(NULLIF($4, ''), preferred_language),
 		    onboarding_completed = true
 		WHERE id = $1
-		RETURNING id, email, username, password_hash, timezone, active_char_id,
+		RETURNING id, email, username, password_hash, timezone, preferred_language, active_char_id,
 		          reminder_time::text, experience_level, onboarding_completed,
 		          created_at, updated_at`
 
-	row := s.pool.QueryRow(ctx, q, userID, experienceLevel, characterID)
+	row := s.pool.QueryRow(ctx, q, userID, experienceLevel, characterID, preferredLanguage)
 	user, err := scanUser(row)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, nil
@@ -199,6 +219,7 @@ func scanUser(row pgx.Row) (*User, error) {
 		&u.Username,
 		&u.PasswordHash,
 		&u.Timezone,
+		&u.PreferredLanguage,
 		&u.ActiveCharID,
 		&u.ReminderTime,
 		&u.ExperienceLevel,

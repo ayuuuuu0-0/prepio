@@ -63,9 +63,17 @@ func (p *Publisher) Publish(ctx context.Context, topic, key string, payload any)
 		if err := p.post(ctx, p.progressURL+"/internal/events/streak-updated", body); err != nil {
 			return err
 		}
-		return p.post(ctx, p.notificationURL+"/internal/events/streak-updated", body)
+		// Notification forwarding is best-effort in local dev
+		if p.notificationURL != "" {
+			_ = p.post(ctx, p.notificationURL+"/internal/events/streak-updated", body)
+		}
+		return nil
 	case events.TopicProgressUpdated:
-		return p.post(ctx, p.notificationURL+"/internal/events/progress-updated", body)
+		// Notification forwarding is best-effort in local dev
+		if p.notificationURL != "" {
+			_ = p.post(ctx, p.notificationURL+"/internal/events/progress-updated", body)
+		}
+		return nil
 	default:
 		return nil
 	}
@@ -99,7 +107,7 @@ func (p *Publisher) post(ctx context.Context, url string, body []byte) error {
 }
 
 func envOrDefault(key, fallback string) string {
-	if v := os.Getenv(key); len(v) > 0 {
+	if v := os.Getenv(key); v != "" {
 		return v
 	}
 	return fallback

@@ -2,6 +2,28 @@
 
 import { KeyboardEvent, useId, useRef } from "react";
 
+function formatLanguageName(lang: string): string {
+  switch (lang.toLowerCase()) {
+    case "go":
+      return "Go";
+    case "python":
+      return "Python";
+    case "node":
+    case "nodejs":
+      return "Node.js";
+    case "javascript":
+    case "js":
+      return "JavaScript";
+    case "typescript":
+    case "ts":
+      return "TypeScript";
+    case "sql":
+      return "SQL";
+    default:
+      return lang;
+  }
+}
+
 export function CodeSnippetStep({
   prompt,
   language,
@@ -9,15 +31,19 @@ export function CodeSnippetStep({
   code,
   result,
   disabled,
+  availableLanguages,
   onChange,
+  onSelectLanguage,
 }: {
   prompt: string;
-  language: "go" | "python" | "sql" | "typescript";
+  language: string;
   starter: string;
   code: string;
   result: { correct: boolean } | null;
   disabled: boolean;
+  availableLanguages?: string[];
   onChange: (code: string) => void;
+  onSelectLanguage?: (language: string) => void;
 }) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const promptId = useId();
@@ -85,21 +111,55 @@ export function CodeSnippetStep({
     }
   };
 
+  const langs = availableLanguages && availableLanguages.length > 0 ? availableLanguages : [language];
+
   return (
     <div className="flex flex-1 flex-col">
-      <div className="flex items-center justify-between">
-        <p className="font-mono mb-2 text-[11px] font-bold uppercase tracking-[0.2em]" style={{ color: "#7C6EF5" }}>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <p className="font-mono text-[11px] font-bold uppercase tracking-[0.2em]" style={{ color: "#7C6EF5" }}>
           Code Exercise
         </p>
-        <span
-          className="font-mono rounded-md px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider"
-          style={{ background: "#1F2330", color: "#8B92A8", border: "1px solid #2E3347" }}
-        >
-          {language}
-        </span>
+
+        {/* Multi-Language Switcher Tabs */}
+        {langs.length > 1 ? (
+          <div
+            className="flex items-center gap-1 rounded-xl p-1"
+            style={{ background: "#151821", border: "1px solid #2E3347" }}
+            role="tablist"
+            aria-label="Language selection"
+          >
+            {langs.map((l) => {
+              const active = l.toLowerCase() === language.toLowerCase();
+              return (
+                <button
+                  key={l}
+                  type="button"
+                  role="tab"
+                  aria-selected={active}
+                  onClick={() => onSelectLanguage && onSelectLanguage(l)}
+                  disabled={disabled || shown}
+                  className={`rounded-lg px-2.5 py-1 text-xs font-mono font-bold transition-all ${
+                    active
+                      ? "bg-[#7C6EF5] text-white shadow-sm"
+                      : "text-[#8B92A8] hover:text-[#E8EAED] hover:bg-white/5"
+                  } disabled:opacity-50`}
+                >
+                  {formatLanguageName(l)}
+                </button>
+              );
+            })}
+          </div>
+        ) : (
+          <span
+            className="font-mono rounded-md px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider"
+            style={{ background: "#1F2330", color: "#8B92A8", border: "1px solid #2E3347" }}
+          >
+            {formatLanguageName(language)}
+          </span>
+        )}
       </div>
 
-      <h1 id={promptId} className="font-display text-xl font-extrabold leading-snug sm:text-2xl" style={{ color: "#E8EAED" }}>
+      <h1 id={promptId} className="font-display mt-3 text-xl font-extrabold leading-snug sm:text-2xl" style={{ color: "#E8EAED" }}>
         {prompt}
       </h1>
 

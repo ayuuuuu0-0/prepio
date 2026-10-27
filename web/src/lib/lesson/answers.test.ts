@@ -48,7 +48,7 @@ describe("emptyDraft", () => {
     expect(emptyDraft(prose)).toEqual({ type: "prose", text: "" });
   });
   it("starts a code_snippet draft with the starter template", () => {
-    expect(emptyDraft(codeStep)).toEqual({ type: "code_snippet", code: "func fix() {}" });
+    expect(emptyDraft(codeStep)).toEqual({ type: "code_snippet", code: "func fix() {}", language: "go" });
   });
   it("returns null for steps the player can't render, or a missing payload", () => {
     expect(emptyDraft(unknown)).toBeNull();

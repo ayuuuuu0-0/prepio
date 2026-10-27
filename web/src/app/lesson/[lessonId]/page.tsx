@@ -160,7 +160,22 @@ function Player({
 
   const reaction = graded ? (graded.result.correct ? "correct" : "wrong") : "idle";
 
-  const draft: Draft | null = step ? (drafted?.stepId === step.id ? drafted.draft : emptyDraft(step)) : null;
+  const draft: Draft | null = useMemo(() => {
+    if (!step) return null;
+    if (drafted?.stepId === step.id) return drafted.draft;
+    const base = emptyDraft(step);
+    if (base && base.type === "code_snippet" && step.code_snippet?.languages) {
+      const pref = profile?.preferred_language?.toLowerCase();
+      if (pref && step.code_snippet.languages[pref]) {
+        return {
+          type: "code_snippet",
+          code: step.code_snippet.languages[pref].starter,
+          language: pref,
+        };
+      }
+    }
+    return base;
+  }, [step, drafted, profile?.preferred_language]);
   const ready = !!step && isReady(step, draft);
   const setDraft = useCallback((d: Draft) => {
     if (step) setDrafted({ stepId: step.id, draft: d });
@@ -175,13 +190,10 @@ function Player({
       setGraded({ result, draft });
       sound.cue(result.correct ? "correct" : "wrong");
 
-      // Fetch dynamic companion reaction and speak dialogue line
+      // Fetch dynamic companion reaction
       api.getCompanionReaction(result.correct ? "correct_answer" : "wrong_answer")
         .then((r) => {
           setCompanionReaction(r);
-          if (r?.line) {
-            sound.speak(r.line, companionName);
-          }
         })
         .catch(() => {});
 
@@ -269,7 +281,6 @@ function Player({
             .then((r) => {
               if (!cancelled) {
                 setCompletionReaction(r);
-                if (r?.line) sound.speak(r.line, companionName);
               }
             })
             .catch(() => {});
@@ -366,6 +377,12 @@ function Player({
         correctAnswer={step ? correctAnswerLines(step, graded.result.correct_answer) : []}
         onContinue={next}
         continueLabel={session.queue.length === 1 && graded.result.correct ? "Finish" : "Continue"}
+        onApplySolution={(solutionCode) => {
+          if (step?.type === "code_snippet") {
+            const activeLang = draft?.type === "code_snippet" ? draft.language : undefined;
+            setDraft({ type: "code_snippet", code: solutionCode, language: activeLang });
+          }
+        }}
       />
     ) : undefined;
 
@@ -437,14 +454,6 @@ function Player({
           onToggleSound={sound.toggle}
           onPoke={() => {
             sound.cue("poke");
-            const pokePhrases = [
-              `I'm watching your code! Keep going.`,
-              `Stay focused — you got this!`,
-              `Quality over speed. Think through edge cases.`,
-              `Your streak is on the line, let's nail it!`,
-            ];
-            const phrase = pokePhrases[Math.floor(Math.random() * pokePhrases.length)];
-            sound.speak(phrase, companionName);
           }}
         />
       )}
@@ -531,17 +540,33 @@ function ExerciseStep({
           onChange={(order) => onDraft({ type: "arrange", order })}
         />
       ) : null;
-    case "code_snippet":
-      return step.code_snippet ? (
+    case "code_snippet": {
+      if (!step.code_snippet) return null;
+      const snippet = step.code_snippet;
+      const availableLanguages = snippet.languages
+        ? Object.keys(snippet.languages)
+        : [snippet.language];
+      const activeLanguage = shownDraft.language || snippet.language;
+      const currentStarter =
+        (snippet.languages && snippet.languages[activeLanguage]?.starter) || snippet.starter;
+
+      return (
         <CodeSnippetStep
-          prompt={step.code_snippet.prompt}
-          language={step.code_snippet.language}
-          starter={step.code_snippet.starter}
+          prompt={snippet.prompt}
+          language={activeLanguage}
+          availableLanguages={availableLanguages}
+          starter={currentStarter}
           code={shownDraft.code}
           result={result ? { correct: result.correct } : null}
           disabled={disabled}
-          onChange={(code) => onDraft({ type: "code_snippet", code })}
+          onChange={(code) => onDraft({ type: "code_snippet", code, language: activeLanguage })}
+          onSelectLanguage={(lang) => {
+            const nextStarter =
+              (snippet.languages && snippet.languages[lang]?.starter) || snippet.starter;
+            onDraft({ type: "code_snippet", code: nextStarter, language: lang });
+          }}
         />
-      ) : null;
+      );
+    }
   }
 }

@@ -6,14 +6,11 @@ import (
 	"math/rand"
 )
 
-// ClientStep is the only step shape ever sent to a client. It is built from an
-// explicit whitelist per step type, so answers, explanations, and rubrics can
-// never leak by adding a field to a stored payload.
+// ClientStep is the answer-free view of a step sent to the learner.
 type ClientStep struct {
-	ID       string `json:"id"`
-	Type     string `json:"type"`
-	Position int    `json:"position"`
-
+	ID          string             `json:"id"`
+	Type        string             `json:"type"`
+	Position    int                `json:"position"`
 	Intro       *ClientIntro       `json:"intro,omitempty"`
 	MCQ         *ClientMCQ         `json:"mcq,omitempty"`
 	TrueFalse   *ClientTrueFalse   `json:"true_false,omitempty"`
@@ -29,42 +26,49 @@ type ClientIntro struct {
 	MediaURL string `json:"media_url,omitempty"`
 }
 
-// ClientMCQ is the client view of a multiple-choice step.
+// ClientMCQ is the answer-free client view of an mcq step.
 type ClientMCQ struct {
 	Prompt  string   `json:"prompt"`
 	Options []string `json:"options"`
 }
 
-// ClientTrueFalse is the client view of a true/false step.
+// ClientTrueFalse is the answer-free client view of a true/false step.
 type ClientTrueFalse struct {
 	Statement string `json:"statement"`
 }
 
-// ClientFillBlank is the client view of a fill-in-the-blank step.
+// ClientFillBlank is the answer-free client view of a fill-blank step.
 type ClientFillBlank struct {
 	Code   string   `json:"code"`
 	Blanks int      `json:"blanks"`
 	Bank   []string `json:"bank"`
 }
 
-// ClientArrange is the client view of an arrange-in-order step.
+// ClientArrange is the answer-free client view of an arrange step.
 type ClientArrange struct {
 	Prompt string   `json:"prompt"`
 	Items  []string `json:"items"`
 }
 
-// ClientProse is the client view of a prose step.
+// ClientProse is the answer-free client view of a prose step.
 type ClientProse struct {
 	Prompt   string `json:"prompt"`
 	MinChars int    `json:"min_chars"`
 }
 
-// ClientCodeSnippet is the answer-free client view of a code_snippet step.
-// Tests and Explanation are stripped — only the starter template is sent.
-type ClientCodeSnippet struct {
-	Prompt   string `json:"prompt"`
+// ClientCodeSnippetVariant holds the starter template for one language.
+type ClientCodeSnippetVariant struct {
 	Language string `json:"language"`
 	Starter  string `json:"starter"`
+}
+
+// ClientCodeSnippet is the answer-free client view of a code_snippet step.
+// Tests, Solution, and Explanation are stripped — only the starter template is sent.
+type ClientCodeSnippet struct {
+	Prompt    string                              `json:"prompt"`
+	Language  string                              `json:"language"`
+	Starter   string                              `json:"starter"`
+	Languages map[string]ClientCodeSnippetVariant `json:"languages,omitempty"`
 }
 
 // Project builds the answer-free client view of a stored step payload.
@@ -85,7 +89,22 @@ func Project(stepKey, stepType string, position int, payload any, seed string) (
 	case ProsePayload:
 		out.Prose = &ClientProse{Prompt: p.Prompt, MinChars: p.MinChars}
 	case CodeSnippetPayload:
-		out.CodeSnippet = &ClientCodeSnippet{Prompt: p.Prompt, Language: p.Language, Starter: p.Starter}
+		var langs map[string]ClientCodeSnippetVariant
+		if len(p.Languages) > 0 {
+			langs = make(map[string]ClientCodeSnippetVariant, len(p.Languages))
+			for lang, v := range p.Languages {
+				langs[lang] = ClientCodeSnippetVariant{
+					Language: lang,
+					Starter:  v.Starter,
+				}
+			}
+		}
+		out.CodeSnippet = &ClientCodeSnippet{
+			Prompt:    p.Prompt,
+			Language:  p.Language,
+			Starter:   p.Starter,
+			Languages: langs,
+		}
 	default:
 		return ClientStep{}, fmt.Errorf("step %q: unsupported payload %T", stepKey, payload)
 	}
