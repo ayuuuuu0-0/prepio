@@ -109,7 +109,7 @@ func main() {
 	refreshStore := userstore.NewRefreshTokenStore(pool)
 	deviceStore := userstore.NewUserDeviceStore(pool)
 	characterStore := userstore.NewCharacterStore(pool)
-	mailClient := usermailer.NewResendMailer(os.Getenv("RESEND_API_KEY"), os.Getenv("RESEND_FROM_EMAIL"))
+	mailClient := usermailer.NewMailerFromEnv()
 
 	userAuthService := userservice.NewAuthService(userStore, refreshStore, signer, redisClient, mailClient)
 	userService := userservice.NewUserService(userStore, deviceStore)
